@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gerador Automático de Encarte</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <main class="container">
+    <header>
+      <h1>Gerador Automático de Encarte</h1>
+      <p class="subtitle">
+        Faça upload de uma planilha Excel <code>.xlsx</code> e gere o PDF do encarte
+        com 14 ofertas por página.
+      </p>
+    </header>
+
+    <form id="form" enctype="multipart/form-data">
+      <div class="field">
+        <label for="planilha">Planilha Excel (.xlsx)</label>
+        <input id="planilha" name="planilha" type="file" accept=".xlsx" required />
+      </div>
+
+      <div class="row">
+        <div class="field">
+          <label for="mes">Mês da campanha</label>
+          <input id="mes" name="mes" type="text" placeholder="Ex.: MAIO/2026" />
+        </div>
+        <div class="field">
+          <label for="nomeArquivo">Nome do arquivo final</label>
+          <input id="nomeArquivo" name="nomeArquivo" type="text" placeholder="encarte_maio_2026" />
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="field">
+          <label for="validadeInicio">Validade inicial</label>
+          <input id="validadeInicio" name="validadeInicio" type="text" placeholder="01.05.26" required />
+        </div>
+        <div class="field">
+          <label for="validadeFim">Validade final</label>
+          <input id="validadeFim" name="validadeFim" type="text" placeholder="31.05.26" required />
+        </div>
+      </div>
+
+      <button id="submit" type="submit">Gerar PDF</button>
+    </form>
+
+    <section id="status" class="status hidden">
+      <h2>Status</h2>
+      <pre id="log"></pre>
+      <a id="downloadLink" class="btn-download hidden" href="#" download>Baixar PDF</a>
+      <a id="previewLink" class="btn-preview hidden" href="#" target="_blank" rel="noopener">Ver prévia HTML</a>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>

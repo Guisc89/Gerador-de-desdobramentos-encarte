@@ -1,6 +1,6 @@
-# [Project name]
+# Gerador Automático de Encarte
 
-_Replace the heading above with the project's name, and this line with one sentence describing what this app does for users._
+Aplicação web que recebe uma planilha Excel `.xlsx` com produtos e gera um PDF de encarte (14 ofertas por página, 2 colunas × 7 linhas) no estilo amarelo de referência, usando Express + XLSX + Puppeteer.
 
 ## Run & Operate
 
@@ -22,15 +22,27 @@ _Replace the heading above with the project's name, and this line with one sente
 
 ## Where things live
 
-_Populate as you build — short repo map plus pointers to the source-of-truth file for DB schema, API contracts, theme files, etc._
+- Frontend (upload form): `artifacts/api-server/public/{index.html,style.css,app.js}` — servido em `/api/`
+- Rotas do encarte: `artifacts/api-server/src/routes/encarte.ts` (`POST /api/upload`, `GET /api/download/:filename`, `GET /api/preview`)
+- Leitura do Excel: `artifacts/api-server/src/services/excelParser.ts`
+- Formatação de preço: `artifacts/api-server/src/services/priceFormatter.ts`
+- Template HTML/CSS do PDF: `artifacts/api-server/src/services/encarteTemplate.ts`
+- Geração de PDF (Puppeteer): `artifacts/api-server/src/services/pdfGenerator.ts`
+- Resolver do Chromium: `artifacts/api-server/src/lib/chromium.ts`
+- PDFs gerados são salvos em `artifacts/api-server/output/` (cwd do processo).
 
 ## Architecture decisions
 
-_Populate as you build — non-obvious choices a reader couldn't infer from the code (3-5 bullets)._
+- O servidor api-server original foi estendido em vez de criar um novo artifact: roda em TypeScript/ESM com bundle esbuild, mas o frontend é HTML/CSS/JS estático servido via `express.static`.
+- Puppeteer usa o Chromium do sistema (instalado via Nix). O caminho é resolvido em runtime por `which chromium`, com fallback para `PUPPETEER_EXECUTABLE_PATH`.
+- O parser do Excel detecta automaticamente a aba que começa com "ENCARTE", localiza o cabeçalho buscando por "Descrição" e "Venda Encarte" (tolerante a colunas vazias entre eles), e usa a coluna seguinte à descrição como descrição complementar.
+- O template do PDF usa CSS Grid (2×7) com `@page A4` e divisórias pontilhadas (vertical entre colunas, horizontal entre linhas via `border-bottom` dos cards).
 
 ## Product
 
-_Describe the high-level user-facing capabilities of this app once they exist._
+- Tela `/api/` com upload de planilha `.xlsx`, campos de mês, validade inicial/final e nome do arquivo.
+- Geração automática do PDF e link de download; prévia HTML disponível em `/api/preview`.
+- Logs detalhados (abas encontradas, aba usada, total/válidos/inválidos, pendentes sem preço).
 
 ## User preferences
 
@@ -38,7 +50,9 @@ _Populate as you build — explicit user instructions worth remembering across s
 
 ## Gotchas
 
-_Populate as you build — sharp edges, "always run X before Y" rules._
+- O Chromium precisa estar disponível como dependência de sistema (já instalada via Nix). Se faltar, `htmlToPdf` lança erro pedindo `PUPPETEER_EXECUTABLE_PATH`.
+- `puppeteer` está na lista `external` do `build.mjs` — não é bundleado. Mantenha-o em `node_modules`.
+- Toda a aplicação fica sob o prefixo `/api` (proxy do workspace). A UI é `/api/` e o upload é `POST /api/upload`.
 
 ## Pointers
 

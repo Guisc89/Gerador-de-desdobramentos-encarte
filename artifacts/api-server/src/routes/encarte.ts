@@ -1,0 +1,140 @@
+import { Router, type IRouter } from "express";
+import multer from "multer";
+import path from "node:path";
+import fs from "node:fs/promises";
+import { existsSync } from "node:fs";
+import { parseExcel } from "../services/excelParser";
+import { renderEncarteHtml } from "../services/encarteTemplate";
+import { htmlToPdf } from "../services/pdfGenerator";
+
+const router: IRouter = Router();
+
+const OUTPUT_DIR = path.resolve(process.cwd(), "output");
+if (!existsSync(OUTPUT_DIR)) {
+  // synchronous mkdir is fine at startup
+  // eslint-disable-next-line @typescript-eslint/no-floating-promises
+  fs.mkdir(OUTPUT_DIR, { recursive: true });
+}
+
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 25 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    const ok =
+      file.originalname.toLowerCase().endsWith(".xlsx") ||
+      file.mimetype.includes("spreadsheet") ||
+      file.mimetype.includes("excel");
+    if (!ok) {
+      cb(new Error("Apenas arquivos .xlsx são aceitos"));
+      return;
+    }
+    cb(null, true);
+  },
+});
+
+let lastHtml: string | null = null;
+
+function safeName(input: string): string {
+  const cleaned = input
+    .replace(/\.pdf$/i, "")
+    .replace(/[^a-zA-Z0-9_\-\s]/g, "")
+    .trim()
+    .replace(/\s+/g, "_");
+  return cleaned || `encarte_${Date.now()}`;
+}
+
+router.post("/upload", upload.single("planilha"), async (req, res) => {
+  try {
+    if (!req.file) {
+      res.status(400).json({ error: "Nenhum arquivo enviado." });
+      return;
+    }
+
+    const validadeInicio = String(req.body?.validadeInicio ?? "").trim();
+    const validadeFim = String(req.body?.validadeFim ?? "").trim();
+    const mes = String(req.body?.mes ?? "").trim();
+    const nomeArquivoRaw = String(req.body?.nomeArquivo ?? "").trim() || "encarte";
+
+    req.log.info(
+      {
+        filename: req.file.originalname,
+        size: req.file.size,
+        validadeInicio,
+        validadeFim,
+        mes,
+      },
+      "Upload recebido",
+    );
+
+    const parsed = parseExcel(req.file.buffer, { validadeInicio, validadeFim });
+
+    req.log.info(
+      {
+        sheetsFound: parsed.abasEncontradas,
+        sheetUsed: parsed.abaUtilizada,
+        total: parsed.total,
+        validos: parsed.validos,
+        invalidos: parsed.invalidos,
+      },
+      "Planilha processada",
+    );
+
+    if (parsed.validos === 0) {
+      res
+        .status(400)
+        .json({ error: "Nenhum produto válido encontrado na planilha." });
+      return;
+    }
+
+    const html = renderEncarteHtml(parsed.produtos, { mes });
+    lastHtml = html;
+    const pdf = await htmlToPdf(html);
+
+    const filename = `${safeName(nomeArquivoRaw)}.pdf`;
+    const filepath = path.join(OUTPUT_DIR, filename);
+    await fs.writeFile(filepath, pdf);
+
+    req.log.info({ filepath, sizeBytes: pdf.length }, "PDF gerado");
+
+    res.json({
+      ok: true,
+      filename,
+      downloadUrl: `/api/download/${encodeURIComponent(filename)}`,
+      previewUrl: `/api/preview`,
+      stats: {
+        abaUtilizada: parsed.abaUtilizada,
+        abasEncontradas: parsed.abasEncontradas,
+        totalLidos: parsed.total,
+        validos: parsed.validos,
+        invalidos: parsed.invalidos,
+        pendentes: parsed.pendentes,
+        paginas: Math.ceil(parsed.validos / 14),
+      },
+    });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Erro desconhecido";
+    req.log.error({ err }, "Erro ao processar upload");
+    res.status(500).json({ error: message });
+  }
+});
+
+router.get("/download/:filename", async (req, res) => {
+  const { filename } = req.params;
+  const safe = path.basename(filename);
+  const filepath = path.join(OUTPUT_DIR, safe);
+  if (!existsSync(filepath)) {
+    res.status(404).json({ error: "Arquivo não encontrado." });
+    return;
+  }
+  res.download(filepath, safe);
+});
+
+router.get("/preview", (_req, res) => {
+  if (!lastHtml) {
+    res.status(404).send("<h1>Nenhum encarte gerado ainda.</h1>");
+    return;
+  }
+  res.type("html").send(lastHtml);
+});
+
+export default router;
