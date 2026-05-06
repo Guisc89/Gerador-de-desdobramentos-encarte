@@ -7,4 +7,5 @@ const router: IRouter = Router();
 router.use(healthRouter);
 router.use(encarteRouter);
 
+
 export default router;

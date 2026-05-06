@@ -9,7 +9,8 @@ Aplicação web que recebe uma planilha Excel `.xlsx` com produtos e gera um PDF
 - `pnpm run build` — typecheck + build all packages
 - `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
 - `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
-- Required env: `DATABASE_URL` — Postgres connection string
+- Required env: `DATABASE_URL` — Postgres connection string; `SESSION_SECRET` — segredo da sessão de login.
+- Senha de acesso (hardcoded em `src/routes/auth.ts`): `encarteassociadas`.
 
 ## Stack
 
@@ -22,8 +23,10 @@ Aplicação web que recebe uma planilha Excel `.xlsx` com produtos e gera um PDF
 
 ## Where things live
 
-- Frontend (upload form): `artifacts/api-server/public/{index.html,style.css,app.js}` — servido em `/api/`
-- Rotas do encarte: `artifacts/api-server/src/routes/encarte.ts` (`POST /api/upload`, `GET /api/download/:filename`, `GET /api/preview`)
+- Frontend (upload form): `artifacts/api-server/public/{index.html,style.css,app.js}` — servido em `/api/` (protegido por login).
+- Tela de login: `artifacts/api-server/public/{login.html,login.css,login.js}` + logo em `public/logo.png`.
+- Auth: `src/routes/auth.ts` (`GET/POST /api/login`, `POST /api/logout`) + middleware `src/middlewares/auth.ts`. Sessão via `express-session` (cookie `encarte.sid`, 8h).
+- Rotas do encarte: `artifacts/api-server/src/routes/encarte.ts` (`POST /api/upload`, `POST /api/generate`, `GET /api/download/:filename`, `GET /api/preview?edit=1`)
 - Leitura do Excel: `artifacts/api-server/src/services/excelParser.ts`
 - Formatação de preço: `artifacts/api-server/src/services/priceFormatter.ts`
 - Template HTML/CSS do PDF: `artifacts/api-server/src/services/encarteTemplate.ts`
