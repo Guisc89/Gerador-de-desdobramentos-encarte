@@ -50,32 +50,29 @@
     <section id="status" class="status hidden">
       <h2>Status</h2>
       <pre id="log"></pre>
-      <div class="actions">
-        <a id="downloadLink" class="btn-download hidden" href="#" download>Baixar PDF</a>
-      </div>
     </section>
 
     <section id="editor" class="editor-section hidden">
       <div class="editor-header">
-        <h2>Edite o encarte e atualize o PDF</h2>
+        <h2>Edite o encarte e baixe o PDF</h2>
         <div class="actions">
           <button id="regenerateBtn" type="button">Atualizar PDF</button>
+          <a id="downloadLink" class="btn-download" href="#" download>Baixar PDF</a>
         </div>
       </div>
       <div class="editor-hint">
-        Clique em qualquer texto do encarte (nome, descrição, validade ou preço) para editar
-        diretamente. Pressione <strong>Enter</strong> ou clique fora para confirmar.
-        Depois clique em <strong>Atualizar PDF</strong> para gerar a nova versão.
+        Clique em qualquer texto do encarte (nome, descrição, validade ou preço) para editar.
+        Pressione <strong>Enter</strong> ou clique fora para confirmar.
+        Depois clique em <strong>Atualizar PDF</strong> para salvar as mudanças e
+        em <strong>Baixar PDF</strong> para baixar o arquivo final.
       </div>
       <div class="preview-pane">
         <div class="preview-toolbar">
           <strong>Prévia editável</strong>
           <span id="previewCount"></span>
           <span class="toolbar-spacer"></span>
-          <div class="toolbar-toggle" role="tablist">
-            <button id="modeEdit" type="button" class="active">Editar (HTML)</button>
-            <button id="modePdf" type="button">Ver PDF</button>
-          </div>
+          <span id="dirtyBadge" class="dirty-badge hidden">Alterações não salvas</span>
+          <span id="savedBadge" class="saved-badge hidden">PDF atualizado</span>
         </div>
         <iframe id="previewFrame" title="Prévia do encarte"></iframe>
       </div>

@@ -2,21 +2,21 @@
   const form = document.getElementById("form");
   const statusEl = document.getElementById("status");
   const logEl = document.getElementById("log");
-  const downloadLink = document.getElementById("downloadLink");
   const submitBtn = document.getElementById("submit");
 
   const editorSection = document.getElementById("editor");
   const regenerateBtn = document.getElementById("regenerateBtn");
+  const downloadLink = document.getElementById("downloadLink");
   const previewFrame = document.getElementById("previewFrame");
   const previewCount = document.getElementById("previewCount");
-  const modeEditBtn = document.getElementById("modeEdit");
-  const modePdfBtn = document.getElementById("modePdf");
+  const dirtyBadge = document.getElementById("dirtyBadge");
+  const savedBadge = document.getElementById("savedBadge");
 
   let produtos = [];
   let currentMes = "";
   let currentNome = "encarte";
   let currentDownloadUrl = "";
-  let mode = "edit"; // "edit" or "pdf"
+  let dirty = false;
 
   function log(line) {
     logEl.textContent += line + "\n";
@@ -26,35 +26,40 @@
   function reset() {
     statusEl.classList.remove("hidden");
     logEl.textContent = "";
-    downloadLink.classList.add("hidden");
   }
 
   function updateCount() {
     previewCount.textContent = `· ${produtos.length} produtos · ${Math.ceil(produtos.length / 14)} páginas`;
   }
 
-  function setMode(newMode) {
-    mode = newMode;
-    if (mode === "edit") {
-      modeEditBtn.classList.add("active");
-      modePdfBtn.classList.remove("active");
-      previewFrame.src = "/api/preview?edit=1&v=" + Date.now();
+  function setDirty(isDirty) {
+    dirty = isDirty;
+    if (isDirty) {
+      dirtyBadge.classList.remove("hidden");
+      savedBadge.classList.add("hidden");
+      downloadLink.classList.add("disabled");
+      downloadLink.setAttribute("aria-disabled", "true");
     } else {
-      modePdfBtn.classList.add("active");
-      modeEditBtn.classList.remove("active");
-      if (currentDownloadUrl) {
-        previewFrame.src = currentDownloadUrl + "?t=" + Date.now();
-      }
+      dirtyBadge.classList.add("hidden");
+      downloadLink.classList.remove("disabled");
+      downloadLink.removeAttribute("aria-disabled");
     }
   }
 
-  modeEditBtn.addEventListener("click", () => setMode("edit"));
-  modePdfBtn.addEventListener("click", () => setMode("pdf"));
+  function flashSaved() {
+    savedBadge.classList.remove("hidden");
+    setTimeout(() => savedBadge.classList.add("hidden"), 2500);
+  }
+
+  function loadEditablePreview() {
+    previewFrame.src = "/api/preview?edit=1&v=" + Date.now();
+  }
 
   // Receive edits from the inline editable preview
   window.addEventListener("message", (ev) => {
     const data = ev.data;
     if (!data || data.type !== "encarte-edit" || !Array.isArray(data.changes)) return;
+    let changedAny = false;
     data.changes.forEach((c) => {
       if (typeof c.idx !== "number" || !c.field || !produtos[c.idx]) return;
       let value = String(c.value || "").trim();
@@ -63,22 +68,31 @@
       } else if (c.field === "precoInteiro") {
         value = value.replace(/\D/g, "") || "0";
       }
-      produtos[c.idx][c.field] = value;
+      if (produtos[c.idx][c.field] !== value) {
+        produtos[c.idx][c.field] = value;
+        changedAny = true;
+      }
     });
+    if (changedAny) setDirty(true);
   });
 
-  function showInitialPreview(downloadUrl) {
-    currentDownloadUrl = downloadUrl;
-    downloadLink.href = downloadUrl;
-    downloadLink.classList.remove("hidden");
-    setMode("edit"); // default to editable HTML preview
-  }
+  // Block download link when there are unsaved edits
+  downloadLink.addEventListener("click", (ev) => {
+    if (dirty) {
+      ev.preventDefault();
+      const ok = confirm(
+        "Você tem edições não salvas. Clique em 'Atualizar PDF' antes de baixar.\n\nBaixar mesmo assim a versão anterior?",
+      );
+      if (!ok) return;
+      // allow download of stale version
+    }
+  });
 
   form.addEventListener("submit", async (ev) => {
     ev.preventDefault();
     reset();
     submitBtn.disabled = true;
-    submitBtn.textContent = "Gerando...";
+    submitBtn.textContent = "Processando...";
 
     const fd = new FormData(form);
     currentMes = String(fd.get("mes") || "").trim();
@@ -107,12 +121,16 @@
           data.stats.pendentes.forEach((p) => log("  - " + p));
         }
       }
-      log("PDF gerado: " + data.filename);
+      log("PDF pronto: " + data.filename);
+      log("Edite os produtos diretamente na prévia abaixo.");
 
       produtos = Array.isArray(data.produtos) ? data.produtos : [];
+      currentDownloadUrl = data.downloadUrl;
+      downloadLink.href = data.downloadUrl;
       updateCount();
       editorSection.classList.remove("hidden");
-      showInitialPreview(data.downloadUrl);
+      setDirty(false);
+      loadEditablePreview();
     } catch (err) {
       log("Erro inesperado: " + (err && err.message ? err.message : String(err)));
     } finally {
@@ -128,7 +146,7 @@
     }
     regenerateBtn.disabled = true;
     regenerateBtn.textContent = "Atualizando...";
-    log("Regerando PDF com edições...");
+    log("Aplicando edições e regerando PDF...");
 
     try {
       const res = await fetch("/api/generate", {
@@ -145,12 +163,14 @@
         log("Erro: " + (data && data.error ? data.error : res.statusText));
         return;
       }
-      log("PDF atualizado: " + data.filename);
+      log("PDF atualizado: " + data.filename + " (" + data.stats.validos + " produtos)");
       updateCount();
       currentDownloadUrl = data.downloadUrl;
       downloadLink.href = data.downloadUrl;
-      // refresh the current view with new data
-      setMode(mode);
+      setDirty(false);
+      flashSaved();
+      // refresh the editable preview to confirm server-side state matches edits
+      loadEditablePreview();
     } catch (err) {
       log("Erro inesperado: " + (err && err.message ? err.message : String(err)));
     } finally {
