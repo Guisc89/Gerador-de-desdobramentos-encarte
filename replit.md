@@ -23,6 +23,7 @@ Aplicação web que recebe uma planilha Excel `.xlsx` com produtos e gera um PDF
 
 ## Where things live
 
+- Redirect raiz: `artifacts/web/` é um artefato React+Vite minúsculo cujo único papel é redirecionar `/` para `/api/` (via `<meta http-equiv="refresh">` + `window.location.replace` em `src/App.tsx`). Existe só para que o publicador da Replit reconheça o projeto como "web app" deployável (o api-server tem `kind = "api"` e sozinho não aparecia no fluxo de publicação).
 - Frontend (upload form): `artifacts/api-server/public/{index.html,style.css,app.js}` — servido em `/api/` (protegido por login).
 - Tela de login: `artifacts/api-server/public/{login.html,login.css,login.js}` + logo em `public/logo.png`.
 - Auth: `src/routes/auth.ts` (`GET/POST /api/login`, `POST /api/logout`) + middleware `src/middlewares/auth.ts`. Sessão via `express-session` (cookie `encarte.sid`, 8h).
