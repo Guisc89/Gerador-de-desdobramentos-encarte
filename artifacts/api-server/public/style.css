@@ -292,6 +292,41 @@ button:disabled {
   filter: grayscale(0.4);
 }
 
+.bg-toggle {
+  display: inline-flex;
+  border: 1px solid #01aba8;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #fff;
+}
+
+.bg-toggle .bg-opt {
+  margin: 0;
+  padding: 10px 14px;
+  background: #fff;
+  color: #014f4e;
+  border: none;
+  border-radius: 0;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.bg-toggle .bg-opt + .bg-opt {
+  border-left: 1px solid #01aba8;
+}
+
+.bg-toggle .bg-opt:hover {
+  background: #e6fafa;
+  transform: none;
+}
+
+.bg-toggle .bg-opt.active {
+  background: #01aba8;
+  color: #fff;
+}
+
 .editor-hint {
   padding: 8px 12px;
   background: #e6fafa;

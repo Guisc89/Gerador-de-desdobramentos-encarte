@@ -16,7 +16,11 @@
   let currentMes = "";
   let currentNome = "encarte";
   let currentDownloadUrl = "";
+  let currentBg = "white";
   let dirty = false;
+
+  const bgToggle = document.getElementById("bgToggle");
+  const bgButtons = bgToggle ? Array.from(bgToggle.querySelectorAll(".bg-opt")) : [];
 
   function log(line) {
     logEl.textContent += line + "\n";
@@ -52,8 +56,27 @@
   }
 
   function loadEditablePreview() {
-    previewFrame.src = "/api/preview?edit=1&v=" + Date.now();
+    previewFrame.src =
+      "/api/preview?edit=1&bg=" +
+      encodeURIComponent(currentBg) +
+      "&v=" +
+      Date.now();
   }
+
+  function setBg(next) {
+    if (next !== "white" && next !== "color") return;
+    if (currentBg === next) return;
+    currentBg = next;
+    bgButtons.forEach((b) => {
+      b.classList.toggle("active", b.dataset.bg === next);
+    });
+    setDirty(true);
+    loadEditablePreview();
+  }
+
+  bgButtons.forEach((b) => {
+    b.addEventListener("click", () => setBg(b.dataset.bg));
+  });
 
   // Receive edits from the inline editable preview
   window.addEventListener("message", (ev) => {
@@ -97,6 +120,7 @@
     const fd = new FormData(form);
     currentMes = String(fd.get("mes") || "").trim();
     currentNome = String(fd.get("nomeArquivo") || "encarte").trim() || "encarte";
+    fd.set("bg", currentBg);
 
     log("Enviando planilha...");
 
@@ -156,6 +180,7 @@
           produtos,
           nomeArquivo: currentNome,
           mes: currentMes,
+          bg: currentBg,
         }),
       });
       const data = await res.json();

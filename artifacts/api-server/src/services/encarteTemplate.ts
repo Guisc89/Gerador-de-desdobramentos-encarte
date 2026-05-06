@@ -1,6 +1,30 @@
+import fs from "node:fs";
+import path from "node:path";
 import type { Produto } from "./excelParser";
 
 const PRODUTOS_POR_PAGINA = 14;
+
+export type EncarteBg = "white" | "color";
+
+let cachedBgDataUri: string | null = null;
+function loadBgDataUri(): string {
+  if (cachedBgDataUri) return cachedBgDataUri;
+  const candidates = [
+    path.resolve(process.cwd(), "public/fundo.png"),
+    path.resolve(process.cwd(), "artifacts/api-server/public/fundo.png"),
+  ];
+  for (const p of candidates) {
+    try {
+      const buf = fs.readFileSync(p);
+      cachedBgDataUri = `data:image/png;base64,${buf.toString("base64")}`;
+      return cachedBgDataUri;
+    } catch {
+      /* try next */
+    }
+  }
+  cachedBgDataUri = "";
+  return cachedBgDataUri;
+}
 
 function escapeHtml(s: string): string {
   return s
@@ -65,6 +89,7 @@ function renderPage(
 export interface RenderOptions {
   mes?: string;
   editable?: boolean;
+  bg?: EncarteBg;
 }
 
 export function renderEncarteHtml(
@@ -72,6 +97,12 @@ export function renderEncarteHtml(
   opts: RenderOptions = {},
 ): string {
   const editable = opts.editable === true;
+  const bg: EncarteBg = opts.bg === "color" ? "color" : "white";
+  const bgDataUri = bg === "color" ? loadBgDataUri() : "";
+  const pageBgCss =
+    bg === "color" && bgDataUri
+      ? `background: #ffd400 url("${bgDataUri}") center top / 210mm 297mm no-repeat;`
+      : `background: #ffffff;`;
   const pages = chunk(produtos, PRODUTOS_POR_PAGINA);
   if (pages.length === 0) {
     pages.push([]);
@@ -133,7 +164,7 @@ export function renderEncarteHtml(
     width: 210mm;
     height: 297mm;
     padding: 8mm 8mm 8mm 8mm;
-    background: #ffffff;
+    ${pageBgCss}
     page-break-after: always;
     position: relative;
     overflow: hidden;

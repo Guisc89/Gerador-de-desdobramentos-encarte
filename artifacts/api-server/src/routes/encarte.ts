@@ -4,7 +4,7 @@ import path from "node:path";
 import fs from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { parseExcel, type Produto } from "../services/excelParser";
-import { renderEncarteHtml } from "../services/encarteTemplate";
+import { renderEncarteHtml, type EncarteBg } from "../services/encarteTemplate";
 import { htmlToPdf } from "../services/pdfGenerator";
 
 const router: IRouter = Router();
@@ -35,6 +35,11 @@ const upload = multer({
 let lastHtml: string | null = null;
 let lastProdutos: Produto[] = [];
 let lastMes = "";
+let lastBg: EncarteBg = "white";
+
+function parseBg(value: unknown): EncarteBg {
+  return value === "color" ? "color" : "white";
+}
 
 function safeName(input: string): string {
   const cleaned = input
@@ -88,10 +93,12 @@ router.post("/upload", upload.single("planilha"), async (req, res) => {
       return;
     }
 
-    const html = renderEncarteHtml(parsed.produtos, { mes });
+    const bg = parseBg(req.body?.bg);
+    const html = renderEncarteHtml(parsed.produtos, { mes, bg });
     lastHtml = html;
     lastProdutos = parsed.produtos;
     lastMes = mes;
+    lastBg = bg;
     const pdf = await htmlToPdf(html);
 
     const filename = `${safeName(nomeArquivoRaw)}.pdf`;
@@ -162,11 +169,13 @@ router.post("/generate", async (req, res) => {
 
     const mes = String(body.mes ?? "").trim();
     const nomeArquivoRaw = String(body.nomeArquivo ?? "").trim() || "encarte";
+    const bg = parseBg(body.bg);
 
-    const html = renderEncarteHtml(produtos, { mes });
+    const html = renderEncarteHtml(produtos, { mes, bg });
     lastHtml = html;
     lastProdutos = produtos;
     lastMes = mes;
+    lastBg = bg;
     const pdf = await htmlToPdf(html);
 
     const filename = `${safeName(nomeArquivoRaw)}.pdf`;
@@ -212,7 +221,12 @@ router.get("/preview", (req, res) => {
     return;
   }
   const editable = req.query["edit"] === "1";
-  const html = renderEncarteHtml(lastProdutos, { mes: lastMes, editable });
+  const bg = req.query["bg"] !== undefined ? parseBg(req.query["bg"]) : lastBg;
+  const html = renderEncarteHtml(lastProdutos, {
+    mes: lastMes,
+    editable,
+    bg,
+  });
   res.type("html").send(html);
 });
 
