@@ -3,18 +3,20 @@
   const statusEl = document.getElementById("status");
   const logEl = document.getElementById("log");
   const downloadLink = document.getElementById("downloadLink");
-  const previewLink = document.getElementById("previewLink");
   const submitBtn = document.getElementById("submit");
 
   const editorSection = document.getElementById("editor");
-  const productListEl = document.getElementById("productList");
   const regenerateBtn = document.getElementById("regenerateBtn");
-  const pdfFrame = document.getElementById("pdfFrame");
+  const previewFrame = document.getElementById("previewFrame");
   const previewCount = document.getElementById("previewCount");
+  const modeEditBtn = document.getElementById("modeEdit");
+  const modePdfBtn = document.getElementById("modePdf");
 
   let produtos = [];
   let currentMes = "";
   let currentNome = "encarte";
+  let currentDownloadUrl = "";
+  let mode = "edit"; // "edit" or "pdf"
 
   function log(line) {
     logEl.textContent += line + "\n";
@@ -25,95 +27,51 @@
     statusEl.classList.remove("hidden");
     logEl.textContent = "";
     downloadLink.classList.add("hidden");
-    previewLink.classList.add("hidden");
   }
 
-  function renderProducts() {
-    productListEl.innerHTML = "";
-    previewCount.textContent = `(${produtos.length} produtos · ${Math.ceil(produtos.length / 14)} páginas)`;
+  function updateCount() {
+    previewCount.textContent = `· ${produtos.length} produtos · ${Math.ceil(produtos.length / 14)} páginas`;
+  }
 
-    produtos.forEach((p, idx) => {
-      const item = document.createElement("div");
-      item.className = "product-item";
-      item.innerHTML = `
-        <div class="product-item-header">
-          <span class="product-index">#${idx + 1}</span>
-          <button type="button" class="product-remove" data-idx="${idx}">Remover</button>
-        </div>
-        <div class="product-grid">
-          <div class="field">
-            <label>Nome</label>
-            <input type="text" data-field="nome" data-idx="${idx}" value="${escapeAttr(p.nome)}" />
-          </div>
-          <div class="field">
-            <label>Descrição</label>
-            <input type="text" data-field="descricao" data-idx="${idx}" value="${escapeAttr(p.descricao || "")}" />
-          </div>
-          <div class="field">
-            <label>R$ Inteiro</label>
-            <input type="text" data-field="precoInteiro" data-idx="${idx}" value="${escapeAttr(p.precoInteiro)}" />
-          </div>
-          <div class="field">
-            <label>Centavos</label>
-            <input type="text" data-field="precoCentavos" data-idx="${idx}" value="${escapeAttr(p.precoCentavos)}" />
-          </div>
-          <div class="field">
-            <label>Validade início</label>
-            <input type="text" data-field="validadeInicio" data-idx="${idx}" value="${escapeAttr(p.validadeInicio || "")}" />
-          </div>
-          <div class="field">
-            <label>Validade fim</label>
-            <input type="text" data-field="validadeFim" data-idx="${idx}" value="${escapeAttr(p.validadeFim || "")}" />
-          </div>
-          <div class="field">
-            <label>Fabricante</label>
-            <input type="text" data-field="fabricante" data-idx="${idx}" value="${escapeAttr(p.fabricante || "")}" />
-          </div>
-          <div class="field">
-            <label>EAN</label>
-            <input type="text" data-field="ean" data-idx="${idx}" value="${escapeAttr(p.ean || "")}" />
-          </div>
-        </div>
-      `;
-      productListEl.appendChild(item);
+  function setMode(newMode) {
+    mode = newMode;
+    if (mode === "edit") {
+      modeEditBtn.classList.add("active");
+      modePdfBtn.classList.remove("active");
+      previewFrame.src = "/api/preview?edit=1&v=" + Date.now();
+    } else {
+      modePdfBtn.classList.add("active");
+      modeEditBtn.classList.remove("active");
+      if (currentDownloadUrl) {
+        previewFrame.src = currentDownloadUrl + "?t=" + Date.now();
+      }
+    }
+  }
+
+  modeEditBtn.addEventListener("click", () => setMode("edit"));
+  modePdfBtn.addEventListener("click", () => setMode("pdf"));
+
+  // Receive edits from the inline editable preview
+  window.addEventListener("message", (ev) => {
+    const data = ev.data;
+    if (!data || data.type !== "encarte-edit" || !Array.isArray(data.changes)) return;
+    data.changes.forEach((c) => {
+      if (typeof c.idx !== "number" || !c.field || !produtos[c.idx]) return;
+      let value = String(c.value || "").trim();
+      if (c.field === "precoCentavos") {
+        value = value.replace(/\D/g, "").slice(0, 2).padStart(2, "0");
+      } else if (c.field === "precoInteiro") {
+        value = value.replace(/\D/g, "") || "0";
+      }
+      produtos[c.idx][c.field] = value;
     });
-  }
-
-  function escapeAttr(s) {
-    return String(s == null ? "" : s)
-      .replace(/&/g, "&amp;")
-      .replace(/"/g, "&quot;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;");
-  }
-
-  productListEl.addEventListener("input", (ev) => {
-    const t = ev.target;
-    if (!(t instanceof HTMLInputElement)) return;
-    const idx = Number(t.getAttribute("data-idx"));
-    const field = t.getAttribute("data-field");
-    if (!field || Number.isNaN(idx) || !produtos[idx]) return;
-    produtos[idx][field] = t.value;
   });
 
-  productListEl.addEventListener("click", (ev) => {
-    const t = ev.target;
-    if (!(t instanceof HTMLElement)) return;
-    if (!t.classList.contains("product-remove")) return;
-    const idx = Number(t.getAttribute("data-idx"));
-    if (Number.isNaN(idx)) return;
-    produtos.splice(idx, 1);
-    renderProducts();
-  });
-
-  function showPdf(downloadUrl) {
-    // bust the iframe cache so the updated PDF shows
-    const cacheBuster = "?t=" + Date.now();
-    pdfFrame.src = downloadUrl + cacheBuster;
+  function showInitialPreview(downloadUrl) {
+    currentDownloadUrl = downloadUrl;
     downloadLink.href = downloadUrl;
     downloadLink.classList.remove("hidden");
-    previewLink.href = "/api/preview";
-    previewLink.classList.remove("hidden");
+    setMode("edit"); // default to editable HTML preview
   }
 
   form.addEventListener("submit", async (ev) => {
@@ -152,9 +110,9 @@
       log("PDF gerado: " + data.filename);
 
       produtos = Array.isArray(data.produtos) ? data.produtos : [];
-      renderProducts();
+      updateCount();
       editorSection.classList.remove("hidden");
-      showPdf(data.downloadUrl);
+      showInitialPreview(data.downloadUrl);
     } catch (err) {
       log("Erro inesperado: " + (err && err.message ? err.message : String(err)));
     } finally {
@@ -188,8 +146,11 @@
         return;
       }
       log("PDF atualizado: " + data.filename);
-      previewCount.textContent = `(${produtos.length} produtos · ${Math.ceil(produtos.length / 14)} páginas)`;
-      showPdf(data.downloadUrl);
+      updateCount();
+      currentDownloadUrl = data.downloadUrl;
+      downloadLink.href = data.downloadUrl;
+      // refresh the current view with new data
+      setMode(mode);
     } catch (err) {
       log("Erro inesperado: " + (err && err.message ? err.message : String(err)));
     } finally {

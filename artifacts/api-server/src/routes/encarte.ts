@@ -33,6 +33,8 @@ const upload = multer({
 });
 
 let lastHtml: string | null = null;
+let lastProdutos: Produto[] = [];
+let lastMes = "";
 
 function safeName(input: string): string {
   const cleaned = input
@@ -88,6 +90,8 @@ router.post("/upload", upload.single("planilha"), async (req, res) => {
 
     const html = renderEncarteHtml(parsed.produtos, { mes });
     lastHtml = html;
+    lastProdutos = parsed.produtos;
+    lastMes = mes;
     const pdf = await htmlToPdf(html);
 
     const filename = `${safeName(nomeArquivoRaw)}.pdf`;
@@ -161,6 +165,8 @@ router.post("/generate", async (req, res) => {
 
     const html = renderEncarteHtml(produtos, { mes });
     lastHtml = html;
+    lastProdutos = produtos;
+    lastMes = mes;
     const pdf = await htmlToPdf(html);
 
     const filename = `${safeName(nomeArquivoRaw)}.pdf`;
@@ -200,12 +206,14 @@ router.get("/download/:filename", async (req, res) => {
   res.download(filepath, safe);
 });
 
-router.get("/preview", (_req, res) => {
-  if (!lastHtml) {
+router.get("/preview", (req, res) => {
+  if (!lastProdutos || lastProdutos.length === 0) {
     res.status(404).send("<h1>Nenhum encarte gerado ainda.</h1>");
     return;
   }
-  res.type("html").send(lastHtml);
+  const editable = req.query["edit"] === "1";
+  const html = renderEncarteHtml(lastProdutos, { mes: lastMes, editable });
+  res.type("html").send(html);
 });
 
 export default router;

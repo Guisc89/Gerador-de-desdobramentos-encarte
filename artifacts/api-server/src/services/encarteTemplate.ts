@@ -19,28 +19,30 @@ function chunk<T>(arr: T[], size: number): T[][] {
   return result;
 }
 
-function renderCard(p: Produto | null): string {
+function renderCard(p: Produto | null, idx: number, editable: boolean): string {
   if (!p) return `<div class="card empty"></div>`;
-  const validade =
-    p.validadeInicio && p.validadeFim
-      ? `${p.validadeInicio} a ${p.validadeFim}`
-      : "";
+  const ed = editable ? ` contenteditable="true" spellcheck="false"` : "";
+  const dataIdx = ` data-idx="${idx}"`;
   return `
-    <div class="card">
+    <div class="card" data-card-idx="${idx}">
       <div class="card-top">
-        <div class="nome">${escapeHtml(p.nome)}</div>
-        ${p.descricao ? `<div class="descricao">${escapeHtml(p.descricao)}</div>` : ""}
+        <div class="nome"${ed}${dataIdx} data-field="nome">${escapeHtml(p.nome)}</div>
+        <div class="descricao"${ed}${dataIdx} data-field="descricao">${escapeHtml(p.descricao || "")}</div>
       </div>
       <div class="card-bottom">
         <div class="validade">
           <div class="validade-label">Validade:</div>
-          <div class="validade-data">${escapeHtml(validade)}</div>
+          <div class="validade-data">
+            <span${ed}${dataIdx} data-field="validadeInicio">${escapeHtml(p.validadeInicio || "")}</span>
+            <span class="validade-sep"> a </span>
+            <span${ed}${dataIdx} data-field="validadeFim">${escapeHtml(p.validadeFim || "")}</span>
+          </div>
         </div>
         <div class="preco">
           <span class="preco-rs">R$</span>
-          <span class="preco-int">${escapeHtml(p.precoInteiro)}</span><span class="preco-virgula">,</span>
+          <span class="preco-int"${ed}${dataIdx} data-field="precoInteiro">${escapeHtml(p.precoInteiro)}</span><span class="preco-virgula">,</span>
           <span class="preco-cent-wrap">
-            <span class="preco-cent">${escapeHtml(p.precoCentavos)}</span>
+            <span class="preco-cent"${ed}${dataIdx} data-field="precoCentavos">${escapeHtml(p.precoCentavos)}</span>
             <span class="preco-cada">cada</span>
           </span>
         </div>
@@ -48,28 +50,64 @@ function renderCard(p: Produto | null): string {
     </div>`;
 }
 
-function renderPage(produtos: (Produto | null)[]): string {
+function renderPage(
+  produtos: (Produto | null)[],
+  pageOffset: number,
+  editable: boolean,
+): string {
   const cells: string[] = [];
   for (let i = 0; i < PRODUTOS_POR_PAGINA; i++) {
-    cells.push(renderCard(produtos[i] ?? null));
+    cells.push(renderCard(produtos[i] ?? null, pageOffset + i, editable));
   }
   return `<section class="page"><div class="grid">${cells.join("")}</div></section>`;
 }
 
 export interface RenderOptions {
   mes?: string;
+  editable?: boolean;
 }
 
 export function renderEncarteHtml(
   produtos: Produto[],
-  _opts: RenderOptions = {},
+  opts: RenderOptions = {},
 ): string {
+  const editable = opts.editable === true;
   const pages = chunk(produtos, PRODUTOS_POR_PAGINA);
   if (pages.length === 0) {
     pages.push([]);
   }
 
-  const body = pages.map((p) => renderPage(p)).join("\n");
+  const body = pages
+    .map((p, pageIdx) =>
+      renderPage(p, pageIdx * PRODUTOS_POR_PAGINA, editable),
+    )
+    .join("\n");
+
+  const editorScript = editable
+    ? `<script>
+      (function(){
+        function send(){
+          var changes = [];
+          document.querySelectorAll('[contenteditable="true"][data-idx][data-field]').forEach(function(el){
+            changes.push({ idx: Number(el.getAttribute('data-idx')), field: el.getAttribute('data-field'), value: el.innerText.trim() });
+          });
+          parent.postMessage({ type: 'encarte-edit', changes: changes }, '*');
+        }
+        document.addEventListener('input', function(ev){
+          if (ev.target && ev.target.hasAttribute('contenteditable')) send();
+        });
+        document.addEventListener('blur', function(ev){
+          if (ev.target && ev.target.hasAttribute && ev.target.hasAttribute('contenteditable')) send();
+        }, true);
+        document.addEventListener('keydown', function(ev){
+          if (ev.key === 'Enter' && ev.target && ev.target.hasAttribute && ev.target.hasAttribute('contenteditable')) {
+            ev.preventDefault();
+            ev.target.blur();
+          }
+        });
+      })();
+    </script>`
+    : "";
 
   return `<!DOCTYPE html>
 <html lang="pt-BR">
@@ -87,7 +125,7 @@ export function renderEncarteHtml(
     padding: 0;
     font-family: Arial, Helvetica, sans-serif;
     color: #1a1a1a;
-    background: #e36916;
+    background: #ffffff;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }
@@ -95,7 +133,7 @@ export function renderEncarteHtml(
     width: 210mm;
     height: 297mm;
     padding: 8mm 8mm 8mm 8mm;
-    background: #e36916;
+    background: #ffffff;
     page-break-after: always;
     position: relative;
     overflow: hidden;
@@ -118,7 +156,7 @@ export function renderEncarteHtml(
     top: 0;
     bottom: 0;
     left: 50%;
-    border-left: 2px dotted #6b2f06;
+    border-left: 2px dotted #444;
     transform: translateX(-50%);
     pointer-events: none;
   }
@@ -128,7 +166,7 @@ export function renderEncarteHtml(
     display: flex;
     flex-direction: column;
     justify-content: space-between;
-    border-bottom: 2px dotted #6b2f06;
+    border-bottom: 2px dotted #444;
     overflow: hidden;
   }
   /* Remove bottom dotted line on the last row */
@@ -147,7 +185,7 @@ export function renderEncarteHtml(
     width: 28mm;
     height: 28mm;
     border-radius: 50%;
-    background: radial-gradient(circle at center, rgba(107,47,6,0.12) 0%, rgba(107,47,6,0) 70%);
+    background: radial-gradient(circle at center, rgba(0,0,0,0.05) 0%, rgba(0,0,0,0) 70%);
     pointer-events: none;
     z-index: 0;
   }
@@ -235,10 +273,26 @@ export function renderEncarteHtml(
     line-height: 1;
     margin-top: 0.5mm;
   }
+  /* ----- Editable mode hints ----- */
+  [contenteditable="true"] {
+    outline: none;
+    transition: background 0.15s ease, box-shadow 0.15s ease;
+    border-radius: 3px;
+  }
+  [contenteditable="true"]:hover {
+    background: rgba(1,171,168,0.10);
+    box-shadow: 0 0 0 2px rgba(1,171,168,0.25);
+    cursor: text;
+  }
+  [contenteditable="true"]:focus {
+    background: rgba(1,171,168,0.18);
+    box-shadow: 0 0 0 2px #01aba8;
+  }
 </style>
 </head>
 <body>
 ${body}
+${editorScript}
 </body>
 </html>`;
 }
