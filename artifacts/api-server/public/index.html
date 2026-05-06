@@ -11,8 +11,8 @@
     <header>
       <h1>Gerador Automático de Encarte</h1>
       <p class="subtitle">
-        Faça upload de uma planilha Excel <code>.xlsx</code> e gere o PDF do encarte
-        com 14 ofertas por página.
+        Faça upload de uma planilha Excel <code>.xlsx</code>, edite os produtos se necessário
+        e gere o PDF do encarte com 14 ofertas por página.
       </p>
     </header>
 
@@ -50,8 +50,29 @@
     <section id="status" class="status hidden">
       <h2>Status</h2>
       <pre id="log"></pre>
-      <a id="downloadLink" class="btn-download hidden" href="#" download>Baixar PDF</a>
-      <a id="previewLink" class="btn-preview hidden" href="#" target="_blank" rel="noopener">Ver prévia HTML</a>
+      <div class="actions">
+        <a id="downloadLink" class="btn-download hidden" href="#" download>Baixar PDF</a>
+        <a id="previewLink" class="btn-preview hidden" href="#" target="_blank" rel="noopener">Abrir prévia em nova aba</a>
+      </div>
+    </section>
+
+    <section id="editor" class="editor-section hidden">
+      <div class="editor-header">
+        <h2>Edite os produtos e atualize o PDF</h2>
+        <div class="actions">
+          <button id="regenerateBtn" type="button">Atualizar PDF</button>
+        </div>
+      </div>
+      <div class="editor-layout">
+        <div id="productList" class="editor-list"></div>
+        <div class="preview-pane">
+          <div class="preview-toolbar">
+            <strong>Prévia do PDF</strong>
+            <span id="previewCount"></span>
+          </div>
+          <iframe id="pdfFrame" title="Prévia do PDF"></iframe>
+        </div>
+      </div>
     </section>
   </main>
 

@@ -87,7 +87,7 @@ export function renderEncarteHtml(
     padding: 0;
     font-family: Arial, Helvetica, sans-serif;
     color: #1a1a1a;
-    background: #FFD83D;
+    background: #e36916;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }
@@ -95,7 +95,7 @@ export function renderEncarteHtml(
     width: 210mm;
     height: 297mm;
     padding: 8mm 8mm 8mm 8mm;
-    background: #FFD83D;
+    background: #e36916;
     page-break-after: always;
     position: relative;
     overflow: hidden;
@@ -118,7 +118,7 @@ export function renderEncarteHtml(
     top: 0;
     bottom: 0;
     left: 50%;
-    border-left: 2px dotted #b07b00;
+    border-left: 2px dotted #6b2f06;
     transform: translateX(-50%);
     pointer-events: none;
   }
@@ -128,7 +128,7 @@ export function renderEncarteHtml(
     display: flex;
     flex-direction: column;
     justify-content: space-between;
-    border-bottom: 2px dotted #b07b00;
+    border-bottom: 2px dotted #6b2f06;
     overflow: hidden;
   }
   /* Remove bottom dotted line on the last row */
@@ -147,7 +147,7 @@ export function renderEncarteHtml(
     width: 28mm;
     height: 28mm;
     border-radius: 50%;
-    background: radial-gradient(circle at center, rgba(176,123,0,0.10) 0%, rgba(176,123,0,0) 70%);
+    background: radial-gradient(circle at center, rgba(107,47,6,0.12) 0%, rgba(107,47,6,0) 70%);
     pointer-events: none;
     z-index: 0;
   }

@@ -2,14 +2,14 @@
 body {
   margin: 0;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
-  background: linear-gradient(180deg, #FFD83D 0%, #FFC107 100%);
+  background: #e36916;
   min-height: 100vh;
   color: #1a1a1a;
   padding: 32px 16px;
 }
 
 .container {
-  max-width: 720px;
+  max-width: 1200px;
   margin: 0 auto;
   background: #fff;
   border-radius: 16px;
@@ -71,24 +71,40 @@ input[type="file"] {
 
 input[type="text"]:focus {
   outline: none;
-  border-color: #FFC107;
+  border-color: #01aba8;
   background: #fff;
-  box-shadow: 0 0 0 3px rgba(255,193,7,0.25);
+  box-shadow: 0 0 0 3px rgba(1,171,168,0.25);
+}
+
+button,
+.btn-download,
+.btn-preview {
+  display: inline-block;
+  padding: 12px 18px;
+  background: #01aba8;
+  color: #ffffff;
+  border: none;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  text-decoration: none;
+  transition: transform 0.1s ease, background 0.2s ease;
 }
 
 button {
   margin-top: 8px;
   padding: 14px 16px;
-  background: #1a1a1a;
-  color: #FFD83D;
-  border: none;
-  border-radius: 10px;
   font-size: 16px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: transform 0.1s ease;
 }
-button:hover { transform: translateY(-1px); }
+
+button:hover,
+.btn-download:hover,
+.btn-preview:hover {
+  background: #018987;
+  transform: translateY(-1px);
+}
+
 button:disabled {
   opacity: 0.6;
   cursor: not-allowed;
@@ -115,30 +131,134 @@ button:disabled {
   color: #f0f0f0;
   padding: 12px;
   border-radius: 8px;
-  max-height: 260px;
+  max-height: 200px;
   overflow: auto;
   white-space: pre-wrap;
-  margin: 0;
+  margin: 0 0 12px 0;
 }
 
-.btn-download,
-.btn-preview {
-  display: inline-block;
-  margin-top: 12px;
-  margin-right: 8px;
-  padding: 12px 18px;
-  background: #1a1a1a;
-  color: #FFD83D;
-  border-radius: 10px;
-  text-decoration: none;
-  font-weight: 700;
-  font-size: 14px;
-}
-
-.btn-preview {
-  background: #fff;
-  color: #1a1a1a;
-  border: 1px solid #1a1a1a;
+.actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 8px;
 }
 
 .hidden { display: none; }
+
+/* ---------- Editor + Preview ---------- */
+.editor-section {
+  margin-top: 28px;
+}
+
+.editor-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.editor-header h2 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.editor-layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+@media (max-width: 1000px) {
+  .editor-layout { grid-template-columns: 1fr; }
+}
+
+.editor-list {
+  max-height: 720px;
+  overflow-y: auto;
+  border: 1px solid #eee;
+  border-radius: 12px;
+  padding: 12px;
+  background: #fafafa;
+}
+
+.product-item {
+  background: #fff;
+  border: 1px solid #e5e5e5;
+  border-radius: 10px;
+  padding: 12px;
+  margin-bottom: 10px;
+}
+
+.product-item-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.product-index {
+  font-size: 12px;
+  font-weight: 700;
+  color: #888;
+}
+
+.product-remove {
+  background: transparent;
+  color: #c62828;
+  padding: 4px 8px;
+  font-size: 12px;
+  margin: 0;
+  border-radius: 6px;
+}
+.product-remove:hover { background: #fdecea; transform: none; }
+
+.product-grid {
+  display: grid;
+  grid-template-columns: 2fr 2fr 1fr 1fr;
+  gap: 8px;
+}
+
+.product-grid .field { gap: 3px; }
+
+.product-grid label {
+  font-size: 11px;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.product-grid input {
+  padding: 6px 8px;
+  font-size: 13px;
+}
+
+.preview-pane {
+  border: 1px solid #eee;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #f3f3f3;
+  min-height: 720px;
+  display: flex;
+  flex-direction: column;
+}
+
+.preview-pane iframe {
+  width: 100%;
+  flex: 1;
+  border: 0;
+  background: #fff;
+}
+
+.preview-toolbar {
+  padding: 10px 12px;
+  background: #fff;
+  border-bottom: 1px solid #eee;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  font-size: 13px;
+  color: #555;
+}
