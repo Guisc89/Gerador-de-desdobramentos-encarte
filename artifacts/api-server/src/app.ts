@@ -6,6 +6,7 @@ import { fileURLToPath } from "node:url";
 import pinoHttp from "pino-http";
 import router from "./routes";
 import authRouter from "./routes/auth";
+import healthRouter from "./routes/health";
 import { requireAuth } from "./middlewares/auth";
 import { logger } from "./lib/logger";
 
@@ -57,7 +58,8 @@ const PUBLIC_FILES = new Set([
   "/favicon.ico",
 ]);
 
-// Auth routes (login/logout) — public
+// Public routes: health check (used by deployment probe) + auth (login/logout)
+app.use("/api", healthRouter);
 app.use("/api", authRouter);
 
 // Allow public asset files used by the login page
