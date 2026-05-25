@@ -206,20 +206,6 @@ export function renderEncarteHtml(
     border-bottom: none;
   }
   .card.empty { background: transparent; }
-  /* Subtle watermark circle in the background */
-  .card::after {
-    content: "";
-    position: absolute;
-    right: 6mm;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 28mm;
-    height: 28mm;
-    border-radius: 50%;
-    background: radial-gradient(circle at center, rgba(0,0,0,0.05) 0%, rgba(0,0,0,0) 70%);
-    pointer-events: none;
-    z-index: 0;
-  }
   .card-top {
     position: relative;
     z-index: 1;
