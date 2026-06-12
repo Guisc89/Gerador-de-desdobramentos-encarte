@@ -7,17 +7,37 @@
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <div class="appbar">
-    <div class="appbar-inner">
-      <img class="appbar-logo" src="logo.png" alt="Farmácias Associadas" />
-      <nav class="tabs" id="tabs">
-        <button type="button" class="tab active" data-panel="precarios">Preçários</button>
-        <button type="button" class="tab" data-panel="telas">Telas</button>
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="sidebar-brand">
+        <img class="sidebar-logo" src="logo.png" alt="Farmácias Associadas" />
+      </div>
+      <nav class="nav" id="tabs">
+        <button type="button" class="nav-item active" data-panel="precarios">
+          <span class="nav-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41 13.42 20.6a2 2 0 0 1-2.83 0L3 13V3h10l7.59 7.59a2 2 0 0 1 0 2.82Z"/><circle cx="7.5" cy="7.5" r="1.25" fill="currentColor" stroke="none"/></svg>
+          </span>
+          <span>Preçários</span>
+        </button>
+        <button type="button" class="nav-item" data-panel="telas">
+          <span class="nav-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+          </span>
+          <span>Telas</span>
+        </button>
       </nav>
-    </div>
-  </div>
+      <div class="sidebar-foot">
+        <button type="button" id="logoutBtn" class="nav-item nav-logout">
+          <span class="nav-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5M21 12H9"/></svg>
+          </span>
+          <span>Sair</span>
+        </button>
+      </div>
+    </aside>
 
-  <main class="container">
+    <main class="content">
+      <div class="container">
     <!-- ============ PREÇÁRIOS (existente) ============ -->
     <section id="panel-precarios" class="panel">
       <header>
@@ -185,24 +205,39 @@
         </div>
       </div>
     </section>
-  </main>
+      </div>
+    </main>
+  </div>
 
   <script src="app.js"></script>
   <script src="telas.js"></script>
   <script>
     (function () {
       var tabs = document.getElementById("tabs");
-      if (!tabs) return;
-      tabs.addEventListener("click", function (ev) {
-        var btn = ev.target.closest(".tab");
-        if (!btn) return;
-        var panel = btn.getAttribute("data-panel");
-        Array.prototype.forEach.call(tabs.querySelectorAll(".tab"), function (t) {
-          t.classList.toggle("active", t === btn);
+      if (tabs) {
+        tabs.addEventListener("click", function (ev) {
+          var btn = ev.target.closest(".nav-item");
+          if (!btn || !btn.hasAttribute("data-panel")) return;
+          var panel = btn.getAttribute("data-panel");
+          Array.prototype.forEach.call(tabs.querySelectorAll(".nav-item[data-panel]"), function (t) {
+            t.classList.toggle("active", t === btn);
+          });
+          document.getElementById("panel-precarios").classList.toggle("hidden", panel !== "precarios");
+          document.getElementById("panel-telas").classList.toggle("hidden", panel !== "telas");
         });
-        document.getElementById("panel-precarios").classList.toggle("hidden", panel !== "precarios");
-        document.getElementById("panel-telas").classList.toggle("hidden", panel !== "telas");
-      });
+      }
+
+      var logoutBtn = document.getElementById("logoutBtn");
+      if (logoutBtn) {
+        logoutBtn.addEventListener("click", function () {
+          fetch("logout", { method: "POST", credentials: "same-origin" })
+            .then(function (r) { return r.json().catch(function () { return {}; }); })
+            .then(function (data) {
+              window.location.href = (data && data.redirect) || "login";
+            })
+            .catch(function () { window.location.href = "login"; });
+        });
+      }
     })();
   </script>
 </body>
