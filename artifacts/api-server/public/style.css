@@ -2,20 +2,59 @@
 body {
   margin: 0;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
-  background: linear-gradient(180deg, #d9d9d9 0%, #ffffff 100%);
+  background:
+    radial-gradient(circle at 12% -5%, #e9f0d8 0%, transparent 40%),
+    linear-gradient(180deg, #eef3e4 0%, #ffffff 60%);
   background-attachment: fixed;
   min-height: 100vh;
   color: #1a1a1a;
-  padding: 32px 16px;
+  padding: 0 0 48px;
 }
+
+/* ---------- App bar + tabs ---------- */
+.appbar {
+  background: #ffffff;
+  border-bottom: 1px solid #e4ead8;
+  box-shadow: 0 4px 18px rgba(15, 95, 86, 0.08);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+.appbar-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding: 10px 24px;
+}
+.appbar-logo { height: 46px; width: auto; display: block; }
+.tabs { display: flex; gap: 6px; }
+.tab {
+  margin: 0;
+  padding: 9px 18px;
+  background: transparent;
+  color: #0f5f56;
+  border: none;
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.tab:hover { background: #e6fafa; transform: none; }
+.tab.active { background: #04b3a6; color: #fff; }
+
+.panel { animation: fade 0.15s ease; }
+@keyframes fade { from { opacity: 0; } to { opacity: 1; } }
 
 .container {
   max-width: 1200px;
-  margin: 0 auto;
+  margin: 28px auto 0;
   background: #fff;
   border-radius: 16px;
   padding: 32px;
-  box-shadow: 0 12px 40px rgba(0,0,0,0.15);
+  box-shadow: 0 12px 40px rgba(15, 95, 86, 0.12);
 }
 
 header h1 {
@@ -335,4 +374,139 @@ button:disabled {
   border-radius: 8px;
   font-size: 12px;
   margin-bottom: 12px;
+}
+
+/* ---------- Telas composer ---------- */
+.tela-grid {
+  display: grid;
+  grid-template-columns: 420px 1fr;
+  gap: 24px;
+  margin-top: 16px;
+}
+@media (max-width: 980px) {
+  .tela-grid { grid-template-columns: 1fr; }
+}
+
+.tela-controls { display: flex; flex-direction: column; gap: 16px; }
+
+.block {
+  border: 1px solid #e8eede;
+  border-radius: 12px;
+  padding: 16px;
+  background: #fbfdf6;
+}
+.block h3 {
+  margin: 0 0 12px;
+  font-size: 14px;
+  color: #0f5f56;
+}
+.block-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+.block-head h3 { margin: 0; }
+.block .field { margin-bottom: 10px; }
+.block .row { margin-bottom: 4px; }
+.block button { margin-top: 0; }
+
+.btn-small {
+  margin: 0;
+  padding: 8px 12px;
+  font-size: 13px;
+  background: #04b3a6;
+}
+.btn-ghost {
+  margin: 0;
+  padding: 9px 12px;
+  font-size: 13px;
+  background: #fff;
+  color: #c62828;
+  border: 1px solid #f0c0c0;
+}
+.btn-ghost:hover { background: #fdecea; transform: none; }
+
+.tela-info {
+  margin: 10px 0 0;
+  font-size: 12px;
+  color: #0f5f56;
+  background: #e6fafa;
+  border: 1px solid #bfeae7;
+  border-radius: 8px;
+  padding: 8px 10px;
+}
+.tela-hint { margin: 0; font-size: 12px; color: #6c7a64; }
+
+.bg-row { display: flex; gap: 8px; align-items: center; margin-top: 8px; flex-wrap: wrap; }
+.bg-row input[type="file"] { flex: 1; min-width: 180px; }
+.bg-thumb-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
+  font-size: 12px;
+  color: #0f5f56;
+}
+.bg-thumb-wrap img {
+  width: 96px;
+  height: 54px;
+  object-fit: cover;
+  border-radius: 6px;
+  border: 1px solid #d6e0c6;
+}
+
+.tela-items { display: flex; flex-direction: column; gap: 12px; }
+.tela-item {
+  border: 1px solid #e5e5e5;
+  border-radius: 10px;
+  padding: 12px;
+  background: #fff;
+}
+.tela-item-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+.tela-item-num { font-size: 12px; font-weight: 700; color: #888; }
+.tela-item .field { margin-bottom: 8px; }
+.tela-item label {
+  font-size: 11px;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.tela-item select,
+.tela-item input { padding: 7px 9px; font-size: 13px; }
+.tela-item-thumb { margin-top: 6px; }
+.tela-item-thumb img {
+  max-width: 90px;
+  max-height: 90px;
+  border-radius: 6px;
+  border: 1px solid #e5e5e5;
+  background: #fff;
+}
+
+.tela-preview-col {
+  border: 1px solid #eee;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #f3f3f3;
+  display: flex;
+  flex-direction: column;
+  align-self: start;
+  position: sticky;
+  top: 90px;
+}
+.tela-frame-wrap {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background: #fff;
+}
+.tela-frame-wrap iframe {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  display: block;
 }

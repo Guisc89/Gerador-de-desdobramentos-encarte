@@ -1,6 +1,10 @@
 # Gerador Automático de Encarte
 
-Aplicação web que recebe uma planilha Excel `.xlsx` com produtos e gera um PDF de encarte (14 ofertas por página, 2 colunas × 7 linhas) no estilo amarelo de referência, usando Express + XLSX + Puppeteer.
+Aplicação web (Express + XLSX + Puppeteer) que recebe uma planilha Excel `.xlsx` com produtos e gera dois tipos de material a partir da MESMA planilha:
+- **Preçários**: PDF de encarte (14 ofertas por página, 2 colunas × 7 linhas) no estilo amarelo de referência.
+- **Telas**: banner horizontal 16:9 em PNG de alta resolução (3840×2160) para TVs/redes sociais, no estilo verde Farmácias Associadas (logo + validade à esquerda, cards de produto com foto + preço à direita). Fundo trocável (verde padrão ou imagem enviada pelo usuário) e foto enviada manualmente por produto.
+
+A interface tem uma barra superior com logo e abas (Preçários | Telas).
 
 ## Run & Operate
 
@@ -28,10 +32,13 @@ Aplicação web que recebe uma planilha Excel `.xlsx` com produtos e gera um PDF
 - Tela de login: `artifacts/api-server/public/{login.html,login.css,login.js}` + logo em `public/logo.png`.
 - Auth: `src/routes/auth.ts` (`GET/POST /api/login`, `POST /api/logout`) + middleware `src/middlewares/auth.ts`. Sessão via `express-session` (cookie `encarte.sid`, 8h).
 - Rotas do encarte: `artifacts/api-server/src/routes/encarte.ts` (`POST /api/upload`, `POST /api/generate`, `GET /api/download/:filename`, `GET /api/preview?edit=1`)
-- Leitura do Excel: `artifacts/api-server/src/services/excelParser.ts`
+- Rotas das telas: `artifacts/api-server/src/routes/telas.ts` (`POST /api/telas/parse`, `POST /api/telas/state`, `GET /api/telas/preview`, `POST /api/telas/generate`). Reutiliza `GET /api/download/:filename` do encarte (mesmo `output/`).
+- Frontend das telas: `artifacts/api-server/public/telas.js` (compositor: carrega planilha, escolhe produtos, autofill, upload de foto por produto, upload de fundo, prévia ao vivo, baixar PNG). Painel `#panel-telas` em `index.html`; abas alternadas por script inline.
+- Leitura do Excel: `artifacts/api-server/src/services/excelParser.ts` (compartilhado entre preçário e telas)
 - Formatação de preço: `artifacts/api-server/src/services/priceFormatter.ts`
-- Template HTML/CSS do PDF: `artifacts/api-server/src/services/encarteTemplate.ts`
-- Geração de PDF (Puppeteer): `artifacts/api-server/src/services/pdfGenerator.ts`
+- Template HTML/CSS do PDF (preçário): `artifacts/api-server/src/services/encarteTemplate.ts`
+- Template HTML/CSS da tela (PNG): `artifacts/api-server/src/services/telaTemplate.ts` (layout 16:9 em unidades `vw`; logo embutido como data URI lido de `public/logo.png`)
+- Geração de PDF e PNG (Puppeteer): `artifacts/api-server/src/services/pdfGenerator.ts` (`htmlToPdf` + `htmlToPng` via `page.screenshot`)
 - Resolver do Chromium: `artifacts/api-server/src/lib/chromium.ts`
 - PDFs gerados são salvos em `artifacts/api-server/output/` (cwd do processo).
 

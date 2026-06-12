@@ -3,86 +3,207 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Gerador Automático de Encarte</title>
+  <title>Farmácias Associadas — Gerador</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
+  <div class="appbar">
+    <div class="appbar-inner">
+      <img class="appbar-logo" src="logo.png" alt="Farmácias Associadas" />
+      <nav class="tabs" id="tabs">
+        <button type="button" class="tab active" data-panel="precarios">Preçários</button>
+        <button type="button" class="tab" data-panel="telas">Telas</button>
+      </nav>
+    </div>
+  </div>
+
   <main class="container">
-    <header>
-      <h1>Gerador Automático de Encarte</h1>
-      <p class="subtitle">
-        Faça upload de uma planilha Excel <code>.xlsx</code>, edite os produtos diretamente
-        no layout e gere o PDF do encarte com 14 ofertas por página.
-      </p>
-    </header>
+    <!-- ============ PREÇÁRIOS (existente) ============ -->
+    <section id="panel-precarios" class="panel">
+      <header>
+        <h1>Gerador Automático de Encarte</h1>
+        <p class="subtitle">
+          Faça upload de uma planilha Excel <code>.xlsx</code>, edite os produtos diretamente
+          no layout e gere o PDF do encarte com 14 ofertas por página.
+        </p>
+      </header>
 
-    <form id="form" enctype="multipart/form-data">
-      <div class="field">
-        <label for="planilha">Planilha Excel (.xlsx)</label>
-        <input id="planilha" name="planilha" type="file" accept=".xlsx" required />
-      </div>
-
-      <div class="row">
+      <form id="form" enctype="multipart/form-data">
         <div class="field">
-          <label for="mes">Mês da campanha</label>
-          <input id="mes" name="mes" type="text" placeholder="Ex.: MAIO/2026" />
+          <label for="planilha">Planilha Excel (.xlsx)</label>
+          <input id="planilha" name="planilha" type="file" accept=".xlsx" required />
         </div>
-        <div class="field">
-          <label for="nomeArquivo">Nome do arquivo final</label>
-          <input id="nomeArquivo" name="nomeArquivo" type="text" placeholder="encarte_maio_2026" />
-        </div>
-      </div>
 
-      <div class="row">
-        <div class="field">
-          <label for="validadeInicio">Validade inicial</label>
-          <input id="validadeInicio" name="validadeInicio" type="text" placeholder="01.05.26" required />
+        <div class="row">
+          <div class="field">
+            <label for="mes">Mês da campanha</label>
+            <input id="mes" name="mes" type="text" placeholder="Ex.: MAIO/2026" />
+          </div>
+          <div class="field">
+            <label for="nomeArquivo">Nome do arquivo final</label>
+            <input id="nomeArquivo" name="nomeArquivo" type="text" placeholder="encarte_maio_2026" />
+          </div>
         </div>
-        <div class="field">
-          <label for="validadeFim">Validade final</label>
-          <input id="validadeFim" name="validadeFim" type="text" placeholder="31.05.26" required />
+
+        <div class="row">
+          <div class="field">
+            <label for="validadeInicio">Validade inicial</label>
+            <input id="validadeInicio" name="validadeInicio" type="text" placeholder="01.05.26" required />
+          </div>
+          <div class="field">
+            <label for="validadeFim">Validade final</label>
+            <input id="validadeFim" name="validadeFim" type="text" placeholder="31.05.26" required />
+          </div>
         </div>
-      </div>
 
-      <button id="submit" type="submit">Gerar PDF</button>
-    </form>
+        <button id="submit" type="submit">Gerar PDF</button>
+      </form>
 
-    <section id="status" class="status hidden">
-      <h2>Status</h2>
-      <pre id="log"></pre>
+      <section id="status" class="status hidden">
+        <h2>Status</h2>
+        <pre id="log"></pre>
+      </section>
+
+      <section id="editor" class="editor-section hidden">
+        <div class="editor-header">
+          <h2>Edite o encarte e baixe o PDF</h2>
+          <div class="actions">
+            <div id="bgToggle" class="bg-toggle" role="group" aria-label="Fundo do encarte">
+              <button type="button" class="bg-opt active" data-bg="white">Fundo branco</button>
+              <button type="button" class="bg-opt" data-bg="color">Fundo colorido</button>
+            </div>
+            <button id="regenerateBtn" type="button">Atualizar PDF</button>
+            <a id="downloadLink" class="btn-download" href="#" download>Baixar PDF</a>
+          </div>
+        </div>
+        <div class="editor-hint">
+          Clique em qualquer texto do encarte (nome, descrição, validade ou preço) para editar.
+          Pressione <strong>Enter</strong> ou clique fora para confirmar.
+          Depois clique em <strong>Atualizar PDF</strong> para salvar as mudanças e
+          em <strong>Baixar PDF</strong> para baixar o arquivo final.
+        </div>
+        <div class="preview-pane">
+          <div class="preview-toolbar">
+            <strong>Prévia editável</strong>
+            <span id="previewCount"></span>
+            <span class="toolbar-spacer"></span>
+            <span id="dirtyBadge" class="dirty-badge hidden">Alterações não salvas</span>
+            <span id="savedBadge" class="saved-badge hidden">PDF atualizado</span>
+          </div>
+          <iframe id="previewFrame" title="Prévia do encarte"></iframe>
+        </div>
+      </section>
     </section>
 
-    <section id="editor" class="editor-section hidden">
-      <div class="editor-header">
-        <h2>Edite o encarte e baixe o PDF</h2>
-        <div class="actions">
-          <div id="bgToggle" class="bg-toggle" role="group" aria-label="Fundo do encarte">
-            <button type="button" class="bg-opt active" data-bg="white">Fundo branco</button>
-            <button type="button" class="bg-opt" data-bg="color">Fundo colorido</button>
+    <!-- ============ TELAS (novo) ============ -->
+    <section id="panel-telas" class="panel hidden">
+      <header>
+        <h1>Gerador de Telas</h1>
+        <p class="subtitle">
+          Monte uma <strong>tela</strong> (banner horizontal 16:9 em PNG de alta resolução) para
+          TVs e redes sociais. Os preços e descrições vêm da mesma planilha do encarte; você
+          escolhe os produtos, envia uma foto para cada um e pode trocar o fundo.
+        </p>
+      </header>
+
+      <div class="tela-grid">
+        <!-- Coluna de controles -->
+        <div class="tela-controls">
+          <div class="block">
+            <h3>1. Carregar produtos da planilha</h3>
+            <div class="field">
+              <label for="telaPlanilha">Planilha Excel (.xlsx)</label>
+              <input id="telaPlanilha" type="file" accept=".xlsx" />
+            </div>
+            <button id="telaCarregarBtn" type="button">Carregar produtos</button>
+            <p id="telaParseInfo" class="tela-info hidden"></p>
           </div>
-          <button id="regenerateBtn" type="button">Atualizar PDF</button>
-          <a id="downloadLink" class="btn-download" href="#" download>Baixar PDF</a>
+
+          <div class="block">
+            <h3>2. Informações da tela</h3>
+            <div class="row">
+              <div class="field">
+                <label for="telaMes">Mês</label>
+                <input id="telaMes" type="text" placeholder="Ex.: XX - Abril" />
+              </div>
+              <div class="field">
+                <label for="telaNomeArquivo">Nome do arquivo</label>
+                <input id="telaNomeArquivo" type="text" placeholder="tela_abril" />
+              </div>
+            </div>
+            <div class="row">
+              <div class="field">
+                <label for="telaValidadeInicio">Validade inicial</label>
+                <input id="telaValidadeInicio" type="text" placeholder="XX.04.26" />
+              </div>
+              <div class="field">
+                <label for="telaValidadeFim">Validade final</label>
+                <input id="telaValidadeFim" type="text" placeholder="XX.04.26" />
+              </div>
+            </div>
+            <div class="field">
+              <label for="telaEndereco">Endereço da loja</label>
+              <input id="telaEndereco" type="text" placeholder="Insira aqui seu endereço" />
+            </div>
+          </div>
+
+          <div class="block">
+            <h3>3. Fundo da tela</h3>
+            <p class="tela-hint">Use o fundo verde padrão ou envie sua própria arte de fundo.</p>
+            <div class="bg-row">
+              <input id="telaBgInput" type="file" accept="image/*" />
+              <button id="telaBgRemove" type="button" class="btn-ghost hidden">Remover fundo</button>
+            </div>
+            <div id="telaBgThumbWrap" class="bg-thumb-wrap hidden">
+              <img id="telaBgThumb" alt="Prévia do fundo" />
+              <span>Fundo personalizado ativo</span>
+            </div>
+          </div>
+
+          <div class="block">
+            <div class="block-head">
+              <h3>4. Produtos da tela</h3>
+              <button id="telaAddBtn" type="button" class="btn-small">+ Adicionar produto</button>
+            </div>
+            <div id="telaItems" class="tela-items"></div>
+            <p id="telaItemsEmpty" class="tela-hint">Nenhum produto adicionado ainda.</p>
+          </div>
         </div>
-      </div>
-      <div class="editor-hint">
-        Clique em qualquer texto do encarte (nome, descrição, validade ou preço) para editar.
-        Pressione <strong>Enter</strong> ou clique fora para confirmar.
-        Depois clique em <strong>Atualizar PDF</strong> para salvar as mudanças e
-        em <strong>Baixar PDF</strong> para baixar o arquivo final.
-      </div>
-      <div class="preview-pane">
-        <div class="preview-toolbar">
-          <strong>Prévia editável</strong>
-          <span id="previewCount"></span>
-          <span class="toolbar-spacer"></span>
-          <span id="dirtyBadge" class="dirty-badge hidden">Alterações não salvas</span>
-          <span id="savedBadge" class="saved-badge hidden">PDF atualizado</span>
+
+        <!-- Coluna de prévia -->
+        <div class="tela-preview-col">
+          <div class="preview-toolbar">
+            <strong>Prévia da tela</strong>
+            <span class="toolbar-spacer"></span>
+            <button id="telaRefreshBtn" type="button" class="btn-small">Atualizar prévia</button>
+            <a id="telaDownloadLink" class="btn-download" href="#" download>Baixar PNG</a>
+          </div>
+          <div class="tela-frame-wrap">
+            <iframe id="telaPreviewFrame" title="Prévia da tela"></iframe>
+          </div>
+          <p id="telaGenInfo" class="tela-info hidden"></p>
         </div>
-        <iframe id="previewFrame" title="Prévia do encarte"></iframe>
       </div>
     </section>
   </main>
 
   <script src="app.js"></script>
+  <script src="telas.js"></script>
+  <script>
+    (function () {
+      var tabs = document.getElementById("tabs");
+      if (!tabs) return;
+      tabs.addEventListener("click", function (ev) {
+        var btn = ev.target.closest(".tab");
+        if (!btn) return;
+        var panel = btn.getAttribute("data-panel");
+        Array.prototype.forEach.call(tabs.querySelectorAll(".tab"), function (t) {
+          t.classList.toggle("active", t === btn);
+        });
+        document.getElementById("panel-precarios").classList.toggle("hidden", panel !== "precarios");
+        document.getElementById("panel-telas").classList.toggle("hidden", panel !== "telas");
+      });
+    })();
+  </script>
 </body>
 </html>

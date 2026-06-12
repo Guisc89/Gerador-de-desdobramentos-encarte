@@ -1,0 +1,1 @@
+- [Asset paths in api-server templates](api-server-asset-paths.md) — embed local images (logo/fundo) via process.cwd(), NOT __dirname; esbuild bundle runs from dist/ so __dirname-relative paths break.
