@@ -25,6 +25,18 @@
           </span>
           <span>Telas</span>
         </button>
+        <button type="button" class="nav-item" data-panel="cards">
+          <span class="nav-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="13" height="14" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2h-2"/></svg>
+          </span>
+          <span>Cards</span>
+        </button>
+        <button type="button" class="nav-item" data-panel="stories">
+          <span class="nav-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="2" width="10" height="20" rx="2.5"/><path d="M12 18h.01"/></svg>
+          </span>
+          <span>Stories</span>
+        </button>
       </nav>
       <div class="sidebar-foot">
         <button type="button" id="logoutBtn" class="nav-item nav-logout">
@@ -226,6 +238,30 @@
         </div>
       </div>
     </section>
+
+    <!-- ============ CARDS (placeholder) ============ -->
+    <section id="panel-cards" class="panel hidden">
+      <header>
+        <h1>Gerador de Cards</h1>
+        <p class="subtitle">Em breve — esta seção vai gerar os cards a partir da mesma planilha.</p>
+      </header>
+      <div class="tela-emptystate">
+        <p>Em desenvolvimento.</p>
+        <p class="tela-hint">Por enquanto este é apenas um espaço reservado.</p>
+      </div>
+    </section>
+
+    <!-- ============ STORIES (placeholder) ============ -->
+    <section id="panel-stories" class="panel hidden">
+      <header>
+        <h1>Gerador de Stories</h1>
+        <p class="subtitle">Em breve — esta seção vai gerar os stories a partir da mesma planilha.</p>
+      </header>
+      <div class="tela-emptystate">
+        <p>Em desenvolvimento.</p>
+        <p class="tela-hint">Por enquanto este é apenas um espaço reservado.</p>
+      </div>
+    </section>
       </div>
     </main>
   </div>
@@ -244,8 +280,9 @@
           Array.prototype.forEach.call(tabs.querySelectorAll(".nav-item[data-panel]"), function (t) {
             t.classList.toggle("active", t === btn);
           });
-          document.getElementById("panel-precarios").classList.toggle("hidden", panel !== "precarios");
-          document.getElementById("panel-telas").classList.toggle("hidden", panel !== "telas");
+          Array.prototype.forEach.call(document.querySelectorAll('[id^="panel-"]'), function (p) {
+            p.classList.toggle("hidden", p.id !== "panel-" + panel);
+          });
         });
       }
 
