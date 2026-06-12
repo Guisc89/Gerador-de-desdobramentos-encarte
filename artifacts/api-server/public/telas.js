@@ -58,6 +58,7 @@
   function newItem(prefill) {
     return {
       id: nextId++,
+      ean: prefill && prefill.ean ? String(prefill.ean) : "",
       nome: prefill ? prefill.nome : "",
       descricao: prefill ? prefill.descricao : "",
       precoInteiro: prefill ? prefill.precoInteiro : "",
@@ -252,6 +253,7 @@
       if (i === "") return;
       const p = catalogo[Number(i)];
       if (!p) return;
+      it.ean = p.ean ? String(p.ean) : "";
       it.nome = p.nome;
       it.descricao = p.descricao;
       it.precoInteiro = p.precoInteiro;
@@ -317,10 +319,68 @@
     renderAll();
   }
 
+  // Smart-sync: update only price/description of products already placed in
+  // telas, preserving photos and the tela organization. Triggered when the user
+  // edits and saves the Preçário ("Salvar e atualizar PDF").
+  function applyCatalogUpdate(produtos, info) {
+    const list = Array.isArray(produtos) ? produtos : [];
+    if (list.length === 0) return;
+
+    // If telas were never built yet, behave like an initial load instead.
+    if (workspace.classList.contains("hidden") || telas.length === 0) {
+      loadCatalog(list, info);
+      return;
+    }
+
+    // Refresh the shared catalog so the product picker reflects new data.
+    catalogo = list;
+
+    // Lookups: prefer the stable EAN; fall back to name when EAN is absent.
+    // Last occurrence wins on duplicate keys.
+    const byEan = new Map();
+    const byName = new Map();
+    list.forEach((p) => {
+      if (!p) return;
+      if (p.ean) byEan.set(String(p.ean).trim(), p);
+      if (p.nome) byName.set(String(p.nome).trim(), p);
+    });
+
+    let atualizados = 0;
+    telas.forEach((t) => {
+      t.produtos.forEach((it) => {
+        const match =
+          (it.ean && byEan.get(String(it.ean).trim())) ||
+          byName.get(String(it.nome || "").trim());
+        if (match) {
+          it.descricao = match.descricao;
+          it.precoInteiro = match.precoInteiro;
+          it.precoCentavos = match.precoCentavos;
+          atualizados += 1;
+        }
+      });
+    });
+
+    if (parseInfo) {
+      parseInfo.textContent =
+        atualizados + " produto(s) atualizado(s) a partir do preçário.";
+      parseInfo.classList.remove("hidden");
+    }
+    renderAll();
+  }
+
   // Listen for spreadsheet parsed in the Preçários tab
   document.addEventListener("encarte:catalogo", (ev) => {
     const d = ev.detail || {};
     loadCatalog(d.produtos, {
+      mes: d.mes,
+      validadeInicio: d.validadeInicio,
+      validadeFim: d.validadeFim,
+    });
+  });
+  // Listen for edits saved in the Preçários tab (smart-sync into existing telas)
+  document.addEventListener("encarte:catalogo-update", (ev) => {
+    const d = ev.detail || {};
+    applyCatalogUpdate(d.produtos, {
       mes: d.mes,
       validadeInicio: d.validadeInicio,
       validadeFim: d.validadeFim,

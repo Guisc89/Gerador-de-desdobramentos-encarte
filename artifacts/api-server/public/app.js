@@ -209,6 +209,20 @@
       flashSaved();
       // refresh the editable preview to confirm server-side state matches edits
       loadEditablePreview();
+
+      // Smart-sync the Telas tab: update price/description of products that
+      // already exist there, WITHOUT touching photos or the tela organization.
+      const fd2 = new FormData(form);
+      const sharedInfo = {
+        produtos: produtos,
+        mes: currentMes,
+        validadeInicio: String(fd2.get("validadeInicio") || "").trim(),
+        validadeFim: String(fd2.get("validadeFim") || "").trim(),
+      };
+      window.__encarteCatalogo = sharedInfo;
+      document.dispatchEvent(
+        new CustomEvent("encarte:catalogo-update", { detail: sharedInfo }),
+      );
     } catch (err) {
       log("Erro inesperado: " + (err && err.message ? err.message : String(err)));
     } finally {
