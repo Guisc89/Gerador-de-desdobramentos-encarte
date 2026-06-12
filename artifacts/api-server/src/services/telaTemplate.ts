@@ -68,11 +68,14 @@ export function renderTelaHtml(state: TelaState): string {
       : "";
 
   const infoBlock = `
-        ${state.mes ? `<div class="tela-mes">${esc(state.mes)}</div>` : ""}
-        ${validade ? `<div class="tela-validade">${validade}</div>` : ""}
-        <div class="tela-endereco">${
+      <div class="tela-info">
+        ${state.mes ? `<div class="tela-info-mes">${esc(state.mes)}</div>` : ""}
+        ${validade ? `<div class="tela-info-validade">${validade}</div>` : ""}
+        <div class="tela-info-endereco">${
           state.endereco ? esc(state.endereco) : "Insira aqui seu endereço"
-        }</div>`;
+        }</div>
+        <div class="tela-info-disclaimer">Os preços e produtos anunciados são válidos exclusivamente para esta loja.</div>
+      </div>`;
 
   const cards =
     count > 0
@@ -113,48 +116,52 @@ export function renderTelaHtml(state: TelaState): string {
     position: relative;
     z-index: 1;
     display: flex;
+    flex-direction: column;
     width: 100%;
     height: 100%;
     padding: 3.2vw;
-    gap: 2.2vw;
+    gap: 1.4vw;
   }
-  .tela-left {
-    width: 42%;
-    display: flex;
-    flex-direction: column;
-  }
-  .tela-mes {
-    font-size: 3.4vw;
-    font-weight: 900;
-    line-height: 1.02;
-    color: #0f5f56;
-  }
-  .tela-validade {
-    margin-top: 1vw;
-    font-size: 1.8vw;
-    font-weight: 800;
-    color: #0f5f56;
-  }
-  .tela-disclaimer {
-    margin-top: 1.2vw;
-    font-size: 0.92vw;
-    color: #3d4a3a;
-    max-width: 32vw;
-  }
-  .tela-endereco {
-    margin-top: 1vw;
-    font-size: 1.3vw;
-    font-weight: 700;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-    color: #0f5f56;
-  }
-  .tela-right {
-    width: 58%;
+  .tela-cards {
+    flex: 1 1 auto;
+    min-height: 0;
     display: grid;
     grid-template-columns: repeat(${cols}, 1fr);
     gap: 1.6vw;
     align-content: center;
+    width: 100%;
+  }
+  .tela-info {
+    flex: 0 0 auto;
+    align-self: flex-end;
+    text-align: right;
+    line-height: 1.25;
+    color: #0f5f56;
+  }
+  .tela-info-mes {
+    font-size: 1vw;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+  .tela-info-validade {
+    margin-top: 0.15vw;
+    font-size: 0.8vw;
+    font-weight: 700;
+  }
+  .tela-info-endereco {
+    margin-top: 0.15vw;
+    font-size: 0.8vw;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+  }
+  .tela-info-disclaimer {
+    margin-top: 0.2vw;
+    font-size: 0.62vw;
+    font-weight: 400;
+    color: #3d4a3a;
+    max-width: 40vw;
   }
   .card {
     background: #ffffff;
@@ -194,9 +201,13 @@ export function renderTelaHtml(state: TelaState): string {
   .card-nome { font-size: 1.55vw; font-weight: 900; line-height: 1.05; }
   .card-desc {
     margin-top: 0.3vw;
-    font-size: 1.02vw;
+    font-size: 1.15vw;
     font-weight: 500;
+    line-height: 1.2;
     color: rgba(255,255,255,0.92);
+    overflow-wrap: break-word;
+    word-break: break-word;
+    white-space: normal;
   }
   .card-price {
     margin-top: 1vw;
@@ -226,13 +237,10 @@ export function renderTelaHtml(state: TelaState): string {
   <div class="tela">
     <div class="${bgClass}" ${bgStyle}></div>
     <div class="tela-content">
-      <div class="tela-left">
-        ${infoBlock}
-        <div class="tela-disclaimer">Os preços e produtos anunciados são válidos exclusivamente para esta loja.</div>
-      </div>
-      <div class="tela-right" data-count="${count}">
+      <div class="tela-cards" data-count="${count}">
         ${cards}
       </div>
+      ${infoBlock}
     </div>
   </div>
 </body>
