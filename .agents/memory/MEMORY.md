@@ -1,1 +1,2 @@
 - [esbuild + __dirname data files](esbuild-external-data-files.md) — packages that read sibling files (table.sql, .proto) via __dirname must be esbuild-externalized or they ENOENT at runtime.
+- [Health check before session](health-check-before-session.md) — mount the deploy startup probe before any DB-touching middleware (PgStore), or the autoscale probe 500s on cold start and the deploy gets stuck "in progress".

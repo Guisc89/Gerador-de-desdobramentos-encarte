@@ -36,6 +36,13 @@ app.use(cors());
 app.use(express.json({ limit: "30mb" }));
 app.use(express.urlencoded({ extended: true, limit: "30mb" }));
 
+// Health check (deployment startup probe) is mounted FIRST, before the session
+// middleware, so the probe never touches Postgres. Otherwise the autoscale
+// probe's concurrent requests hit the connect-pg-simple store on a cold start
+// (before its "session" table exists / while it races to create it) and return
+// 500, which fails the health check and leaves the deploy stuck "in progress".
+app.use("/api", healthRouter);
+
 app.set("trust proxy", 1);
 // Persist sessions in Postgres (connect-pg-simple). The default MemoryStore is
 // wiped on every server restart/redeploy, which logged everyone out (existing
@@ -71,8 +78,7 @@ const PUBLIC_FILES = new Set([
   "/favicon.ico",
 ]);
 
-// Public routes: health check (used by deployment probe) + auth (login/logout)
-app.use("/api", healthRouter);
+// Public route: auth (login/logout) — needs the session middleware above
 app.use("/api", authRouter);
 
 // Allow public asset files used by the login page
