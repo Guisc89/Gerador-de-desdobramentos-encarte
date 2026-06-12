@@ -64,6 +64,7 @@ _Populate as you build — explicit user instructions worth remembering across s
 - O Chromium precisa estar disponível como dependência de sistema (já instalada via Nix). Se faltar, `htmlToPdf` lança erro pedindo `PUPPETEER_EXECUTABLE_PATH`.
 - `puppeteer` está na lista `external` do `build.mjs` — não é bundleado. Mantenha-o em `node_modules`.
 - Toda a aplicação fica sob o prefixo `/api` (proxy do workspace). A UI é `/api/` e o upload é `POST /api/upload`.
+- Cookie de sessão (`encarte.sid`): precisa ser `sameSite: "none"` + `secure: true`. O app roda dentro de um iframe HTTPS (preview/canvas da Replit e app publicado), que é contexto de terceiros; com `lax`/`secure:false` o navegador bloqueia o cookie e todas as rotas protegidas devolvem 401 (sintoma típico: login "ok" 200 mas `POST /api/telas/parse` ou `/api/upload` retorna 401). `trust proxy: 1` faz o express-session respeitar `X-Forwarded-Proto=https`. Para testar via curl use o domínio HTTPS (`$REPLIT_DEV_DOMAIN`), não `localhost` (HTTP não persiste cookie Secure).
 
 ## Pointers
 

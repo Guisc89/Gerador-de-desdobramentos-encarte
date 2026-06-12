@@ -43,8 +43,12 @@ app.use(
     saveUninitialized: false,
     cookie: {
       httpOnly: true,
-      sameSite: "lax",
-      secure: false,
+      // The app is served inside an HTTPS iframe (Replit preview/canvas and the
+      // published app). Browsers treat that as a third-party context and only
+      // store/send the cookie when it is SameSite=None + Secure. "trust proxy"
+      // above lets express-session honor X-Forwarded-Proto=https from the proxy.
+      sameSite: "none",
+      secure: true,
       maxAge: 1000 * 60 * 60 * 8, // 8h
     },
   }),
