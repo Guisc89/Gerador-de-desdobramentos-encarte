@@ -167,6 +167,7 @@ form {
   display: flex;
   flex-direction: column;
   gap: 6px;
+  min-width: 0;
 }
 
 label {
@@ -176,6 +177,8 @@ label {
 
 input[type="text"],
 input[type="file"] {
+  width: 100%;
+  max-width: 100%;
   padding: 10px 12px;
   border: 1px solid #ddd;
   border-radius: 8px;
@@ -642,6 +645,14 @@ button:disabled {
   background: #0f5f56;
   border: none;
   cursor: pointer;
+}
+.btn-download-pdf {
+  background: #b3261e;
+  border: none;
+  cursor: pointer;
+}
+.btn-download-pdf:hover {
+  background: #951d16;
 }
 .tela-all-links {
   display: flex;

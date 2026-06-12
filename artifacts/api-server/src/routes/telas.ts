@@ -9,7 +9,7 @@ import {
   type TelaState,
   type TelaProduto,
 } from "../services/telaTemplate";
-import { htmlToPng, htmlToPngBatch } from "../services/pdfGenerator";
+import { htmlToPng, htmlToPngBatch, pngsToPdf } from "../services/pdfGenerator";
 
 const router: IRouter = Router();
 
@@ -256,6 +256,62 @@ router.post("/telas/generate-all", async (req, res) => {
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Erro desconhecido";
     req.log.error({ err }, "Erro ao gerar PNGs das telas (lote)");
+    res.status(500).json({ error: message });
+  }
+});
+
+// Generate a single multi-page PDF with every (non-empty) tela. Reuses the same
+// high-res PNG rendering, then assembles the PNGs into one landscape 16:9 PDF.
+router.post("/telas/generate-pdf", async (req, res) => {
+  try {
+    const body = (req.body ?? {}) as Record<string, unknown>;
+    const rawTelas = Array.isArray(body["telas"]) ? body["telas"] : [];
+    if (rawTelas.length === 0) {
+      res.status(400).json({ error: "Nenhuma tela enviada." });
+      return;
+    }
+
+    const baseName = safeName(str(body["nomeArquivo"]) || "tela");
+
+    const states = rawTelas.slice(0, MAX_TELAS).map((t) => sanitizeState(t));
+    const valid = states.filter((s) => s.produtos.length > 0);
+    const vazias = states.length - valid.length;
+
+    if (valid.length === 0) {
+      res.status(400).json({
+        error:
+          "Todas as telas estão sem produtos. Adicione produtos antes de gerar.",
+      });
+      return;
+    }
+
+    const htmls = valid.map((s) => renderTelaHtml(s));
+    const pngs = await htmlToPngBatch(htmls, {
+      width: 1280,
+      height: 720,
+      scale: 3,
+    });
+    const pdf = await pngsToPdf(pngs);
+
+    const filename = `${baseName}_telas.pdf`;
+    const filepath = path.join(OUTPUT_DIR, filename);
+    await fs.writeFile(filepath, pdf);
+
+    req.log.info(
+      { filename, telas: valid.length, vazias, sizeBytes: pdf.length },
+      "PDF das telas gerado",
+    );
+
+    res.json({
+      ok: true,
+      filename,
+      downloadUrl: `/api/download/${encodeURIComponent(filename)}`,
+      total: valid.length,
+      vazias,
+    });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Erro desconhecido";
+    req.log.error({ err }, "Erro ao gerar PDF das telas");
     res.status(500).json({ error: message });
   }
 });

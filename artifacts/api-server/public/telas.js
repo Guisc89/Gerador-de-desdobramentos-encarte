@@ -40,6 +40,7 @@
   const previewFrame = document.getElementById("telaPreviewFrame");
   const downloadLink = document.getElementById("telaDownloadLink");
   const downloadAllBtn = document.getElementById("telaDownloadAllBtn");
+  const downloadPdfBtn = document.getElementById("telaDownloadPdfBtn");
   const genInfo = document.getElementById("telaGenInfo");
   const allLinks = document.getElementById("telaAllLinks");
 
@@ -542,7 +543,66 @@
       genInfo.classList.remove("hidden");
     } finally {
       downloadAllBtn.disabled = false;
-      downloadAllBtn.textContent = "Baixar todas as telas";
+      downloadAllBtn.textContent = "Baixar todas (PNG)";
+    }
+  });
+
+  // ---- Download all telas as a single PDF ----
+  downloadPdfBtn.addEventListener("click", async () => {
+    const vazias = telas.filter((t) => t.produtos.length === 0).length;
+    const comProdutos = telas.length - vazias;
+    if (comProdutos === 0) {
+      alert("Nenhuma tela tem produtos. Adicione produtos antes de gerar.");
+      return;
+    }
+    if (vazias > 0) {
+      if (
+        !confirm(
+          vazias +
+            " tela(s) estão sem produtos e serão ignoradas. Gerar o PDF com as " +
+            comProdutos +
+            " tela(s) restantes?",
+        )
+      ) {
+        return;
+      }
+    }
+    downloadPdfBtn.disabled = true;
+    downloadPdfBtn.textContent = "Gerando PDF...";
+    genInfo.classList.add("hidden");
+    allLinks.classList.add("hidden");
+    allLinks.innerHTML = "";
+    try {
+      const body = {
+        nomeArquivo: nomeArquivoInput.value.trim() || "tela",
+        telas: telas.map((t) => telaState(t)),
+      };
+      const res = await fetch("/api/telas/generate-pdf", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        genInfo.textContent = "Erro: " + (data.error || res.statusText);
+        genInfo.classList.remove("hidden");
+        return;
+      }
+      genInfo.textContent =
+        "PDF gerado com " +
+        data.total +
+        " tela(s)" +
+        (data.vazias ? " (" + data.vazias + " ignoradas por estarem vazias)" : "") +
+        ": " +
+        data.filename;
+      genInfo.classList.remove("hidden");
+      triggerDownload(data.downloadUrl, data.filename);
+    } catch (err) {
+      genInfo.textContent = "Erro inesperado: " + (err && err.message ? err.message : err);
+      genInfo.classList.remove("hidden");
+    } finally {
+      downloadPdfBtn.disabled = false;
+      downloadPdfBtn.textContent = "Baixar todas em PDF";
     }
   });
 

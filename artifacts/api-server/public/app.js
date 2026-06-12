@@ -104,7 +104,7 @@
     if (dirty) {
       ev.preventDefault();
       const ok = confirm(
-        "Você tem edições não salvas. Clique em 'Atualizar PDF' antes de baixar.\n\nBaixar mesmo assim a versão anterior?",
+        "Você tem edições não salvas. Clique em 'Salvar e atualizar PDF' antes de baixar.\n\nBaixar mesmo assim a versão anterior?",
       );
       if (!ok) return;
       // allow download of stale version
@@ -213,7 +213,7 @@
       log("Erro inesperado: " + (err && err.message ? err.message : String(err)));
     } finally {
       regenerateBtn.disabled = false;
-      regenerateBtn.textContent = "Atualizar PDF";
+      regenerateBtn.textContent = "Salvar e atualizar PDF";
     }
   });
 })();
