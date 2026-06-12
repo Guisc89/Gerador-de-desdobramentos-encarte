@@ -127,7 +127,7 @@ export function renderTelaHtml(state: TelaState): string {
     min-height: 0;
     display: grid;
     grid-template-columns: repeat(${cols}, minmax(0, 40vw));
-    justify-content: center;
+    justify-content: end;
     gap: 1.6vw;
     align-content: center;
     width: 100%;
