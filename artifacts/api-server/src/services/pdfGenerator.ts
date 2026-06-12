@@ -38,18 +38,9 @@ export interface PngOptions {
   scale?: number;
 }
 
-export async function htmlToPng(
-  html: string,
-  opts: PngOptions = {},
-): Promise<Buffer> {
-  const width = opts.width ?? 1280;
-  const height = opts.height ?? 720;
-  const scale = opts.scale ?? 2;
-
+async function launchBrowser() {
   const executablePath = resolveChromiumPath();
-  logger.info({ executablePath, width, height, scale }, "Launching Puppeteer (PNG)");
-
-  const browser = await puppeteer.launch({
+  return puppeteer.launch({
     executablePath,
     headless: true,
     args: [
@@ -59,9 +50,17 @@ export async function htmlToPng(
       "--disable-gpu",
     ],
   });
+}
 
+async function renderPng(
+  browser: Awaited<ReturnType<typeof launchBrowser>>,
+  html: string,
+  width: number,
+  height: number,
+  scale: number,
+): Promise<Buffer> {
+  const page = await browser.newPage();
   try {
-    const page = await browser.newPage();
     // Defense in depth: block any outbound request. The tela HTML only embeds
     // local/base64 (data:) assets, so anything else would be an SSRF attempt.
     await page.setRequestInterception(true);
@@ -84,6 +83,49 @@ export async function htmlToPng(
       clip: { x: 0, y: 0, width, height },
     });
     return Buffer.from(png);
+  } finally {
+    await page.close().catch(() => {});
+  }
+}
+
+export async function htmlToPng(
+  html: string,
+  opts: PngOptions = {},
+): Promise<Buffer> {
+  const width = opts.width ?? 1280;
+  const height = opts.height ?? 720;
+  const scale = opts.scale ?? 2;
+
+  logger.info({ width, height, scale }, "Launching Puppeteer (PNG)");
+  const browser = await launchBrowser();
+  try {
+    return await renderPng(browser, html, width, height, scale);
+  } finally {
+    await browser.close().catch(() => {});
+  }
+}
+
+// Render many HTML pages to PNG reusing a single browser instance (much faster
+// than launching Chromium per page when generating several telas at once).
+export async function htmlToPngBatch(
+  htmls: string[],
+  opts: PngOptions = {},
+): Promise<Buffer[]> {
+  const width = opts.width ?? 1280;
+  const height = opts.height ?? 720;
+  const scale = opts.scale ?? 2;
+
+  logger.info(
+    { width, height, scale, count: htmls.length },
+    "Launching Puppeteer (PNG batch)",
+  );
+  const browser = await launchBrowser();
+  try {
+    const out: Buffer[] = [];
+    for (const html of htmls) {
+      out.push(await renderPng(browser, html, width, height, scale));
+    }
+    return out;
   } finally {
     await browser.close().catch(() => {});
   }

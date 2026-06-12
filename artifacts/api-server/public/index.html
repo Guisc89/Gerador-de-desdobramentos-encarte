@@ -120,34 +120,39 @@
       <header>
         <h1>Gerador de Telas</h1>
         <p class="subtitle">
-          Monte uma <strong>tela</strong> (banner horizontal 16:9 em PNG de alta resolução) para
-          TVs e redes sociais. Os preços e descrições vêm da mesma planilha do encarte; você
-          escolhe os produtos, envia uma foto para cada um e pode trocar o fundo.
+          As telas são montadas <strong>automaticamente</strong> a partir da mesma planilha do
+          preçário — 2 produtos por tela. Passe pelas telas no carrossel, ajuste o que precisar
+          (pode ter de 1 a 3 produtos por tela), envie a foto de cada produto e baixe os PNGs em
+          alta resolução para TVs e redes sociais.
         </p>
       </header>
 
-      <div class="tela-grid">
+      <div id="telaEmptyState" class="tela-emptystate">
+        <p>Nenhuma planilha carregada ainda.</p>
+        <p class="tela-hint">
+          Suba uma planilha aqui ou na aba <strong>Preçários</strong> — as telas aparecem
+          automaticamente.
+        </p>
+        <div class="field">
+          <label for="telaPlanilha">Planilha Excel (.xlsx)</label>
+          <input id="telaPlanilha" type="file" accept=".xlsx" />
+        </div>
+        <button id="telaCarregarBtn" type="button">Montar telas</button>
+        <p id="telaParseInfo" class="tela-info hidden"></p>
+      </div>
+
+      <div id="telaWorkspace" class="tela-grid hidden">
         <!-- Coluna de controles -->
         <div class="tela-controls">
           <div class="block">
-            <h3>1. Carregar produtos da planilha</h3>
-            <div class="field">
-              <label for="telaPlanilha">Planilha Excel (.xlsx)</label>
-              <input id="telaPlanilha" type="file" accept=".xlsx" />
-            </div>
-            <button id="telaCarregarBtn" type="button">Carregar produtos</button>
-            <p id="telaParseInfo" class="tela-info hidden"></p>
-          </div>
-
-          <div class="block">
-            <h3>2. Informações da tela</h3>
+            <h3>Informações (todas as telas)</h3>
             <div class="row">
               <div class="field">
                 <label for="telaMes">Mês</label>
                 <input id="telaMes" type="text" placeholder="Ex.: XX - Abril" />
               </div>
               <div class="field">
-                <label for="telaNomeArquivo">Nome do arquivo</label>
+                <label for="telaNomeArquivo">Nome base do arquivo</label>
                 <input id="telaNomeArquivo" type="text" placeholder="tela_abril" />
               </div>
             </div>
@@ -168,7 +173,7 @@
           </div>
 
           <div class="block">
-            <h3>3. Fundo da tela</h3>
+            <h3>Fundo (todas as telas)</h3>
             <p class="tela-hint">Use o fundo verde padrão ou envie sua própria arte de fundo.</p>
             <div class="bg-row">
               <input id="telaBgInput" type="file" accept="image/*" />
@@ -182,26 +187,41 @@
 
           <div class="block">
             <div class="block-head">
-              <h3>4. Produtos da tela</h3>
-              <button id="telaAddBtn" type="button" class="btn-small">+ Adicionar produto</button>
+              <h3 id="telaItemsTitle">Produtos desta tela</h3>
+              <button id="telaAddBtn" type="button" class="btn-small">+ Produto</button>
             </div>
+            <p class="tela-hint">Padrão de 2 produtos por tela. Você pode ter de 1 a 3.</p>
             <div id="telaItems" class="tela-items"></div>
-            <p id="telaItemsEmpty" class="tela-hint">Nenhum produto adicionado ainda.</p>
+            <p id="telaEmptyWarn" class="tela-warn hidden">
+              ⚠ Esta tela está sem produtos. Adicione um produto ou exclua a tela — telas vazias
+              não geram PNG.
+            </p>
+            <div class="block-foot">
+              <button id="telaPlanilhaReload" type="button" class="btn-ghost">Trocar planilha</button>
+              <input id="telaPlanilhaHidden" type="file" accept=".xlsx" class="hidden" />
+            </div>
           </div>
         </div>
 
-        <!-- Coluna de prévia -->
+        <!-- Coluna de prévia (carrossel) -->
         <div class="tela-preview-col">
-          <div class="preview-toolbar">
-            <strong>Prévia da tela</strong>
+          <div class="preview-toolbar carousel-toolbar">
+            <button id="telaPrevBtn" type="button" class="carousel-arrow" aria-label="Tela anterior">‹</button>
+            <span id="telaCarouselInfo" class="carousel-info">Tela 1 de 1</span>
+            <button id="telaNextBtn" type="button" class="carousel-arrow" aria-label="Próxima tela">›</button>
             <span class="toolbar-spacer"></span>
-            <button id="telaRefreshBtn" type="button" class="btn-small">Atualizar prévia</button>
-            <a id="telaDownloadLink" class="btn-download" href="#" download>Baixar PNG</a>
+            <button id="telaAddTelaBtn" type="button" class="btn-small">+ Nova tela</button>
+            <button id="telaDelTelaBtn" type="button" class="btn-small btn-danger">Excluir tela</button>
           </div>
           <div class="tela-frame-wrap">
             <iframe id="telaPreviewFrame" title="Prévia da tela"></iframe>
           </div>
+          <div class="tela-download-row">
+            <a id="telaDownloadLink" class="btn-download" href="#" download>Baixar esta tela</a>
+            <button id="telaDownloadAllBtn" type="button" class="btn-download btn-download-all">Baixar todas as telas</button>
+          </div>
           <p id="telaGenInfo" class="tela-info hidden"></p>
+          <div id="telaAllLinks" class="tela-all-links hidden"></div>
         </div>
       </div>
     </section>

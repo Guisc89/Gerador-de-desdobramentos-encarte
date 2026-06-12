@@ -2,7 +2,7 @@
 
 Aplicação web (Express + XLSX + Puppeteer) que recebe uma planilha Excel `.xlsx` com produtos e gera dois tipos de material a partir da MESMA planilha:
 - **Preçários**: PDF de encarte (14 ofertas por página, 2 colunas × 7 linhas) no estilo amarelo de referência.
-- **Telas**: banner horizontal 16:9 em PNG de alta resolução (3840×2160) para TVs/redes sociais, no estilo verde Farmácias Associadas (logo + validade à esquerda, cards de produto com foto + preço à direita). Fundo trocável (verde padrão ou imagem enviada pelo usuário) e foto enviada manualmente por produto.
+- **Telas**: conjunto de banners 16:9 em PNG de alta resolução (3840×2160) para TVs/redes sociais, no estilo verde Farmácias Associadas. As telas são montadas **automaticamente** a partir da MESMA planilha (2 produtos por tela por padrão) e navegadas em **carrossel** (prev/next + "Tela X de N"). Por tela é possível ter de 1 a 3 produtos (adicionar/remover); ao remover o último produto a UI alerta o usuário (telas vazias não geram PNG). Subir a planilha em QUALQUER aba (Preçários ou Telas) alimenta as telas. Fundo trocável e foto manual por produto. Botões "Baixar esta tela" e "Baixar todas as telas".
 
 A interface tem uma barra superior com logo e abas (Preçários | Telas).
 
@@ -32,8 +32,8 @@ A interface tem uma barra superior com logo e abas (Preçários | Telas).
 - Tela de login: `artifacts/api-server/public/{login.html,login.css,login.js}` + logo em `public/logo.png`.
 - Auth: `src/routes/auth.ts` (`GET/POST /api/login`, `POST /api/logout`) + middleware `src/middlewares/auth.ts`. Sessão via `express-session` (cookie `encarte.sid`, 8h).
 - Rotas do encarte: `artifacts/api-server/src/routes/encarte.ts` (`POST /api/upload`, `POST /api/generate`, `GET /api/download/:filename`, `GET /api/preview?edit=1`)
-- Rotas das telas: `artifacts/api-server/src/routes/telas.ts` (`POST /api/telas/parse`, `POST /api/telas/state`, `GET /api/telas/preview`, `POST /api/telas/generate`). Reutiliza `GET /api/download/:filename` do encarte (mesmo `output/`).
-- Frontend das telas: `artifacts/api-server/public/telas.js` (compositor: carrega planilha, escolhe produtos, autofill, upload de foto por produto, upload de fundo, prévia ao vivo, baixar PNG). Painel `#panel-telas` em `index.html`; abas alternadas por script inline.
+- Rotas das telas: `artifacts/api-server/src/routes/telas.ts` (`POST /api/telas/parse`, `POST /api/telas/render` (stateless, devolve HTML p/ `srcdoc`), `POST /api/telas/generate` (1 tela), `POST /api/telas/generate-all` (várias telas, reaproveita 1 navegador via `htmlToPngBatch`, pula telas vazias, numera pelo índice original `<base>_tela_NN.png`)). Reutiliza `GET /api/download/:filename` (mesmo `output/`). Limites: `MAX_PRODUTOS=3` por tela, `MAX_TELAS=60`.
+- Frontend das telas: `artifacts/api-server/public/telas.js` (modelo carrossel: `catalogo[]` + `telas[]` cada `{id, produtos:[...]}`; monta telas em grupos de 2; navega prev/next; editar/adicionar/remover produtos (1–3); alerta tela vazia; prévia ao vivo via `srcdoc` com guarda de sequência; baixar 1 ou todas). Catálogo compartilhado com a aba Preçários via `CustomEvent('encarte:catalogo')` + `window.__encarteCatalogo` (disparado em `app.js` após `/api/upload`). Painel `#panel-telas` em `index.html` (empty-state `#telaEmptyState` + workspace `#telaWorkspace`).
 - Leitura do Excel: `artifacts/api-server/src/services/excelParser.ts` (compartilhado entre preçário e telas)
 - Formatação de preço: `artifacts/api-server/src/services/priceFormatter.ts`
 - Template HTML/CSS do PDF (preçário): `artifacts/api-server/src/services/encarteTemplate.ts`

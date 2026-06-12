@@ -151,6 +151,19 @@
       produtos = Array.isArray(data.produtos) ? data.produtos : [];
       currentDownloadUrl = data.downloadUrl;
       downloadLink.href = data.downloadUrl;
+
+      // Share the parsed catalog with the Telas tab so it auto-fills.
+      const sharedInfo = {
+        produtos: produtos,
+        mes: currentMes,
+        validadeInicio: String(fd.get("validadeInicio") || "").trim(),
+        validadeFim: String(fd.get("validadeFim") || "").trim(),
+      };
+      window.__encarteCatalogo = sharedInfo;
+      document.dispatchEvent(
+        new CustomEvent("encarte:catalogo", { detail: sharedInfo }),
+      );
+
       updateCount();
       editorSection.classList.remove("hidden");
       setDirty(false);

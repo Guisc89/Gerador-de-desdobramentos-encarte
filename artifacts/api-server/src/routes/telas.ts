@@ -9,7 +9,7 @@ import {
   type TelaState,
   type TelaProduto,
 } from "../services/telaTemplate";
-import { htmlToPng } from "../services/pdfGenerator";
+import { htmlToPng, htmlToPngBatch } from "../services/pdfGenerator";
 
 const router: IRouter = Router();
 
@@ -35,7 +35,6 @@ const upload = multer({
   },
 });
 
-let lastTela: TelaState | null = null;
 
 function str(value: unknown): string {
   return value === undefined || value === null ? "" : String(value).trim();
@@ -45,7 +44,9 @@ function str(value: unknown): string {
 // resources and become an SSRF gadget when rendered by the headless browser).
 const ALLOWED_IMG = /^data:image\/(png|jpe?g|webp);base64,/i;
 const MAX_IMG_BYTES = 8 * 1024 * 1024;
-const MAX_PRODUTOS = 12;
+// Each tela holds at most 3 products (default 2, up to 3).
+const MAX_PRODUTOS = 3;
+const MAX_TELAS = 60;
 
 function dataImage(value: unknown): string | null {
   if (typeof value !== "string") return null;
@@ -148,33 +149,18 @@ router.post("/telas/parse", upload.single("planilha"), async (req, res) => {
   }
 });
 
-// Store the current tela state so the preview can render it
-router.post("/telas/state", (req, res) => {
-  lastTela = sanitizeState(req.body);
-  res.json({ ok: true });
-});
-
-// Live HTML preview of the last stored tela
-router.get("/telas/preview", (_req, res) => {
-  if (!lastTela) {
-    res.type("html").send(renderTelaHtml({
-      mes: "",
-      validadeInicio: "",
-      validadeFim: "",
-      endereco: "",
-      background: null,
-      produtos: [],
-    }));
-    return;
-  }
-  res.type("html").send(renderTelaHtml(lastTela));
+// Stateless live preview: render the posted tela state to HTML and return it.
+// The client injects it via iframe srcdoc, so there is no shared server state
+// (avoids cross-session leakage and out-of-order overwrite races).
+router.post("/telas/render", (req, res) => {
+  const state = sanitizeState(req.body);
+  res.type("html").send(renderTelaHtml(state));
 });
 
 // Generate the high-resolution PNG and return a download URL
 router.post("/telas/generate", async (req, res) => {
   try {
     const state = sanitizeState(req.body);
-    lastTela = state;
 
     if (state.produtos.length === 0) {
       res.status(400).json({ error: "Adicione ao menos um produto à tela." });
@@ -203,6 +189,73 @@ router.post("/telas/generate", async (req, res) => {
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Erro desconhecido";
     req.log.error({ err }, "Erro ao gerar PNG da tela");
+    res.status(500).json({ error: message });
+  }
+});
+
+// Generate one PNG per tela, reusing a single browser instance. Empty telas
+// (no valid products) are skipped and reported back to the client.
+router.post("/telas/generate-all", async (req, res) => {
+  try {
+    const body = (req.body ?? {}) as Record<string, unknown>;
+    const rawTelas = Array.isArray(body["telas"]) ? body["telas"] : [];
+    if (rawTelas.length === 0) {
+      res.status(400).json({ error: "Nenhuma tela enviada." });
+      return;
+    }
+
+    const baseName = safeName(str(body["nomeArquivo"]) || "tela");
+
+    const states = rawTelas
+      .slice(0, MAX_TELAS)
+      .map((t) => sanitizeState(t));
+
+    const valid: { index: number; state: TelaState }[] = [];
+    let vazias = 0;
+    states.forEach((state, index) => {
+      if (state.produtos.length === 0) {
+        vazias += 1;
+      } else {
+        valid.push({ index, state });
+      }
+    });
+
+    if (valid.length === 0) {
+      res.status(400).json({
+        error:
+          "Todas as telas estão sem produtos. Adicione produtos antes de gerar.",
+      });
+      return;
+    }
+
+    const htmls = valid.map((v) => renderTelaHtml(v.state));
+    const pngs = await htmlToPngBatch(htmls, {
+      width: 1280,
+      height: 720,
+      scale: 3,
+    });
+
+    const arquivos: { filename: string; downloadUrl: string }[] = [];
+    for (let i = 0; i < valid.length; i += 1) {
+      const num = String(valid[i].index + 1).padStart(2, "0");
+      const filename = `${baseName}_tela_${num}.png`;
+      const filepath = path.join(OUTPUT_DIR, filename);
+      await fs.writeFile(filepath, pngs[i]);
+      arquivos.push({
+        filename,
+        downloadUrl: `/api/download/${encodeURIComponent(filename)}`,
+      });
+    }
+
+    req.log.info(
+      { total: states.length, geradas: arquivos.length, vazias },
+      "PNGs das telas gerados (lote)",
+    );
+
+    res.json({ ok: true, arquivos, vazias });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Erro desconhecido";
+    req.log.error({ err }, "Erro ao gerar PNGs das telas (lote)");
     res.status(500).json({ error: message });
   }
 });
