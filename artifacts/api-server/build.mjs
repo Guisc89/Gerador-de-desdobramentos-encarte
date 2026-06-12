@@ -29,6 +29,9 @@ async function buildAll() {
     // - use path traversal to read files (e.g. @google-cloud/secret-manager loads sibling .proto files)
     external: [
       "*.node",
+      // Reads its bundled table.sql relative to its own dir; bundling breaks
+      // that path (looks for dist/table.sql), so keep it required from node_modules.
+      "connect-pg-simple",
       "sharp",
       "better-sqlite3",
       "sqlite3",

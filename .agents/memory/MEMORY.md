@@ -1,1 +1,1 @@
-- [Telas preview must stay stateless](telas-preview-state.md) — render via POST→HTML+srcdoc with a client seq guard; never reintroduce a process-global "current preview".
+- [esbuild + __dirname data files](esbuild-external-data-files.md) — packages that read sibling files (table.sql, .proto) via __dirname must be esbuild-externalized or they ENOENT at runtime.

@@ -1,6 +1,8 @@
 import express, { type Express, type Request, type Response, type NextFunction } from "express";
 import cors from "cors";
 import session from "express-session";
+import connectPgSimple from "connect-pg-simple";
+import { pool } from "@workspace/db";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import pinoHttp from "pino-http";
@@ -35,9 +37,15 @@ app.use(express.json({ limit: "30mb" }));
 app.use(express.urlencoded({ extended: true, limit: "30mb" }));
 
 app.set("trust proxy", 1);
+// Persist sessions in Postgres (connect-pg-simple). The default MemoryStore is
+// wiped on every server restart/redeploy, which logged everyone out (existing
+// cookie -> 401 on POST /api/generate). The pg-backed store survives restarts
+// and auto-creates its "session" table on boot.
+const PgSession = connectPgSimple(session);
 app.use(
   session({
     name: "encarte.sid",
+    store: new PgSession({ pool, createTableIfMissing: true }),
     secret: process.env["SESSION_SECRET"] || "dev-secret-change-me",
     resave: false,
     saveUninitialized: false,
