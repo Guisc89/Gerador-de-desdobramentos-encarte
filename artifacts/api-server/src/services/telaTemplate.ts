@@ -1,27 +1,3 @@
-import fs from "node:fs";
-import path from "node:path";
-
-const LOGO_PATHS = [
-  path.resolve(process.cwd(), "public/logo.png"),
-  path.resolve(process.cwd(), "artifacts/api-server/public/logo.png"),
-];
-
-let logoDataUri: string | null = null;
-function getLogo(): string {
-  if (logoDataUri !== null) return logoDataUri;
-  for (const p of LOGO_PATHS) {
-    try {
-      const buf = fs.readFileSync(p);
-      logoDataUri = `data:image/png;base64,${buf.toString("base64")}`;
-      return logoDataUri;
-    } catch {
-      // try next path
-    }
-  }
-  logoDataUri = "";
-  return logoDataUri;
-}
-
 export interface TelaProduto {
   nome: string;
   descricao: string;
@@ -86,19 +62,17 @@ export function renderTelaHtml(state: TelaState): string {
     : "";
   const bgClass = state.background ? "tela-bg" : "tela-bg tela-bg-default";
 
-  const headerParts: string[] = [];
-  if (state.mes) headerParts.push(esc(state.mes));
-  if (state.validadeInicio || state.validadeFim) {
-    headerParts.push(
-      `Validade: ${esc(state.validadeInicio)} a ${esc(state.validadeFim)}`,
-    );
-  }
-  const headerLine = headerParts.join(" | ");
+  const validade =
+    state.validadeInicio || state.validadeFim
+      ? `Validade: ${esc(state.validadeInicio)} a ${esc(state.validadeFim)}`
+      : "";
 
-  const logo = getLogo();
-  const logoTag = logo
-    ? `<img class="tela-logo" src="${logo}" alt="Farmácias Associadas" />`
-    : `<div class="tela-logo-fallback">Farmácias Associadas</div>`;
+  const infoBlock = `
+        ${state.mes ? `<div class="tela-mes">${esc(state.mes)}</div>` : ""}
+        ${validade ? `<div class="tela-validade">${validade}</div>` : ""}
+        <div class="tela-endereco">${
+          state.endereco ? esc(state.endereco) : "Insira aqui seu endereço"
+        }</div>`;
 
   const cards =
     count > 0
@@ -149,25 +123,27 @@ export function renderTelaHtml(state: TelaState): string {
     display: flex;
     flex-direction: column;
   }
-  .tela-logo { width: 28vw; max-width: 100%; height: auto; display: block; }
-  .tela-logo-fallback {
-    font-size: 3.2vw; font-weight: 900; color: #ef7d22; line-height: 1;
+  .tela-mes {
+    font-size: 3.4vw;
+    font-weight: 900;
+    line-height: 1.02;
+    color: #0f5f56;
   }
-  .tela-header {
-    margin-top: 1.4vw;
-    font-size: 1.55vw;
+  .tela-validade {
+    margin-top: 1vw;
+    font-size: 1.8vw;
     font-weight: 800;
     color: #0f5f56;
   }
   .tela-disclaimer {
-    margin-top: 0.7vw;
+    margin-top: 1.2vw;
     font-size: 0.92vw;
     color: #3d4a3a;
     max-width: 32vw;
   }
   .tela-endereco {
-    margin-top: 0.4vw;
-    font-size: 1vw;
+    margin-top: 1vw;
+    font-size: 1.3vw;
     font-weight: 700;
     letter-spacing: 0.04em;
     text-transform: uppercase;
@@ -251,14 +227,8 @@ export function renderTelaHtml(state: TelaState): string {
     <div class="${bgClass}" ${bgStyle}></div>
     <div class="tela-content">
       <div class="tela-left">
-        ${logoTag}
-        ${headerLine ? `<div class="tela-header">${headerLine}</div>` : ""}
+        ${infoBlock}
         <div class="tela-disclaimer">Os preços e produtos anunciados são válidos exclusivamente para esta loja.</div>
-        ${
-          state.endereco
-            ? `<div class="tela-endereco">${esc(state.endereco)}</div>`
-            : `<div class="tela-endereco">Insira aqui seu endereço</div>`
-        }
       </div>
       <div class="tela-right" data-count="${count}">
         ${cards}
