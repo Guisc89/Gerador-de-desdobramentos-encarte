@@ -118,6 +118,21 @@ globalThis.__dirname = __bannerPath.dirname(globalThis.__filename);
     `,
     },
   });
+
+  // Browser build of the tela template so the live preview renders entirely
+  // client-side (no network round-trip, no re-sending base64 photos/background).
+  // Single source of truth: same telaTemplate.ts the server uses for PNG output.
+  // Exposes window.TelaTemplate.renderTelaHtml(state).
+  await esbuild({
+    entryPoints: [path.resolve(artifactDir, "src/services/telaTemplate.ts")],
+    platform: "browser",
+    bundle: true,
+    format: "iife",
+    globalName: "TelaTemplate",
+    outfile: path.resolve(artifactDir, "public/telaTemplate.js"),
+    logLevel: "info",
+    minify: true,
+  });
 }
 
 buildAll().catch((err) => {

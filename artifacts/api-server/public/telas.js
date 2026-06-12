@@ -123,17 +123,28 @@
   }
 
   // ---- Preview ----
-  // Stateless: render the current tela to HTML and inject via srcdoc. A
-  // sequence token guards against out-of-order responses overwriting newer ones.
+  // Render the current tela entirely in the browser using the SAME template the
+  // server uses for PNG output (window.TelaTemplate, built from telaTemplate.ts).
+  // This avoids a network round-trip and re-sending the base64 photos/background
+  // on every keystroke, so the preview updates instantly. Falls back to the
+  // stateless /api/telas/render endpoint if the browser template failed to load.
   async function pushPreview() {
     const tela = currentTela();
     if (!tela) return;
+    const state = telaState(tela);
+
+    if (window.TelaTemplate && typeof window.TelaTemplate.renderTelaHtml === "function") {
+      previewSeq++; // invalidate any in-flight fallback request
+      previewFrame.srcdoc = window.TelaTemplate.renderTelaHtml(state);
+      return;
+    }
+
     const seq = ++previewSeq;
     try {
       const res = await fetch("/api/telas/render", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(telaState(tela)),
+        body: JSON.stringify(state),
       });
       const html = await res.text();
       if (seq !== previewSeq) return; // a newer request already started
@@ -145,7 +156,7 @@
 
   function schedulePreview() {
     if (debounceTimer) clearTimeout(debounceTimer);
-    debounceTimer = setTimeout(pushPreview, 400);
+    debounceTimer = setTimeout(pushPreview, 120);
   }
 
   // ---- Rendering ----
