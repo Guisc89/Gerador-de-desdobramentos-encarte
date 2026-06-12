@@ -201,13 +201,9 @@ export function renderTelaHtml(state: TelaState): string {
   .card-nome { font-size: 1.55vw; font-weight: 900; line-height: 1.05; }
   .card-desc {
     margin-top: 0.3vw;
-    font-size: 1.15vw;
+    font-size: 1.02vw;
     font-weight: 500;
-    line-height: 1.2;
     color: rgba(255,255,255,0.92);
-    overflow-wrap: break-word;
-    word-break: break-word;
-    white-space: normal;
   }
   .card-price {
     margin-top: 1vw;
