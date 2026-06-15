@@ -1,0 +1,8 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "U4e_7CU0sPTA0vEhe4ICA"
+uri = "file://dist-export/encarte-associadas.zip"
+type = "unspecified"
+title = "Encarte Associadas — projeto completo (.zip para reimportar)"
