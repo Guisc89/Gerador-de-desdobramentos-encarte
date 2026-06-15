@@ -30,20 +30,18 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 240px;
-  height: 110px;
-  margin: 0 auto 22px;
+  width: 340px;
+  max-width: 100%;
+  margin: 0 auto 26px;
   background: #ffffff;
-  border-radius: 14px;
-  padding: 12px 18px;
+  border-radius: 16px;
+  padding: 26px 30px;
   box-shadow: 0 8px 24px rgba(0,0,0,0.18);
 }
 .logo {
   display: block;
-  max-width: 100%;
-  max-height: 100%;
+  width: 100%;
   height: auto;
-  width: auto;
 }
 
 h1 {

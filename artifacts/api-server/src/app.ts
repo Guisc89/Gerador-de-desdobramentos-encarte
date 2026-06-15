@@ -75,6 +75,7 @@ const PUBLIC_FILES = new Set([
   "/login.css",
   "/login.js",
   "/logo.png",
+  "/logo-login.png",
   "/favicon.ico",
 ]);
 
