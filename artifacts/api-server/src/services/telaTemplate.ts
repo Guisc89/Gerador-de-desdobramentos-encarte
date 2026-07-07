@@ -47,7 +47,7 @@ function renderCard(p: TelaProduto): string {
         <div class="card-price">
           <span class="rs">R$</span><span class="int">${esc(
             p.precoInteiro || "0",
-          )}</span><span class="cent">,${esc(cent)}</span><span class="cada">cada</span>
+          )}</span><span class="cent-group"><span class="cent">,${esc(cent)}</span><span class="cada">cada</span></span>
         </div>
       </div>
     </div>`;
@@ -255,8 +255,17 @@ export function renderTelaHtml(state: TelaState): string {
   }
   .card-price .rs { font-size: 1.5vw; font-weight: 800; }
   .card-price .int { font-size: 4vw; font-weight: 900; letter-spacing: -0.05vw; }
-  .card-price .cent { font-size: 2vw; font-weight: 900; align-self: flex-start; margin-top: 0.4vw; }
-  .card-price .cada { font-size: 1vw; font-weight: 700; align-self: flex-end; margin-left: 0.2vw; }
+  /* Centavos with "cada" stacked directly below them */
+  .card-price .cent-group {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: flex-start;
+    align-self: flex-start;
+    margin-top: 0.4vw;
+    line-height: 1;
+  }
+  .card-price .cent { font-size: 2vw; font-weight: 900; }
+  .card-price .cada { font-size: 1vw; font-weight: 700; margin-top: 0.25vw; }
   .tela-empty {
     grid-column: 1 / -1;
     align-self: center;
