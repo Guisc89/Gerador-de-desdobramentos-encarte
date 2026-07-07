@@ -53,15 +53,6 @@
   let nextId = 1;
   let debounceTimer = null;
   let previewSeq = 0;
-  // Products whose photo the user chose to hide on the stories, keyed by name +
-  // apresentação (descrição) so products sharing a name but differing by
-  // apresentação are hidden independently. Local to the Stories tab (does NOT
-  // touch the Telas tab); kept across re-mirrors.
-  const hiddenFotos = {};
-  function fotoKey(nome, descricao) {
-    return (nome || "").trim() + "||" + (descricao || "").trim();
-  }
-
   function newItem(prefill) {
     const foto = prefill ? prefill.foto || null : null;
     return {
@@ -70,7 +61,6 @@
       descricao: prefill ? prefill.descricao : "",
       precoInteiro: prefill ? prefill.precoInteiro : "",
       precoCentavos: prefill ? prefill.precoCentavos : "",
-      fotoOrig: foto, // original photo from the Telas tab (for restore)
       foto: foto,
     };
   }
@@ -121,8 +111,7 @@
   // ---- Mirror the Telas tab ----
   // Consume everything set up in the Telas tab: same products/texts/prices and
   // photos. Pages are REGROUPED (capa = first 2 products, rest in groups of
-  // 2–3) because a tela page can hold up to 4 products. The user can only hide
-  // a product photo (kept by fotoKey in hiddenFotos); no product data is
+  // 2–3) because a tela page can hold up to 4 products. No product data is
   // edited here.
   function mirrorTelas(snapshot) {
     if (!snapshot || !Array.isArray(snapshot.telas) || snapshot.telas.length === 0)
@@ -142,9 +131,7 @@
     const todos = [];
     snapshot.telas.forEach((t) => {
       (t.produtos || []).forEach((p) => {
-        const item = newItem(p);
-        if (hiddenFotos[fotoKey(item.nome, item.descricao)]) item.foto = null;
-        todos.push(item);
+        todos.push(newItem(p));
       });
     });
     if (todos.length === 0) return;
@@ -241,12 +228,10 @@
     itemsTitle.textContent = isCapa ? "Fotos da capa" : "Fotos deste story";
     if (itemsHint)
       itemsHint.textContent =
-        "Os produtos vêm das Telas. Aqui você só escolhe mostrar ou ocultar a foto de cada um.";
+        "Os produtos e as fotos vêm das Telas. Para alterá-los, edite a aba Telas.";
 
     itemsEl.innerHTML = "";
     story.produtos.forEach((it, idx) => {
-      const nome = (it.nome || "").trim();
-      const hidden = !!hiddenFotos[fotoKey(it.nome, it.descricao)];
       const row = document.createElement("div");
       row.className = "tela-item";
       row.innerHTML = `
@@ -254,44 +239,13 @@
           <span class="tela-item-num">${
             escapeHtml(it.nome) || "Produto " + (idx + 1)
           }</span>
-          <button type="button" class="product-remove" data-act="toggle"${
-            nome && (it.fotoOrig || hidden) ? "" : " disabled"
-          }>${hidden ? "Mostrar foto" : "Remover foto"}</button>
         </div>
         <div class="tela-item-thumb ${it.foto ? "" : "hidden"}">
           ${it.foto ? `<img src="${it.foto}" alt="" />` : ""}
         </div>
-        ${
-          !it.foto
-            ? `<p class="tela-hint">${
-                hidden ? "Foto ocultada nos stories." : "Sem foto para este produto."
-              }</p>`
-            : ""
-        }
+        ${!it.foto ? `<p class="tela-hint">Sem foto para este produto.</p>` : ""}
       `;
-      bindRow(row, it);
       itemsEl.appendChild(row);
-    });
-  }
-
-  function bindRow(row, it) {
-    const btn = row.querySelector('[data-act="toggle"]');
-    if (!btn) return;
-    btn.addEventListener("click", () => {
-      const nome = (it.nome || "").trim();
-      if (!nome) return;
-      const key = fotoKey(it.nome, it.descricao);
-      const willHide = !hiddenFotos[key];
-      if (willHide) hiddenFotos[key] = true;
-      else delete hiddenFotos[key];
-      // Apply to every product with the same name + apresentação across pages.
-      stories.forEach((c) =>
-        c.produtos.forEach((x) => {
-          if (fotoKey(x.nome, x.descricao) === key)
-            x.foto = willHide ? null : x.fotoOrig;
-        }),
-      );
-      renderAll();
     });
   }
 
