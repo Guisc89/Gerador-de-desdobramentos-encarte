@@ -1,6 +1,8 @@
 (function () {
-  const PRODUTOS_PADRAO = 2;
-  const MAX_PRODUTOS = 3;
+  // Capa (tela 1) = exactly 2 products. Every other tela = 3 to 4 products.
+  const CAPA_PRODUTOS = 2;
+  const MIN_PRODUTOS_TELA = 3;
+  const MAX_PRODUTOS_TELA = 4;
 
   // Empty-state elements
   const emptyState = document.getElementById("telaEmptyState");
@@ -89,16 +91,36 @@
     })[c]);
   }
 
-  // Build telas automatically from the catalog: PRODUTOS_PADRAO products each.
+  // Split the post-capa products into telas of 3–4 as evenly as possible, so we
+  // don't leave a tela with 1–2 products whenever the count allows it. (Counts
+  // of 1, 2 and 5 cannot be split into pure 3–4 groups; the leftover tela is
+  // then underfilled and the user tops it up manually.)
+  function chunkRest(items) {
+    const R = items.length;
+    if (R === 0) return [];
+    if (R <= MAX_PRODUTOS_TELA) return [items];
+    const n = Math.ceil(R / MAX_PRODUTOS_TELA);
+    const base = Math.floor(R / n);
+    let rem = R % n;
+    const groups = [];
+    let idx = 0;
+    for (let g = 0; g < n; g += 1) {
+      const size = base + (rem > 0 ? 1 : 0);
+      if (rem > 0) rem -= 1;
+      groups.push(items.slice(idx, idx + size));
+      idx += size;
+    }
+    return groups;
+  }
+
   function buildTelasFromCatalog() {
     telas = [];
-    for (let i = 0; i < catalogo.length; i += PRODUTOS_PADRAO) {
-      const grupo = catalogo
-        .slice(i, i + PRODUTOS_PADRAO)
-        .map((p) => newItem(p));
-      telas.push(newTela(grupo));
-    }
-    if (telas.length === 0) telas.push(newTela([newItem(null)]));
+    const capa = catalogo.slice(0, CAPA_PRODUTOS).map((p) => newItem(p));
+    if (capa.length > 0) telas.push(newTela(capa));
+    const rest = catalogo.slice(CAPA_PRODUTOS).map((p) => newItem(p));
+    chunkRest(rest).forEach((grupo) => telas.push(newTela(grupo)));
+    if (telas.length === 0)
+      telas.push(newTela([newItem(null), newItem(null)]));
     current = 0;
   }
 
@@ -106,13 +128,14 @@
     return telas[current] || null;
   }
 
-  function telaState(tela) {
+  function telaState(tela, isCapa) {
     return {
       mes: mesInput.value.trim(),
       validadeInicio: validadeInicioInput.value.trim(),
       validadeFim: validadeFimInput.value.trim(),
       endereco: enderecoInput.value.trim(),
       background: bgDataUri,
+      isCapa: !!isCapa,
       produtos: tela.produtos.map((it) => ({
         nome: it.nome,
         descricao: it.descricao,
@@ -132,7 +155,7 @@
   async function pushPreview() {
     const tela = currentTela();
     if (!tela) return;
-    const state = telaState(tela);
+    const state = telaState(tela, current === 0);
 
     if (window.TelaTemplate && typeof window.TelaTemplate.renderTelaHtml === "function") {
       previewSeq++; // invalidate any in-flight fallback request
@@ -175,16 +198,23 @@
     carouselInfo.textContent = "Tela " + (current + 1) + " de " + total;
     prevBtn.disabled = current <= 0;
     nextBtn.disabled = current >= total - 1;
-    delTelaBtn.disabled = total <= 1;
+    // The capa (tela 1) is fixed and cannot be deleted — deleting it would
+    // promote a 3–4 product tela into the capa slot and break the invariant.
+    delTelaBtn.disabled = total <= 1 || current === 0;
   }
 
   function renderItems() {
     const tela = currentTela();
     if (!tela) return;
 
+    const isCapa = current === 0;
+    const maxProdutos = isCapa ? CAPA_PRODUTOS : MAX_PRODUTOS_TELA;
+    const minProdutos = isCapa ? CAPA_PRODUTOS : MIN_PRODUTOS_TELA;
+    const canRemove = tela.produtos.length > minProdutos;
+
     const isEmpty = tela.produtos.length === 0;
     emptyWarn.classList.toggle("hidden", !isEmpty);
-    addBtn.disabled = tela.produtos.length >= MAX_PRODUTOS;
+    addBtn.disabled = tela.produtos.length >= maxProdutos;
 
     itemsEl.innerHTML = "";
     tela.produtos.forEach((it, idx) => {
@@ -193,7 +223,9 @@
       row.innerHTML = `
         <div class="tela-item-head">
           <span class="tela-item-num">Produto ${idx + 1}</span>
-          <button type="button" class="product-remove" data-act="remove">Remover</button>
+          <button type="button" class="product-remove" data-act="remove"${
+            canRemove ? "" : " disabled"
+          }>Remover</button>
         </div>
         <div class="field">
           <label>Selecionar da planilha</label>
@@ -235,15 +267,18 @@
   function bindRow(row, it) {
     row.querySelector('[data-act="remove"]').addEventListener("click", () => {
       const tela = currentTela();
+      const isCapa = current === 0;
+      const minProdutos = isCapa ? CAPA_PRODUTOS : MIN_PRODUTOS_TELA;
+      if (tela.produtos.length <= minProdutos) {
+        alert(
+          isCapa
+            ? "A capa (tela 1) precisa ter exatamente 2 produtos."
+            : "Cada tela a partir da 2 precisa ter no mínimo 3 produtos.",
+        );
+        return;
+      }
       tela.produtos = tela.produtos.filter((x) => x.id !== it.id);
       renderItems();
-      if (tela.produtos.length === 0) {
-        alert(
-          "A tela " +
-            (current + 1) +
-            " ficou sem produtos. Adicione um produto ou exclua a tela — telas vazias não geram PNG.",
-        );
-      }
       schedulePreview();
     });
 
@@ -443,7 +478,8 @@
   // ---- Per-tela product add ----
   addBtn.addEventListener("click", () => {
     const tela = currentTela();
-    if (!tela || tela.produtos.length >= MAX_PRODUTOS) return;
+    const maxProdutos = current === 0 ? CAPA_PRODUTOS : MAX_PRODUTOS_TELA;
+    if (!tela || tela.produtos.length >= maxProdutos) return;
     tela.produtos.push(newItem(null));
     renderItems();
     schedulePreview();
@@ -458,12 +494,20 @@
       alert("Limite de " + MAX_TELAS + " telas atingido.");
       return;
     }
-    telas.splice(current + 1, 0, newTela([newItem(null)]));
+    telas.splice(
+      current + 1,
+      0,
+      newTela([newItem(null), newItem(null), newItem(null)]),
+    );
     goTo(current + 1);
   });
 
   delTelaBtn.addEventListener("click", () => {
     if (telas.length <= 1) return;
+    if (current === 0) {
+      alert("A capa (tela 1) não pode ser excluída.");
+      return;
+    }
     if (!confirm("Excluir a tela " + (current + 1) + "?")) return;
     telas.splice(current, 1);
     if (current >= telas.length) current = telas.length - 1;
@@ -487,7 +531,7 @@
     downloadLink.textContent = "Gerando...";
     genInfo.classList.add("hidden");
     try {
-      const body = telaState(tela);
+      const body = telaState(tela, current === 0);
       const base = nomeArquivoInput.value.trim() || "tela";
       body.nomeArquivo = base + "_tela_" + String(current + 1).padStart(2, "0");
       const res = await fetch("/api/telas/generate", {
@@ -541,7 +585,7 @@
     try {
       const body = {
         nomeArquivo: nomeArquivoInput.value.trim() || "tela",
-        telas: telas.map((t) => telaState(t)),
+        telas: telas.map((t, i) => telaState(t, i === 0)),
       };
       const res = await fetch("/api/telas/generate-all", {
         method: "POST",
@@ -606,7 +650,7 @@
     try {
       const body = {
         nomeArquivo: nomeArquivoInput.value.trim() || "tela",
-        telas: telas.map((t) => telaState(t)),
+        telas: telas.map((t, i) => telaState(t, i === 0)),
       };
       const res = await fetch("/api/telas/generate-pdf", {
         method: "POST",

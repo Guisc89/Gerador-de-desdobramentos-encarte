@@ -12,6 +12,7 @@ export interface TelaState {
   validadeFim: string;
   endereco: string;
   background?: string | null;
+  isCapa?: boolean;
   produtos: TelaProduto[];
 }
 
@@ -55,7 +56,17 @@ function renderCard(p: TelaProduto): string {
 export function renderTelaHtml(state: TelaState): string {
   const produtos = Array.isArray(state.produtos) ? state.produtos : [];
   const count = produtos.length;
-  const cols = count <= 2 ? 1 : 2;
+  const isCapa = !!state.isCapa;
+
+  // Capa (tela 1): 2 cards lateralized to the right (unchanged). Other telas
+  // follow the disposition of the reference art: 3 products = 2 on top + 1
+  // centered below; 4 products = 2x2 grid. layout-1/2 are graceful fallbacks.
+  let layoutClass: string;
+  if (isCapa) layoutClass = "layout-capa";
+  else if (count >= 4) layoutClass = "layout-4";
+  else if (count === 3) layoutClass = "layout-3";
+  else if (count === 2) layoutClass = "layout-2";
+  else layoutClass = "layout-1";
 
   const bgStyle = state.background
     ? `style="background-image:url('${esc(state.background)}')"`
@@ -126,11 +137,40 @@ export function renderTelaHtml(state: TelaState): string {
     flex: 1 1 auto;
     min-height: 0;
     display: grid;
-    grid-template-columns: repeat(${cols}, minmax(0, 40vw));
-    justify-content: end;
     gap: 1.6vw;
     align-content: center;
     width: 100%;
+  }
+  /* Capa (tela 1): 2 cards stacked, vertically centered, lateralized right */
+  .tela-cards.layout-capa {
+    grid-template-columns: minmax(0, 40vw);
+    justify-content: end;
+  }
+  /* 1 product (fallback): single centered card */
+  .tela-cards.layout-1 {
+    grid-template-columns: minmax(0, 46vw);
+    justify-content: center;
+  }
+  /* 2 products (non-capa fallback): side by side, centered */
+  .tela-cards.layout-2 {
+    grid-template-columns: repeat(2, minmax(0, 40vw));
+    justify-content: center;
+  }
+  /* 3 products: 2 on the top row, 1 centered on the bottom row */
+  .tela-cards.layout-3 {
+    grid-template-columns: repeat(2, minmax(0, 40vw));
+    justify-content: center;
+  }
+  .tela-cards.layout-3 .card:nth-child(3) {
+    grid-column: 1 / -1;
+    justify-self: center;
+    width: 40vw;
+  }
+  /* 4 products: 2x2 grid */
+  .tela-cards.layout-4 {
+    grid-template-columns: repeat(2, minmax(0, 40vw));
+    grid-auto-rows: minmax(0, 1fr);
+    justify-content: center;
   }
   .tela-info {
     flex: 0 0 auto;
@@ -234,7 +274,7 @@ export function renderTelaHtml(state: TelaState): string {
   <div class="tela">
     <div class="${bgClass}" ${bgStyle}></div>
     <div class="tela-content">
-      <div class="tela-cards" data-count="${count}">
+      <div class="tela-cards ${layoutClass}" data-count="${count}">
         ${cards}
       </div>
       ${infoBlock}

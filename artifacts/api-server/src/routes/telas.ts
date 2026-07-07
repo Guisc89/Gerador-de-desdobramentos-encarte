@@ -44,8 +44,9 @@ function str(value: unknown): string {
 // resources and become an SSRF gadget when rendered by the headless browser).
 const ALLOWED_IMG = /^data:image\/(png|jpe?g|webp);base64,/i;
 const MAX_IMG_BYTES = 8 * 1024 * 1024;
-// Each tela holds at most 3 products (default 2, up to 3).
-const MAX_PRODUTOS = 3;
+// Capa (tela 1) holds exactly 2 products; every other tela holds up to 4.
+const CAPA_MAX_PRODUTOS = 2;
+const TELA_MAX_PRODUTOS = 4;
 const MAX_TELAS = 60;
 
 function dataImage(value: unknown): string | null {
@@ -73,11 +74,14 @@ function sanitizeProduto(input: unknown): TelaProduto | null {
   };
 }
 
-function sanitizeState(body: unknown): TelaState {
+function sanitizeState(body: unknown, forcedIsCapa?: boolean): TelaState {
   const obj = (body ?? {}) as Record<string, unknown>;
+  const isCapa =
+    forcedIsCapa !== undefined ? forcedIsCapa : obj["isCapa"] === true;
+  const maxProdutos = isCapa ? CAPA_MAX_PRODUTOS : TELA_MAX_PRODUTOS;
   const rawProdutos = Array.isArray(obj["produtos"]) ? obj["produtos"] : [];
   const produtos = rawProdutos
-    .slice(0, MAX_PRODUTOS)
+    .slice(0, maxProdutos)
     .map(sanitizeProduto)
     .filter((p): p is TelaProduto => p !== null);
   return {
@@ -86,6 +90,7 @@ function sanitizeState(body: unknown): TelaState {
     validadeFim: str(obj["validadeFim"]),
     endereco: str(obj["endereco"]),
     background: dataImage(obj["background"]),
+    isCapa,
     produtos,
   };
 }
@@ -208,7 +213,7 @@ router.post("/telas/generate-all", async (req, res) => {
 
     const states = rawTelas
       .slice(0, MAX_TELAS)
-      .map((t) => sanitizeState(t));
+      .map((t, index) => sanitizeState(t, index === 0));
 
     const valid: { index: number; state: TelaState }[] = [];
     let vazias = 0;
@@ -273,7 +278,9 @@ router.post("/telas/generate-pdf", async (req, res) => {
 
     const baseName = safeName(str(body["nomeArquivo"]) || "tela");
 
-    const states = rawTelas.slice(0, MAX_TELAS).map((t) => sanitizeState(t));
+    const states = rawTelas
+      .slice(0, MAX_TELAS)
+      .map((t, index) => sanitizeState(t, index === 0));
     const valid = states.filter((s) => s.produtos.length > 0);
     const vazias = states.length - valid.length;
 
