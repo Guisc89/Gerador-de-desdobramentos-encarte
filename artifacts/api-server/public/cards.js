@@ -65,7 +65,7 @@
       descricao: prefill ? prefill.descricao : "",
       precoInteiro: prefill ? prefill.precoInteiro : "",
       precoCentavos: prefill ? prefill.precoCentavos : "",
-      foto: null,
+      foto: prefill ? fotoFor(prefill.nome) : null,
     };
   }
 
@@ -80,6 +80,31 @@
       reader.onerror = reject;
       reader.readAsDataURL(file);
     });
+  }
+
+  // ---- Shared product photos (synced across the Telas and Cards tabs) ----
+  // Photos are keyed by product name in a shared window store so that a photo
+  // applied to a product in one tab is automatically consumed by the other and
+  // survives catalog rebuilds. Publishes/consumes the `encarte:fotos` event.
+  function sharedFotos() {
+    if (!window.__encarteFotos) window.__encarteFotos = {};
+    return window.__encarteFotos;
+  }
+  function fotoFor(nome) {
+    const key = (nome || "").trim();
+    return key ? sharedFotos()[key] || null : null;
+  }
+  function publishFoto(nome, foto) {
+    const key = (nome || "").trim();
+    if (!key) return;
+    const store = sharedFotos();
+    if (foto) store[key] = foto;
+    else delete store[key];
+    document.dispatchEvent(
+      new CustomEvent("encarte:fotos", {
+        detail: { nome: key, foto: foto || null },
+      }),
+    );
   }
 
   function escapeHtml(s) {
@@ -290,6 +315,7 @@
       it.descricao = p.descricao;
       it.precoInteiro = p.precoInteiro;
       it.precoCentavos = p.precoCentavos;
+      it.foto = fotoFor(p.nome);
       renderItems();
       schedulePreview();
     });
@@ -309,6 +335,7 @@
       const file = e.target.files && e.target.files[0];
       if (!file) return;
       it.foto = await fileToDataUri(file);
+      publishFoto(it.nome, it.foto);
       renderItems();
       schedulePreview();
     });
@@ -352,8 +379,9 @@
   }
 
   // Rebuild the cards from an updated catalog. On a forced re-sync (Preçário
-  // save) the pages are rebuilt from the edited catalog, discarding per-page
-  // photos (same agreed workflow as the Telas tab).
+  // save) the pages are rebuilt from the edited catalog, discarding the manual
+  // per-page organization but preserving photos: newItem re-hydrates each
+  // product's photo by name from the shared window.__encarteFotos store.
   function syncCatalog(produtos, info, opts) {
     const list = Array.isArray(produtos) ? produtos : [];
     if (list.length === 0) return;
@@ -361,6 +389,25 @@
     if (force) cards = [];
     loadCatalog(list, info, force);
   }
+
+  // Listen for a product photo applied in the Telas tab and mirror it onto any
+  // matching product already placed in the cards (skip if unchanged so the tab
+  // that published the photo doesn't re-render itself).
+  document.addEventListener("encarte:fotos", (ev) => {
+    const d = ev.detail || {};
+    const key = (d.nome || "").trim();
+    if (!key) return;
+    let changed = false;
+    cards.forEach((c) =>
+      c.produtos.forEach((it) => {
+        if ((it.nome || "").trim() === key && (it.foto || null) !== (d.foto || null)) {
+          it.foto = d.foto || null;
+          changed = true;
+        }
+      }),
+    );
+    if (changed) renderAll();
+  });
 
   document.addEventListener("encarte:catalogo", (ev) => {
     const d = ev.detail || {};
