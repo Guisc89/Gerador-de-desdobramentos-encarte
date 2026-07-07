@@ -112,12 +112,22 @@ export async function htmlToPng(
   }
 }
 
-// Assemble already-rendered tela PNGs into a single multi-page PDF (one tela
-// per landscape 16:9 page). Each PNG is embedded as a full-bleed data URI so the
-// PDF is pixel-identical to the downloadable PNGs. preferCSSPageSize honors the
-// @page size below over the default A4.
-export async function pngsToPdf(pngs: Buffer[]): Promise<Buffer> {
-  logger.info({ count: pngs.length }, "Launching Puppeteer (telas PDF)");
+export interface PdfPageSize {
+  width: number;
+  height: number;
+}
+
+// Assemble already-rendered PNGs into a single multi-page PDF (one PNG per page).
+// Each PNG is embedded as a full-bleed data URI so the PDF is pixel-identical to
+// the downloadable PNGs. preferCSSPageSize honors the @page size below over the
+// default A4. The page size defaults to landscape 16:9 (telas); cards pass their
+// portrait 3:4 page size instead.
+export async function pngsToPdf(
+  pngs: Buffer[],
+  pageSize: PdfPageSize = { width: 1280, height: 720 },
+): Promise<Buffer> {
+  const { width, height } = pageSize;
+  logger.info({ count: pngs.length, width, height }, "Launching Puppeteer (PDF)");
   const browser = await launchBrowser();
   try {
     const page = await browser.newPage();
@@ -131,11 +141,11 @@ export async function pngsToPdf(pngs: Buffer[]): Promise<Buffer> {
       .join("");
     const html = `<!doctype html><html><head><meta charset="utf-8"><style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
-@page { size: 1280px 720px; margin: 0; }
+@page { size: ${width}px ${height}px; margin: 0; }
 html, body { background: #fff; }
-.page { width: 1280px; height: 720px; overflow: hidden; page-break-after: always; }
+.page { width: ${width}px; height: ${height}px; overflow: hidden; page-break-after: always; }
 .page:last-child { page-break-after: auto; }
-img { width: 1280px; height: 720px; display: block; }
+img { width: ${width}px; height: ${height}px; display: block; }
 </style></head><body>${pagesHtml}</body></html>`;
     await page.setContent(html, { waitUntil: "networkidle0" });
     const pdf = await page.pdf({

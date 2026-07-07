@@ -244,9 +244,10 @@
       <header>
         <h1>Gerador de Cards</h1>
         <p class="subtitle">
-          Cards no formato <strong>1080×1440</strong> (feed) montados a partir da mesma planilha.
-          Envie a arte de fundo da campanha (com logo, título e foto) — o app sobrepõe o mês/validade,
-          o endereço e os <strong>2 produtos</strong> da capa por cima.
+          Cards no formato <strong>1080×1440</strong> (feed) montados <strong>automaticamente</strong> a
+          partir da mesma planilha. A capa (página 1) tem 2 produtos no canto inferior; as páginas
+          seguintes têm de 2 a 4 produtos. Passe pelas páginas no carrossel, ajuste o que precisar e
+          baixe os PNGs em alta resolução.
         </p>
       </header>
 
@@ -260,7 +261,7 @@
           <label for="cardPlanilha">Planilha Excel (.xlsx)</label>
           <input id="cardPlanilha" type="file" accept=".xlsx" />
         </div>
-        <button id="cardCarregarBtn" type="button">Montar card</button>
+        <button id="cardCarregarBtn" type="button">Montar cards</button>
         <p id="cardParseInfo" class="tela-info hidden"></p>
       </div>
 
@@ -310,10 +311,15 @@
 
           <div class="block">
             <div class="block-head">
-              <h3>Produtos da capa</h3>
+              <h3 id="cardItemsTitle">Produtos da capa</h3>
+              <button id="cardAddBtn" type="button" class="btn-small">+ Produto</button>
             </div>
-            <p class="tela-hint">A primeira página do feed tem exatamente 2 produtos.</p>
+            <p id="cardItemsHint" class="tela-hint">A capa (página 1) tem exatamente 2 produtos.</p>
             <div id="cardItems" class="tela-items"></div>
+            <p id="cardEmptyWarn" class="tela-warn hidden">
+              ⚠ Esta página está sem produtos. Adicione um produto ou exclua a página — páginas vazias
+              não geram PNG.
+            </p>
             <div class="block-foot">
               <button id="cardPlanilhaReload" type="button" class="btn-ghost">Trocar planilha</button>
               <input id="cardPlanilhaHidden" type="file" accept=".xlsx" class="hidden" />
@@ -321,20 +327,26 @@
           </div>
         </div>
 
-        <!-- Coluna de prévia -->
+        <!-- Coluna de prévia (carrossel) -->
         <div class="tela-preview-col">
-          <div class="preview-toolbar">
-            <strong>Prévia do card</strong>
+          <div class="preview-toolbar carousel-toolbar">
+            <button id="cardPrevBtn" type="button" class="carousel-arrow" aria-label="Página anterior">‹</button>
+            <span id="cardCarouselInfo" class="carousel-info">Página 1 de 1</span>
+            <button id="cardNextBtn" type="button" class="carousel-arrow" aria-label="Próxima página">›</button>
             <span class="toolbar-spacer"></span>
-            <span class="carousel-info">Página 1 do feed</span>
+            <button id="cardAddCardBtn" type="button" class="btn-small">+ Nova página</button>
+            <button id="cardDelCardBtn" type="button" class="btn-small btn-danger">Excluir página</button>
           </div>
           <div class="tela-frame-wrap card-frame-wrap">
             <iframe id="cardPreviewFrame" title="Prévia do card"></iframe>
           </div>
           <div class="tela-download-row">
-            <a id="cardDownloadLink" class="btn-download" href="#" download>Baixar card (PNG)</a>
+            <a id="cardDownloadLink" class="btn-download" href="#" download>Baixar esta página</a>
+            <button id="cardDownloadAllBtn" type="button" class="btn-download btn-download-all">Baixar todas (PNG)</button>
+            <button id="cardDownloadPdfBtn" type="button" class="btn-download btn-download-pdf">Baixar todas em PDF</button>
           </div>
           <p id="cardGenInfo" class="tela-info hidden"></p>
+          <div id="cardAllLinks" class="tela-all-links hidden"></div>
         </div>
       </div>
     </section>
