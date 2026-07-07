@@ -150,6 +150,20 @@ globalThis.__dirname = __bannerPath.dirname(globalThis.__filename);
     logLevel: "info",
     minify: true,
   });
+
+  // Browser build of the story template (same reasoning as the card bundle:
+  // instant client-side preview from the same storyTemplate.ts the server uses).
+  // Exposes window.StoryTemplate.renderStoryHtml(state).
+  await esbuild({
+    entryPoints: [path.resolve(artifactDir, "src/services/storyTemplate.ts")],
+    platform: "browser",
+    bundle: true,
+    format: "iife",
+    globalName: "StoryTemplate",
+    outfile: path.resolve(artifactDir, "public/storyTemplate.js"),
+    logLevel: "info",
+    minify: true,
+  });
 }
 
 buildAll().catch((err) => {

@@ -339,15 +339,103 @@
       </div>
     </section>
 
-    <!-- ============ STORIES (placeholder) ============ -->
+    <!-- ============ STORIES (espelho das Telas, formato 1080×1920) ============ -->
     <section id="panel-stories" class="panel hidden">
       <header>
         <h1>Gerador de Stories</h1>
-        <p class="subtitle">Em breve — esta seção vai gerar os stories a partir da mesma planilha.</p>
+        <p class="subtitle">
+          Stories no formato <strong>1080×1920</strong> (9:16) montados <strong>automaticamente</strong> a
+          partir das <strong>Telas</strong>: mesmos produtos, textos, preços e fotos — reagrupados com
+          capa de 2 produtos e demais páginas com 2 a 3. Aqui você só troca o fundo da campanha e
+          escolhe mostrar ou ocultar a foto de cada produto.
+        </p>
       </header>
-      <div class="tela-emptystate">
-        <p>Em desenvolvimento.</p>
-        <p class="tela-hint">Por enquanto este é apenas um espaço reservado.</p>
+
+      <div id="storyEmptyState" class="tela-emptystate">
+        <p>Nenhuma planilha carregada ainda.</p>
+        <p class="tela-hint">
+          Suba uma planilha aqui, na aba <strong>Telas</strong> ou <strong>Preçários</strong> — os stories
+          são montados automaticamente a partir das Telas.
+        </p>
+        <div class="field">
+          <label for="storyPlanilha">Planilha Excel (.xlsx)</label>
+          <input id="storyPlanilha" type="file" accept=".xlsx" />
+        </div>
+        <button id="storyCarregarBtn" type="button">Montar stories</button>
+        <p id="storyParseInfo" class="tela-info hidden"></p>
+      </div>
+
+      <div id="storyWorkspace" class="tela-grid hidden">
+        <!-- Coluna de controles -->
+        <div class="tela-controls">
+          <div class="block">
+            <h3>Informações</h3>
+            <div class="row">
+              <div class="field">
+                <label for="storyMes">Mês</label>
+                <input id="storyMes" type="text" placeholder="Ex.: XX - Abril" />
+              </div>
+              <div class="field">
+                <label for="storyNomeArquivo">Nome do arquivo</label>
+                <input id="storyNomeArquivo" type="text" placeholder="story_abril" />
+              </div>
+            </div>
+            <div class="row">
+              <div class="field">
+                <label for="storyValidadeInicio">Validade inicial</label>
+                <input id="storyValidadeInicio" type="text" placeholder="XX.04.26" />
+              </div>
+              <div class="field">
+                <label for="storyValidadeFim">Validade final</label>
+                <input id="storyValidadeFim" type="text" placeholder="XX.04.26" />
+              </div>
+            </div>
+            <div class="field">
+              <label for="storyEndereco">Endereço da loja</label>
+              <input id="storyEndereco" type="text" placeholder="Insira aqui seu endereço" />
+            </div>
+          </div>
+
+          <div class="block">
+            <h3>Fundo da campanha</h3>
+            <p class="tela-hint">Envie a arte de fundo 1080×1920 (com logo, título, lettering e foto). Sem ela, um fundo neutro é usado.</p>
+            <div class="bg-row">
+              <input id="storyBgInput" type="file" accept="image/*" />
+              <button id="storyBgRemove" type="button" class="btn-ghost hidden">Remover fundo</button>
+            </div>
+            <div id="storyBgThumbWrap" class="bg-thumb-wrap hidden">
+              <img id="storyBgThumb" alt="Prévia do fundo" />
+              <span>Fundo personalizado ativo</span>
+            </div>
+          </div>
+
+          <div class="block">
+            <div class="block-head">
+              <h3 id="storyItemsTitle">Fotos dos produtos</h3>
+            </div>
+            <p id="storyItemsHint" class="tela-hint">Os produtos vêm das Telas. Aqui você só escolhe mostrar ou ocultar a foto de cada um.</p>
+            <div id="storyItems" class="tela-items"></div>
+          </div>
+        </div>
+
+        <!-- Coluna de prévia (carrossel) -->
+        <div class="tela-preview-col">
+          <div class="preview-toolbar carousel-toolbar">
+            <button id="storyPrevBtn" type="button" class="carousel-arrow" aria-label="Story anterior">‹</button>
+            <span id="storyCarouselInfo" class="carousel-info">Story 1 de 1</span>
+            <button id="storyNextBtn" type="button" class="carousel-arrow" aria-label="Próximo story">›</button>
+          </div>
+          <div class="tela-frame-wrap story-frame-wrap">
+            <iframe id="storyPreviewFrame" title="Prévia do story"></iframe>
+          </div>
+          <div class="tela-download-row">
+            <a id="storyDownloadLink" class="btn-download" href="#" download>Baixar este story</a>
+            <button id="storyDownloadAllBtn" type="button" class="btn-download btn-download-all">Baixar todos (PNG)</button>
+            <button id="storyDownloadPdfBtn" type="button" class="btn-download btn-download-pdf">Baixar todos em PDF</button>
+          </div>
+          <p id="storyGenInfo" class="tela-info hidden"></p>
+          <div id="storyAllLinks" class="tela-all-links hidden"></div>
+        </div>
       </div>
     </section>
       </div>
@@ -359,6 +447,8 @@
   <script src="telas.js"></script>
   <script src="cardTemplate.js"></script>
   <script src="cards.js"></script>
+  <script src="storyTemplate.js"></script>
+  <script src="stories.js"></script>
   <script>
     (function () {
       var tabs = document.getElementById("tabs");
