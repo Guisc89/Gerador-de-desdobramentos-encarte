@@ -50,9 +50,14 @@
   let nextId = 1;
   let debounceTimer = null;
   let previewSeq = 0;
-  // Product names whose photo the user chose to hide on the cards. Local to the
-  // Cards tab (does NOT touch the Telas tab); kept across re-mirrors by name.
+  // Products whose photo the user chose to hide on the cards, keyed by name +
+  // apresentação (descrição) so products sharing a name but differing by
+  // apresentação are hidden independently. Local to the Cards tab (does NOT
+  // touch the Telas tab); kept across re-mirrors.
   const hiddenFotos = {};
+  function fotoKey(nome, descricao) {
+    return (nome || "").trim() + "||" + (descricao || "").trim();
+  }
 
   function newItem(prefill) {
     const foto = prefill ? prefill.foto || null : null;
@@ -112,7 +117,7 @@
       newCard(
         (t.produtos || []).map((p) => {
           const item = newItem(p);
-          if (hiddenFotos[(item.nome || "").trim()]) item.foto = null;
+          if (hiddenFotos[fotoKey(item.nome, item.descricao)]) item.foto = null;
           return item;
         }),
       ),
@@ -207,7 +212,7 @@
     itemsEl.innerHTML = "";
     card.produtos.forEach((it, idx) => {
       const nome = (it.nome || "").trim();
-      const hidden = !!hiddenFotos[nome];
+      const hidden = !!hiddenFotos[fotoKey(it.nome, it.descricao)];
       const row = document.createElement("div");
       row.className = "tela-item";
       row.innerHTML = `
@@ -241,13 +246,14 @@
     btn.addEventListener("click", () => {
       const nome = (it.nome || "").trim();
       if (!nome) return;
-      const willHide = !hiddenFotos[nome];
-      if (willHide) hiddenFotos[nome] = true;
-      else delete hiddenFotos[nome];
-      // Apply to every product with the same name across all mirrored pages.
+      const key = fotoKey(it.nome, it.descricao);
+      const willHide = !hiddenFotos[key];
+      if (willHide) hiddenFotos[key] = true;
+      else delete hiddenFotos[key];
+      // Apply to every product with the same name + apresentação across pages.
       cards.forEach((c) =>
         c.produtos.forEach((x) => {
-          if ((x.nome || "").trim() === nome)
+          if (fotoKey(x.nome, x.descricao) === key)
             x.foto = willHide ? null : x.fotoOrig;
         }),
       );

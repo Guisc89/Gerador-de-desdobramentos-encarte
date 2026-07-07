@@ -64,7 +64,7 @@
       descricao: prefill ? prefill.descricao : "",
       precoInteiro: prefill ? prefill.precoInteiro : "",
       precoCentavos: prefill ? prefill.precoCentavos : "",
-      foto: prefill ? fotoFor(prefill.nome) : null,
+      foto: prefill ? fotoFor(prefill.nome, prefill.descricao) : null,
     };
   }
 
@@ -82,28 +82,44 @@
   }
 
   // ---- Shared product photos (synced across the Telas and Cards tabs) ----
-  // Photos are keyed by product name in a shared window store so that a photo
-  // applied to a product in one tab is automatically consumed by the other and
-  // survives catalog rebuilds. Publishes/consumes the `encarte:fotos` event.
+  // Photos are keyed by product name + apresentação (descrição) in a shared
+  // window store, so products that share the same name but differ by
+  // apresentação (e.g. "Black 72h" vs "Invisible 72h") each keep their own
+  // photo. A photo applied in one tab is consumed by the other and survives
+  // catalog rebuilds. Publishes/consumes the `encarte:fotos` event.
+  function fotoKey(nome, descricao) {
+    return (nome || "").trim() + "||" + (descricao || "").trim();
+  }
   function sharedFotos() {
     if (!window.__encarteFotos) window.__encarteFotos = {};
     return window.__encarteFotos;
   }
-  function fotoFor(nome) {
-    const key = (nome || "").trim();
-    return key ? sharedFotos()[key] || null : null;
+  function fotoFor(nome, descricao) {
+    if (!(nome || "").trim()) return null;
+    return sharedFotos()[fotoKey(nome, descricao)] || null;
   }
-  function publishFoto(nome, foto) {
-    const key = (nome || "").trim();
-    if (!key) return;
+  function publishFoto(nome, descricao, foto) {
+    if (!(nome || "").trim()) return;
+    const key = fotoKey(nome, descricao);
     const store = sharedFotos();
     if (foto) store[key] = foto;
     else delete store[key];
     document.dispatchEvent(
       new CustomEvent("encarte:fotos", {
-        detail: { nome: key, foto: foto || null },
+        detail: { key, foto: foto || null },
       }),
     );
+  }
+  // Move a photo's entry to a new key when its product name/apresentação is
+  // edited in place, so the shared store stays keyed by the current values.
+  // Done quietly (no event) to avoid re-rendering the row while typing.
+  function rekeyFoto(oldNome, oldDescricao, novoNome, novoDescricao, foto) {
+    const oldKey = fotoKey(oldNome, oldDescricao);
+    const newKey = fotoKey(novoNome, novoDescricao);
+    if (oldKey === newKey) return;
+    const store = sharedFotos();
+    delete store[oldKey];
+    if (foto && (novoNome || "").trim()) store[newKey] = foto;
   }
 
   function escapeHtml(s) {
@@ -340,7 +356,7 @@
       it.descricao = p.descricao;
       it.precoInteiro = p.precoInteiro;
       it.precoCentavos = p.precoCentavos;
-      it.foto = fotoFor(p.nome);
+      it.foto = fotoFor(p.nome, p.descricao);
       renderItems();
       schedulePreview();
     });
@@ -351,7 +367,14 @@
         let v = inp.value;
         if (f === "precoInteiro") v = v.replace(/\D/g, "");
         if (f === "precoCentavos") v = v.replace(/\D/g, "").slice(0, 2);
-        it[f] = v;
+        if ((f === "nome" || f === "descricao") && it.foto) {
+          const oldNome = it.nome;
+          const oldDescricao = it.descricao;
+          it[f] = v;
+          rekeyFoto(oldNome, oldDescricao, it.nome, it.descricao, it.foto);
+        } else {
+          it[f] = v;
+        }
         schedulePreview();
       });
     });
@@ -360,7 +383,7 @@
       const file = e.target.files && e.target.files[0];
       if (!file) return;
       it.foto = await fileToDataUri(file);
-      publishFoto(it.nome, it.foto);
+      publishFoto(it.nome, it.descricao, it.foto);
       renderItems();
       schedulePreview();
     });
@@ -427,12 +450,12 @@
   // re-render). The Cards tab is a read-only mirror and never publishes photos.
   document.addEventListener("encarte:fotos", (ev) => {
     const d = ev.detail || {};
-    const key = (d.nome || "").trim();
+    const key = d.key;
     if (!key) return;
     let changed = false;
     telas.forEach((t) =>
       t.produtos.forEach((it) => {
-        if ((it.nome || "").trim() === key && (it.foto || null) !== (d.foto || null)) {
+        if (fotoKey(it.nome, it.descricao) === key && (it.foto || null) !== (d.foto || null)) {
           it.foto = d.foto || null;
           changed = true;
         }
