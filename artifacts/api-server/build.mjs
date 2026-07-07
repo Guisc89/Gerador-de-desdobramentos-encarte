@@ -136,6 +136,20 @@ globalThis.__dirname = __bannerPath.dirname(globalThis.__filename);
     logLevel: "info",
     minify: true,
   });
+
+  // Browser build of the card template (same reasoning as the tela bundle:
+  // instant client-side preview from the same cardTemplate.ts the server uses).
+  // Exposes window.CardTemplate.renderCardHtml(state).
+  await esbuild({
+    entryPoints: [path.resolve(artifactDir, "src/services/cardTemplate.ts")],
+    platform: "browser",
+    bundle: true,
+    format: "iife",
+    globalName: "CardTemplate",
+    outfile: path.resolve(artifactDir, "public/cardTemplate.js"),
+    logLevel: "info",
+    minify: true,
+  });
 }
 
 buildAll().catch((err) => {

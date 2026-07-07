@@ -30,7 +30,7 @@ function esc(value: unknown): string {
   );
 }
 
-function renderCard(p: TelaProduto): string {
+export function renderProductCard(p: TelaProduto): string {
   const cent = (p.precoCentavos || "00").padStart(2, "0").slice(0, 2);
   const photo = p.foto
     ? `<img src="${esc(p.foto)}" alt="" />`
@@ -90,7 +90,7 @@ export function renderTelaHtml(state: TelaState): string {
 
   const cards =
     count > 0
-      ? produtos.map(renderCard).join("\n")
+      ? produtos.map(renderProductCard).join("\n")
       : `<div class="tela-empty">Adicione produtos para montar a tela.</div>`;
 
   return `<!DOCTYPE html>

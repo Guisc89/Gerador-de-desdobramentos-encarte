@@ -239,15 +239,103 @@
       </div>
     </section>
 
-    <!-- ============ CARDS (placeholder) ============ -->
+    <!-- ============ CARDS (feed 1080x1440) ============ -->
     <section id="panel-cards" class="panel hidden">
       <header>
         <h1>Gerador de Cards</h1>
-        <p class="subtitle">Em breve — esta seção vai gerar os cards a partir da mesma planilha.</p>
+        <p class="subtitle">
+          Cards no formato <strong>1080×1440</strong> (feed) montados a partir da mesma planilha.
+          Envie a arte de fundo da campanha (com logo, título e foto) — o app sobrepõe o mês/validade,
+          o endereço e os <strong>2 produtos</strong> da capa por cima.
+        </p>
       </header>
-      <div class="tela-emptystate">
-        <p>Em desenvolvimento.</p>
-        <p class="tela-hint">Por enquanto este é apenas um espaço reservado.</p>
+
+      <div id="cardEmptyState" class="tela-emptystate">
+        <p>Nenhuma planilha carregada ainda.</p>
+        <p class="tela-hint">
+          Suba uma planilha aqui ou na aba <strong>Preçários</strong> — os cards aparecem
+          automaticamente.
+        </p>
+        <div class="field">
+          <label for="cardPlanilha">Planilha Excel (.xlsx)</label>
+          <input id="cardPlanilha" type="file" accept=".xlsx" />
+        </div>
+        <button id="cardCarregarBtn" type="button">Montar card</button>
+        <p id="cardParseInfo" class="tela-info hidden"></p>
+      </div>
+
+      <div id="cardWorkspace" class="tela-grid hidden">
+        <!-- Coluna de controles -->
+        <div class="tela-controls">
+          <div class="block">
+            <h3>Informações</h3>
+            <div class="row">
+              <div class="field">
+                <label for="cardMes">Mês</label>
+                <input id="cardMes" type="text" placeholder="Ex.: XX - Abril" />
+              </div>
+              <div class="field">
+                <label for="cardNomeArquivo">Nome do arquivo</label>
+                <input id="cardNomeArquivo" type="text" placeholder="card_abril" />
+              </div>
+            </div>
+            <div class="row">
+              <div class="field">
+                <label for="cardValidadeInicio">Validade inicial</label>
+                <input id="cardValidadeInicio" type="text" placeholder="XX.04.26" />
+              </div>
+              <div class="field">
+                <label for="cardValidadeFim">Validade final</label>
+                <input id="cardValidadeFim" type="text" placeholder="XX.04.26" />
+              </div>
+            </div>
+            <div class="field">
+              <label for="cardEndereco">Endereço da loja</label>
+              <input id="cardEndereco" type="text" placeholder="Insira aqui seu endereço" />
+            </div>
+          </div>
+
+          <div class="block">
+            <h3>Fundo da campanha</h3>
+            <p class="tela-hint">Envie a arte de fundo 1080×1440 (com logo, título, lettering e foto). Sem ela, um fundo neutro é usado.</p>
+            <div class="bg-row">
+              <input id="cardBgInput" type="file" accept="image/*" />
+              <button id="cardBgRemove" type="button" class="btn-ghost hidden">Remover fundo</button>
+            </div>
+            <div id="cardBgThumbWrap" class="bg-thumb-wrap hidden">
+              <img id="cardBgThumb" alt="Prévia do fundo" />
+              <span>Fundo personalizado ativo</span>
+            </div>
+          </div>
+
+          <div class="block">
+            <div class="block-head">
+              <h3>Produtos da capa</h3>
+            </div>
+            <p class="tela-hint">A primeira página do feed tem exatamente 2 produtos.</p>
+            <div id="cardItems" class="tela-items"></div>
+            <div class="block-foot">
+              <button id="cardPlanilhaReload" type="button" class="btn-ghost">Trocar planilha</button>
+              <input id="cardPlanilhaHidden" type="file" accept=".xlsx" class="hidden" />
+            </div>
+          </div>
+        </div>
+
+        <!-- Coluna de prévia -->
+        <div class="tela-preview-col">
+          <div class="preview-toolbar">
+            <strong>Prévia do card</strong>
+            <span class="toolbar-spacer"></span>
+            <span class="carousel-info">Página 1 do feed</span>
+          </div>
+          <div class="tela-frame-wrap card-frame-wrap">
+            <iframe id="cardPreviewFrame" title="Prévia do card"></iframe>
+          </div>
+          <div class="tela-download-row">
+            <a id="cardDownloadLink" class="btn-download" href="#" download>Baixar card (PNG)</a>
+          </div>
+          <p id="cardGenInfo" class="tela-info hidden"></p>
+        </div>
       </div>
     </section>
 
@@ -269,6 +357,8 @@
   <script src="app.js"></script>
   <script src="telaTemplate.js"></script>
   <script src="telas.js"></script>
+  <script src="cardTemplate.js"></script>
+  <script src="cards.js"></script>
   <script>
     (function () {
       var tabs = document.getElementById("tabs");
