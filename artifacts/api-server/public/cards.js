@@ -1,9 +1,9 @@
 (function () {
-  // Page 1 (capa) = exactly 2 products. Every other page = 2 to 4 products.
+  // Cards are a read-only mirror of the Telas tab: same pages, same products,
+  // same texts/prices/photos. Page 1 (capa) = 2 products; every other page 2–4.
+  // The only per-product control here is showing/hiding each product's photo.
   const CAPA_PRODUTOS = 2;
   const MIN_PRODUTOS = 2;
-  const MAX_PRODUTOS = 4;
-  const MAX_CARDS = 60;
 
   // Empty-state elements
   const emptyState = document.getElementById("cardEmptyState");
@@ -25,21 +25,15 @@
   const bgThumbWrap = document.getElementById("cardBgThumbWrap");
   const bgThumb = document.getElementById("cardBgThumb");
 
-  // Per-page product editor
+  // Per-page photo list (read-only: only show/hide each product photo)
   const itemsEl = document.getElementById("cardItems");
   const itemsTitle = document.getElementById("cardItemsTitle");
   const itemsHint = document.getElementById("cardItemsHint");
-  const emptyWarn = document.getElementById("cardEmptyWarn");
-  const addBtn = document.getElementById("cardAddBtn");
-  const reloadBtn = document.getElementById("cardPlanilhaReload");
-  const planilhaHidden = document.getElementById("cardPlanilhaHidden");
 
-  // Carousel
+  // Carousel (navigation only — pages come from the Telas tab)
   const prevBtn = document.getElementById("cardPrevBtn");
   const nextBtn = document.getElementById("cardNextBtn");
   const carouselInfo = document.getElementById("cardCarouselInfo");
-  const addCardBtn = document.getElementById("cardAddCardBtn");
-  const delCardBtn = document.getElementById("cardDelCardBtn");
 
   // Preview + download
   const previewFrame = document.getElementById("cardPreviewFrame");
@@ -50,22 +44,26 @@
   const allLinks = document.getElementById("cardAllLinks");
 
   // ---- State ----
-  let catalogo = [];
   let bgDataUri = null;
-  let cards = []; // [{ id, produtos: [item, ...] }]
+  let cards = []; // [{ id, produtos: [item, ...] }] mirrored from the Telas tab
   let current = 0;
   let nextId = 1;
   let debounceTimer = null;
   let previewSeq = 0;
+  // Product names whose photo the user chose to hide on the cards. Local to the
+  // Cards tab (does NOT touch the Telas tab); kept across re-mirrors by name.
+  const hiddenFotos = {};
 
   function newItem(prefill) {
+    const foto = prefill ? prefill.foto || null : null;
     return {
       id: nextId++,
       nome: prefill ? prefill.nome : "",
       descricao: prefill ? prefill.descricao : "",
       precoInteiro: prefill ? prefill.precoInteiro : "",
       precoCentavos: prefill ? prefill.precoCentavos : "",
-      foto: prefill ? fotoFor(prefill.nome) : null,
+      fotoOrig: foto, // original photo from the Telas tab (for restore)
+      foto: foto,
     };
   }
 
@@ -82,31 +80,6 @@
     });
   }
 
-  // ---- Shared product photos (synced across the Telas and Cards tabs) ----
-  // Photos are keyed by product name in a shared window store so that a photo
-  // applied to a product in one tab is automatically consumed by the other and
-  // survives catalog rebuilds. Publishes/consumes the `encarte:fotos` event.
-  function sharedFotos() {
-    if (!window.__encarteFotos) window.__encarteFotos = {};
-    return window.__encarteFotos;
-  }
-  function fotoFor(nome) {
-    const key = (nome || "").trim();
-    return key ? sharedFotos()[key] || null : null;
-  }
-  function publishFoto(nome, foto) {
-    const key = (nome || "").trim();
-    if (!key) return;
-    const store = sharedFotos();
-    if (foto) store[key] = foto;
-    else delete store[key];
-    document.dispatchEvent(
-      new CustomEvent("encarte:fotos", {
-        detail: { nome: key, foto: foto || null },
-      }),
-    );
-  }
-
   function escapeHtml(s) {
     return String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({
       "&": "&amp;",
@@ -117,33 +90,43 @@
     })[c]);
   }
 
-  // Split the post-capa products into pages of 2–4 as evenly as possible.
-  function chunkRest(items) {
-    const R = items.length;
-    if (R === 0) return [];
-    if (R <= MAX_PRODUTOS) return [items];
-    const n = Math.ceil(R / MAX_PRODUTOS);
-    const base = Math.floor(R / n);
-    let rem = R % n;
-    const groups = [];
-    let idx = 0;
-    for (let g = 0; g < n; g += 1) {
-      const size = base + (rem > 0 ? 1 : 0);
-      if (rem > 0) rem -= 1;
-      groups.push(items.slice(idx, idx + size));
-      idx += size;
-    }
-    return groups;
-  }
+  // ---- Mirror the Telas tab ----
+  // Consume everything set up in the Telas tab: same pages/products/texts/prices
+  // and photos. The user can only hide a product photo per page (kept by name in
+  // hiddenFotos); no product data is edited here.
+  function mirrorTelas(snapshot) {
+    if (!snapshot || !Array.isArray(snapshot.telas) || snapshot.telas.length === 0)
+      return;
 
-  function buildCardsFromCatalog() {
-    cards = [];
-    const capa = catalogo.slice(0, CAPA_PRODUTOS).map((p) => newItem(p));
-    if (capa.length > 0) cards.push(newCard(capa));
-    const rest = catalogo.slice(CAPA_PRODUTOS).map((p) => newItem(p));
-    chunkRest(rest).forEach((grupo) => cards.push(newCard(grupo)));
-    if (cards.length === 0) cards.push(newCard([newItem(null), newItem(null)]));
-    current = 0;
+    // Fill global info from the telas, only where the card field is still empty
+    // (so a card-specific value the user typed isn't clobbered on re-sync).
+    if (snapshot.mes && !mesInput.value.trim()) mesInput.value = snapshot.mes;
+    if (snapshot.validadeInicio && !validadeInicioInput.value.trim())
+      validadeInicioInput.value = snapshot.validadeInicio;
+    if (snapshot.validadeFim && !validadeFimInput.value.trim())
+      validadeFimInput.value = snapshot.validadeFim;
+    if (snapshot.endereco && !enderecoInput.value.trim())
+      enderecoInput.value = snapshot.endereco;
+
+    cards = snapshot.telas.map((t) =>
+      newCard(
+        (t.produtos || []).map((p) => {
+          const item = newItem(p);
+          if (hiddenFotos[(item.nome || "").trim()]) item.foto = null;
+          return item;
+        }),
+      ),
+    );
+    if (current >= cards.length) current = cards.length - 1;
+    if (current < 0) current = 0;
+
+    emptyState.classList.add("hidden");
+    workspace.classList.remove("hidden");
+    if (parseInfo) {
+      parseInfo.textContent = cards.length + " página(s) espelhadas das Telas.";
+      parseInfo.classList.remove("hidden");
+    }
+    renderAll();
   }
 
   function currentCard() {
@@ -204,22 +187,11 @@
   }
 
   // ---- Rendering ----
-  function catalogOptions(selectedNome) {
-    let html = '<option value="">— escolher da planilha —</option>';
-    catalogo.forEach((p, i) => {
-      const sel = p.nome === selectedNome ? " selected" : "";
-      html += `<option value="${i}"${sel}>${escapeHtml(p.nome)}</option>`;
-    });
-    return html;
-  }
-
   function renderCarousel() {
     const total = cards.length;
     carouselInfo.textContent = "Página " + (current + 1) + " de " + total;
     prevBtn.disabled = current <= 0;
     nextBtn.disabled = current >= total - 1;
-    // The capa (page 1) is fixed and cannot be deleted.
-    delCardBtn.disabled = total <= 1 || current === 0;
   }
 
   function renderItems() {
@@ -227,61 +199,36 @@
     if (!card) return;
 
     const isCapa = current === 0;
-    const maxProdutos = isCapa ? CAPA_PRODUTOS : MAX_PRODUTOS;
-    const minProdutos = isCapa ? CAPA_PRODUTOS : MIN_PRODUTOS;
-    const canRemove = card.produtos.length > minProdutos;
-
-    itemsTitle.textContent = isCapa ? "Produtos da capa" : "Produtos desta página";
-    itemsHint.textContent = isCapa
-      ? "A capa (página 1) tem exatamente 2 produtos."
-      : "Cada página a partir da 2ª tem de 2 a 4 produtos.";
-
-    const isEmpty = card.produtos.length === 0;
-    emptyWarn.classList.toggle("hidden", !isEmpty);
-    addBtn.disabled = card.produtos.length >= maxProdutos;
+    itemsTitle.textContent = isCapa ? "Fotos da capa" : "Fotos desta página";
+    if (itemsHint)
+      itemsHint.textContent =
+        "Os produtos vêm das Telas. Aqui você só escolhe mostrar ou ocultar a foto de cada um.";
 
     itemsEl.innerHTML = "";
     card.produtos.forEach((it, idx) => {
+      const nome = (it.nome || "").trim();
+      const hidden = !!hiddenFotos[nome];
       const row = document.createElement("div");
       row.className = "tela-item";
       row.innerHTML = `
         <div class="tela-item-head">
-          <span class="tela-item-num">Produto ${idx + 1}</span>
-          <button type="button" class="product-remove" data-act="remove"${
-            canRemove ? "" : " disabled"
-          }>Remover</button>
-        </div>
-        <div class="field">
-          <label>Selecionar da planilha</label>
-          <select data-act="pick">${catalogOptions(it.nome)}</select>
-        </div>
-        <div class="row">
-          <div class="field">
-            <label>Nome</label>
-            <input type="text" data-field="nome" value="${escapeHtml(it.nome)}" />
-          </div>
-          <div class="field">
-            <label>Descrição</label>
-            <input type="text" data-field="descricao" value="${escapeHtml(it.descricao)}" />
-          </div>
-        </div>
-        <div class="row">
-          <div class="field">
-            <label>Preço (reais)</label>
-            <input type="text" inputmode="numeric" data-field="precoInteiro" value="${escapeHtml(it.precoInteiro)}" />
-          </div>
-          <div class="field">
-            <label>Centavos</label>
-            <input type="text" inputmode="numeric" data-field="precoCentavos" value="${escapeHtml(it.precoCentavos)}" />
-          </div>
-        </div>
-        <div class="field">
-          <label>Foto do produto</label>
-          <input type="file" accept="image/*" data-act="foto" />
+          <span class="tela-item-num">${
+            escapeHtml(it.nome) || "Produto " + (idx + 1)
+          }</span>
+          <button type="button" class="product-remove" data-act="toggle"${
+            nome && (it.fotoOrig || hidden) ? "" : " disabled"
+          }>${hidden ? "Mostrar foto" : "Remover foto"}</button>
         </div>
         <div class="tela-item-thumb ${it.foto ? "" : "hidden"}">
           ${it.foto ? `<img src="${it.foto}" alt="" />` : ""}
         </div>
+        ${
+          !it.foto
+            ? `<p class="tela-hint">${
+                hidden ? "Foto ocultada nos cards." : "Sem foto para este produto."
+              }</p>`
+            : ""
+        }
       `;
       bindRow(row, it);
       itemsEl.appendChild(row);
@@ -289,55 +236,22 @@
   }
 
   function bindRow(row, it) {
-    row.querySelector('[data-act="remove"]').addEventListener("click", () => {
-      const card = currentCard();
-      const isCapa = current === 0;
-      const minProdutos = isCapa ? CAPA_PRODUTOS : MIN_PRODUTOS;
-      if (card.produtos.length <= minProdutos) {
-        alert(
-          isCapa
-            ? "A capa (página 1) precisa ter exatamente 2 produtos."
-            : "Cada página a partir da 2ª precisa ter no mínimo 2 produtos.",
-        );
-        return;
-      }
-      card.produtos = card.produtos.filter((x) => x.id !== it.id);
-      renderItems();
-      schedulePreview();
-    });
-
-    row.querySelector('[data-act="pick"]').addEventListener("change", (e) => {
-      const i = e.target.value;
-      if (i === "") return;
-      const p = catalogo[Number(i)];
-      if (!p) return;
-      it.nome = p.nome;
-      it.descricao = p.descricao;
-      it.precoInteiro = p.precoInteiro;
-      it.precoCentavos = p.precoCentavos;
-      it.foto = fotoFor(p.nome);
-      renderItems();
-      schedulePreview();
-    });
-
-    row.querySelectorAll("[data-field]").forEach((inp) => {
-      inp.addEventListener("input", () => {
-        const f = inp.getAttribute("data-field");
-        let v = inp.value;
-        if (f === "precoInteiro") v = v.replace(/\D/g, "");
-        if (f === "precoCentavos") v = v.replace(/\D/g, "").slice(0, 2);
-        it[f] = v;
-        schedulePreview();
-      });
-    });
-
-    row.querySelector('[data-act="foto"]').addEventListener("change", async (e) => {
-      const file = e.target.files && e.target.files[0];
-      if (!file) return;
-      it.foto = await fileToDataUri(file);
-      publishFoto(it.nome, it.foto);
-      renderItems();
-      schedulePreview();
+    const btn = row.querySelector('[data-act="toggle"]');
+    if (!btn) return;
+    btn.addEventListener("click", () => {
+      const nome = (it.nome || "").trim();
+      if (!nome) return;
+      const willHide = !hiddenFotos[nome];
+      if (willHide) hiddenFotos[nome] = true;
+      else delete hiddenFotos[nome];
+      // Apply to every product with the same name across all mirrored pages.
+      cards.forEach((c) =>
+        c.produtos.forEach((x) => {
+          if ((x.nome || "").trim() === nome)
+            x.foto = willHide ? null : x.fotoOrig;
+        }),
+      );
+      renderAll();
     });
   }
 
@@ -353,92 +267,17 @@
     renderAll();
   }
 
-  // ---- Load catalog (shared between Preçários, Telas and Cards tabs) ----
-  function loadCatalog(produtos, info, forceInfo) {
-    catalogo = Array.isArray(produtos) ? produtos : [];
-    if (catalogo.length === 0) return;
-
-    if (info) {
-      if (info.mes && (forceInfo || !mesInput.value.trim()))
-        mesInput.value = info.mes;
-      if (info.validadeInicio && (forceInfo || !validadeInicioInput.value.trim()))
-        validadeInicioInput.value = info.validadeInicio;
-      if (info.validadeFim && (forceInfo || !validadeFimInput.value.trim()))
-        validadeFimInput.value = info.validadeFim;
-    }
-
-    buildCardsFromCatalog();
-    emptyState.classList.add("hidden");
-    workspace.classList.remove("hidden");
-    if (parseInfo) {
-      parseInfo.textContent =
-        catalogo.length + " produtos · " + cards.length + " páginas montadas.";
-      parseInfo.classList.remove("hidden");
-    }
-    renderAll();
-  }
-
-  // Rebuild the cards from an updated catalog. On a forced re-sync (Preçário
-  // save) the pages are rebuilt from the edited catalog, discarding the manual
-  // per-page organization but preserving photos: newItem re-hydrates each
-  // product's photo by name from the shared window.__encarteFotos store.
-  function syncCatalog(produtos, info, opts) {
-    const list = Array.isArray(produtos) ? produtos : [];
-    if (list.length === 0) return;
-    const force = opts && opts.force;
-    if (force) cards = [];
-    loadCatalog(list, info, force);
-  }
-
-  // Listen for a product photo applied in the Telas tab and mirror it onto any
-  // matching product already placed in the cards (skip if unchanged so the tab
-  // that published the photo doesn't re-render itself).
-  document.addEventListener("encarte:fotos", (ev) => {
-    const d = ev.detail || {};
-    const key = (d.nome || "").trim();
-    if (!key) return;
-    let changed = false;
-    cards.forEach((c) =>
-      c.produtos.forEach((it) => {
-        if ((it.nome || "").trim() === key && (it.foto || null) !== (d.foto || null)) {
-          it.foto = d.foto || null;
-          changed = true;
-        }
-      }),
-    );
-    if (changed) renderAll();
+  // ---- Consume the Telas tab ----
+  // Re-mirror whenever the telas change; also mirror any snapshot the Telas tab
+  // already published before this tab initialized (scripts load telas.js first).
+  document.addEventListener("encarte:telas", (ev) => {
+    mirrorTelas(ev.detail || window.__encarteTelas);
   });
-
-  document.addEventListener("encarte:catalogo", (ev) => {
-    const d = ev.detail || {};
-    syncCatalog(d.produtos, {
-      mes: d.mes,
-      validadeInicio: d.validadeInicio,
-      validadeFim: d.validadeFim,
-    });
-  });
-  document.addEventListener("encarte:catalogo-update", (ev) => {
-    const d = ev.detail || {};
-    syncCatalog(
-      d.produtos,
-      {
-        mes: d.mes,
-        validadeInicio: d.validadeInicio,
-        validadeFim: d.validadeFim,
-      },
-      { force: true },
-    );
-  });
-  if (window.__encarteCatalogo && Array.isArray(window.__encarteCatalogo.produtos)) {
-    const c = window.__encarteCatalogo;
-    loadCatalog(c.produtos, {
-      mes: c.mes,
-      validadeInicio: c.validadeInicio,
-      validadeFim: c.validadeFim,
-    });
-  }
+  if (window.__encarteTelas) mirrorTelas(window.__encarteTelas);
 
   // ---- Spreadsheet upload (within Cards tab) ----
+  // Feed the shared catalog so the Telas tab builds the pages and republishes
+  // them; the cards then mirror the result.
   async function uploadPlanilha(file) {
     const fd = new FormData();
     fd.append("planilha", file);
@@ -460,7 +299,16 @@
     carregarBtn.textContent = "Montando...";
     try {
       const data = await uploadPlanilha(file);
-      loadCatalog(data.produtos, null);
+      const shared = {
+        produtos: data.produtos,
+        mes: mesInput.value.trim(),
+        validadeInicio: validadeInicioInput.value.trim(),
+        validadeFim: validadeFimInput.value.trim(),
+      };
+      window.__encarteCatalogo = shared;
+      document.dispatchEvent(
+        new CustomEvent("encarte:catalogo", { detail: shared }),
+      );
     } catch (err) {
       parseInfo.textContent = "Erro: " + (err && err.message ? err.message : err);
       parseInfo.classList.remove("hidden");
@@ -470,29 +318,7 @@
     }
   });
 
-  reloadBtn.addEventListener("click", () => planilhaHidden.click());
-  planilhaHidden.addEventListener("change", async (e) => {
-    const file = e.target.files && e.target.files[0];
-    if (!file) return;
-    if (
-      !confirm(
-        "Trocar a planilha vai remontar todas as páginas e descartar os ajustes atuais. Continuar?",
-      )
-    ) {
-      planilhaHidden.value = "";
-      return;
-    }
-    try {
-      const data = await uploadPlanilha(file);
-      loadCatalog(data.produtos, null);
-    } catch (err) {
-      alert("Erro: " + (err && err.message ? err.message : err));
-    } finally {
-      planilhaHidden.value = "";
-    }
-  });
-
-  // ---- Background ----
+  // ---- Background (campaign art — specific to the Cards tab) ----
   bgInput.addEventListener("change", async (e) => {
     const file = e.target.files && e.target.files[0];
     if (!file) return;
@@ -511,45 +337,16 @@
     schedulePreview();
   });
 
-  // ---- Per-page product add ----
-  addBtn.addEventListener("click", () => {
-    const card = currentCard();
-    const maxProdutos = current === 0 ? CAPA_PRODUTOS : MAX_PRODUTOS;
-    if (!card || card.produtos.length >= maxProdutos) return;
-    card.produtos.push(newItem(null));
-    renderItems();
-    schedulePreview();
-  });
-
   // ---- Carousel nav ----
   prevBtn.addEventListener("click", () => goTo(current - 1));
   nextBtn.addEventListener("click", () => goTo(current + 1));
 
-  addCardBtn.addEventListener("click", () => {
-    if (cards.length >= MAX_CARDS) {
-      alert("Limite de " + MAX_CARDS + " páginas atingido.");
-      return;
-    }
-    cards.splice(current + 1, 0, newCard([newItem(null), newItem(null)]));
-    goTo(current + 1);
-  });
-
-  delCardBtn.addEventListener("click", () => {
-    if (cards.length <= 1) return;
-    if (current === 0) {
-      alert("A capa (página 1) não pode ser excluída.");
-      return;
-    }
-    if (!confirm("Excluir a página " + (current + 1) + "?")) return;
-    cards.splice(current, 1);
-    if (current >= cards.length) current = cards.length - 1;
-    renderAll();
-  });
-
   // ---- Global info inputs ----
-  [mesInput, validadeInicioInput, validadeFimInput, enderecoInput].forEach((inp) => {
-    inp.addEventListener("input", schedulePreview);
-  });
+  [mesInput, validadeInicioInput, validadeFimInput, enderecoInput].forEach(
+    (inp) => {
+      inp.addEventListener("input", schedulePreview);
+    },
+  );
 
   function triggerDownload(url, filename) {
     const a = document.createElement("a");

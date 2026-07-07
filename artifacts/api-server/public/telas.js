@@ -177,10 +177,34 @@
   // This avoids a network round-trip and re-sending the base64 photos/background
   // on every keystroke, so the preview updates instantly. Falls back to the
   // stateless /api/telas/render endpoint if the browser template failed to load.
+  // Publish the full telas state so the Cards tab can consume it (same pages,
+  // products, texts/prices/photos). Cards mirror this read-only; they never
+  // edit product data. Called on every preview refresh so all edits propagate.
+  function publishTelas() {
+    const snapshot = {
+      mes: mesInput.value.trim(),
+      validadeInicio: validadeInicioInput.value.trim(),
+      validadeFim: validadeFimInput.value.trim(),
+      endereco: enderecoInput.value.trim(),
+      telas: telas.map((t) => ({
+        produtos: t.produtos.map((it) => ({
+          nome: it.nome,
+          descricao: it.descricao,
+          precoInteiro: it.precoInteiro,
+          precoCentavos: it.precoCentavos,
+          foto: it.foto,
+        })),
+      })),
+    };
+    window.__encarteTelas = snapshot;
+    document.dispatchEvent(new CustomEvent("encarte:telas", { detail: snapshot }));
+  }
+
   async function pushPreview() {
     const tela = currentTela();
     if (!tela) return;
     const state = telaState(tela, current === 0);
+    publishTelas();
 
     if (window.TelaTemplate && typeof window.TelaTemplate.renderTelaHtml === "function") {
       previewSeq++; // invalidate any in-flight fallback request
@@ -398,9 +422,9 @@
     loadCatalog(list, info, force);
   }
 
-  // Listen for a product photo applied in the Cards tab and mirror it onto any
-  // matching product already placed in the telas (skip if unchanged so the tab
-  // that published the photo doesn't re-render itself).
+  // Mirror a product photo (published via publishFoto) onto any matching product
+  // already placed in the telas (skip if unchanged to avoid a needless
+  // re-render). The Cards tab is a read-only mirror and never publishes photos.
   document.addEventListener("encarte:fotos", (ev) => {
     const d = ev.detail || {};
     const key = (d.nome || "").trim();

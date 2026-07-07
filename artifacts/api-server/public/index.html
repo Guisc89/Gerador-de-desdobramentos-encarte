@@ -245,17 +245,17 @@
         <h1>Gerador de Cards</h1>
         <p class="subtitle">
           Cards no formato <strong>1080×1440</strong> (feed) montados <strong>automaticamente</strong> a
-          partir da mesma planilha. A capa (página 1) tem 2 produtos no canto inferior; as páginas
-          seguintes têm de 2 a 4 produtos. Passe pelas páginas no carrossel, ajuste o que precisar e
-          baixe os PNGs em alta resolução.
+          partir das <strong>Telas</strong>: as mesmas páginas, produtos, textos e preços. Aqui você só
+          troca o fundo da campanha e escolhe mostrar ou ocultar a foto de cada produto. Passe pelas
+          páginas no carrossel e baixe os PNGs em alta resolução.
         </p>
       </header>
 
       <div id="cardEmptyState" class="tela-emptystate">
         <p>Nenhuma planilha carregada ainda.</p>
         <p class="tela-hint">
-          Suba uma planilha aqui ou na aba <strong>Preçários</strong> — os cards aparecem
-          automaticamente.
+          Suba uma planilha aqui, na aba <strong>Telas</strong> ou <strong>Preçários</strong> — os cards
+          são montados automaticamente a partir das Telas.
         </p>
         <div class="field">
           <label for="cardPlanilha">Planilha Excel (.xlsx)</label>
@@ -311,19 +311,10 @@
 
           <div class="block">
             <div class="block-head">
-              <h3 id="cardItemsTitle">Produtos da capa</h3>
-              <button id="cardAddBtn" type="button" class="btn-small">+ Produto</button>
+              <h3 id="cardItemsTitle">Fotos dos produtos</h3>
             </div>
-            <p id="cardItemsHint" class="tela-hint">A capa (página 1) tem exatamente 2 produtos.</p>
+            <p id="cardItemsHint" class="tela-hint">Os produtos vêm das Telas. Aqui você só escolhe mostrar ou ocultar a foto de cada um.</p>
             <div id="cardItems" class="tela-items"></div>
-            <p id="cardEmptyWarn" class="tela-warn hidden">
-              ⚠ Esta página está sem produtos. Adicione um produto ou exclua a página — páginas vazias
-              não geram PNG.
-            </p>
-            <div class="block-foot">
-              <button id="cardPlanilhaReload" type="button" class="btn-ghost">Trocar planilha</button>
-              <input id="cardPlanilhaHidden" type="file" accept=".xlsx" class="hidden" />
-            </div>
           </div>
         </div>
 
@@ -333,9 +324,6 @@
             <button id="cardPrevBtn" type="button" class="carousel-arrow" aria-label="Página anterior">‹</button>
             <span id="cardCarouselInfo" class="carousel-info">Página 1 de 1</span>
             <button id="cardNextBtn" type="button" class="carousel-arrow" aria-label="Próxima página">›</button>
-            <span class="toolbar-spacer"></span>
-            <button id="cardAddCardBtn" type="button" class="btn-small">+ Nova página</button>
-            <button id="cardDelCardBtn" type="button" class="btn-small btn-danger">Excluir página</button>
           </div>
           <div class="tela-frame-wrap card-frame-wrap">
             <iframe id="cardPreviewFrame" title="Prévia do card"></iframe>
