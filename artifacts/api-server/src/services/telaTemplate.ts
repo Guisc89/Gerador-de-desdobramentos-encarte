@@ -166,10 +166,10 @@ export function renderTelaHtml(state: TelaState): string {
     justify-self: center;
     width: 40vw;
   }
-  /* 4 products: 2x2 grid */
+  /* 4 products: 2x2 grid. Cards are content-sized (not stretched to fill the
+     height) so they match the size of the 3-product cards. */
   .tela-cards.layout-4 {
     grid-template-columns: repeat(2, minmax(0, 40vw));
-    grid-auto-rows: minmax(0, 1fr);
     justify-content: center;
   }
   .tela-info {
