@@ -115,26 +115,41 @@ const CONSULTE_REGEX = /^consulte\s+apresenta/i;
 // (same base name and price, differing only by flavor/variant suffix) collapse
 // into a single entry. The base name is everything before the " - variant"
 // suffix; the single entry keeps "Consulte apresentações" as its descrição.
-// Only the FIRST variant carries the text in column E; the sibling rows come
-// right after with the same base name and price (column E empty or repeated).
+// Variants of the same product that differ only by flavor ("Nome - Sabor")
+// collapse into a single item with "Consulte apresentações" as descrição.
+// Triggers automatically when 2+ products share the same base name (part
+// before the " - variant" suffix) and the same price, or explicitly when
+// column E contains "Consulte apresentações".
 export function dedupeConsulteApresentacoes(produtos: Produto[]): Produto[] {
-  const consulteKeys = new Set<string>();
-  const result: Produto[] = [];
+  const VARIANT_SEP = /\s+[-–]\s+/;
   const keyOf = (p: Produto, baseNome: string) =>
-    `${normalizeHeader(baseNome)}||${p.precoInteiro},${p.precoCentavos}`;
+    `${normalizeHeader(p.fabricante)}||${normalizeHeader(baseNome)}||${p.precoInteiro},${p.precoCentavos}`;
 
+  // Count how many products with a variant suffix share each base-name+price.
+  const counts = new Map<string, number>();
   for (const p of produtos) {
-    const baseNome = p.nome.split(/\s+[-–]\s+/)[0]!.trim() || p.nome;
+    if (!VARIANT_SEP.test(p.nome)) continue;
+    const baseNome = p.nome.split(VARIANT_SEP)[0]!.trim();
+    if (!baseNome) continue;
     const key = keyOf(p, baseNome);
-    if (CONSULTE_REGEX.test(p.descricao.trim())) {
-      if (consulteKeys.has(key)) continue;
-      consulteKeys.add(key);
-      result.push({ ...p, nome: baseNome, descricao: "Consulte apresentações" });
+    counts.set(key, (counts.get(key) ?? 0) + 1);
+  }
+
+  const emitted = new Set<string>();
+  const result: Produto[] = [];
+  for (const p of produtos) {
+    const hasVariant = VARIANT_SEP.test(p.nome);
+    const baseNome = hasVariant ? p.nome.split(VARIANT_SEP)[0]!.trim() : p.nome;
+    const key = keyOf(p, baseNome);
+    const explicit = CONSULTE_REGEX.test(p.descricao.trim());
+    const auto = hasVariant && (counts.get(key) ?? 0) >= 2;
+    if (!explicit && !auto) {
+      result.push(p);
       continue;
     }
-    // Sibling variant of an already-registered "Consulte" product: skip it.
-    if (consulteKeys.has(key)) continue;
-    result.push(p);
+    if (emitted.has(key)) continue;
+    emitted.add(key);
+    result.push({ ...p, nome: baseNome, descricao: "Consulte apresentações" });
   }
   return result;
 }
