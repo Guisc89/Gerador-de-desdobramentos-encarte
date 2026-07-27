@@ -276,6 +276,17 @@ export function parseExcel(buffer: Buffer, opts: ParseOptions): ParseResult {
 
     let descricao = cell(row, header.descricaoComplementar);
     let nomeFinal = nome;
+    if (!descricao && header.preco !== undefined) {
+      // "Consulte Apresentações" may be typed in any column between the
+      // Descrição and the price (users place it loosely in the sheet).
+      for (let c = header.descricao! + 1; c < header.preco; c++) {
+        const v = cell(row, c);
+        if (v && CONSULTE_REGEX.test(v)) {
+          descricao = "Consulte apresentações";
+          break;
+        }
+      }
+    }
     if (!descricao) {
       // Fallback: apresentação embedded at the end of the Descrição cell
       // (e.g. "Toalha Umedecida Crescendo 140Unds") — split it out so the
