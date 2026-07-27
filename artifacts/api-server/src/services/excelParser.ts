@@ -109,6 +109,29 @@ export function splitApresentacao(
   return { nome: resto.trim(), apresentacao: `${numero}${sep}${unidade}` };
 }
 
+const CONSULTE_REGEX = /^consulte\s+apresenta/i;
+
+// When column E says "Consulte apresentações", variants of the same product
+// (same base name and price, differing only by flavor/variant suffix) collapse
+// into a single entry. The base name is everything before the " - variant"
+// suffix; the single entry keeps "Consulte apresentações" as its descrição.
+export function dedupeConsulteApresentacoes(produtos: Produto[]): Produto[] {
+  const seen = new Set<string>();
+  const result: Produto[] = [];
+  for (const p of produtos) {
+    if (!CONSULTE_REGEX.test(p.descricao.trim())) {
+      result.push(p);
+      continue;
+    }
+    const baseNome = p.nome.split(/\s+[-–]\s+/)[0]!.trim() || p.nome;
+    const key = `${normalizeHeader(baseNome)}||${p.precoInteiro},${p.precoCentavos}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    result.push({ ...p, nome: baseNome });
+  }
+  return result;
+}
+
 function cell(row: unknown[], idx: number | undefined): string {
   if (idx === undefined) return "";
   const v = row[idx];
@@ -197,10 +220,12 @@ export function parseExcel(buffer: Buffer, opts: ParseOptions): ParseResult {
     });
   }
 
+  const dedupados = dedupeConsulteApresentacoes(produtos);
+
   return {
-    produtos,
+    produtos: dedupados,
     total,
-    validos: produtos.length,
+    validos: dedupados.length,
     invalidos,
     abaUtilizada: sheetName,
     abasEncontradas,
