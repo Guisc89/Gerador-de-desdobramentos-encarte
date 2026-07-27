@@ -151,6 +151,65 @@ export function dedupeConsulteApresentacoes(produtos: Produto[]): Produto[] {
     emitted.add(key);
     result.push({ ...p, nome: baseNome, descricao: "Consulte apresentações" });
   }
+  return mergeRunsByPrefix(result);
+}
+
+// Second pass: variants WITHOUT a " - " separator (e.g. "Esmalte Risque 8ml
+// Cremoso Amar", "Esmalte Risque 8ml Natural Duna"). Consecutive rows with the
+// same fabricante + price whose names share a common word prefix of 3+ words
+// collapse into one item named after that common prefix.
+const MIN_PREFIX_WORDS = 3;
+
+function commonWordPrefix(a: string[], b: string[]): string[] {
+  const out: string[] = [];
+  const n = Math.min(a.length, b.length);
+  for (let i = 0; i < n; i++) {
+    if (normalizeHeader(a[i]) !== normalizeHeader(b[i])) break;
+    out.push(a[i]!);
+  }
+  return out;
+}
+
+function mergeRunsByPrefix(produtos: Produto[]): Produto[] {
+  const result: Produto[] = [];
+  let i = 0;
+  while (i < produtos.length) {
+    const start = produtos[i]!;
+    const mergeable = (p: Produto) =>
+      p.descricao.trim() === "" || CONSULTE_REGEX.test(p.descricao.trim());
+    if (!mergeable(start)) {
+      result.push(start);
+      i++;
+      continue;
+    }
+    let prefix = start.nome.trim().split(/\s+/);
+    let j = i + 1;
+    while (j < produtos.length) {
+      const next = produtos[j]!;
+      if (
+        normalizeHeader(next.fabricante) !== normalizeHeader(start.fabricante) ||
+        next.precoInteiro !== start.precoInteiro ||
+        next.precoCentavos !== start.precoCentavos ||
+        !mergeable(next)
+      )
+        break;
+      const candidate = commonWordPrefix(prefix, next.nome.trim().split(/\s+/));
+      if (candidate.length < MIN_PREFIX_WORDS) break;
+      prefix = candidate;
+      j++;
+    }
+    if (j - i >= 2) {
+      result.push({
+        ...start,
+        nome: prefix.join(" "),
+        descricao: "Consulte apresentações",
+      });
+      i = j;
+    } else {
+      result.push(start);
+      i++;
+    }
+  }
   return result;
 }
 
