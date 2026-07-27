@@ -160,6 +160,25 @@ export function dedupeConsulteApresentacoes(produtos: Produto[]): Produto[] {
 // collapse into one item named after that common prefix.
 const MIN_PREFIX_WORDS = 3;
 
+// Shade/tone numbers like "1.0", "12.11", "1.110" (hair dye codes). When the
+// word right after the common prefix is a shade number on both names, a
+// 2-word prefix is enough (e.g. "Tintura Natucor 1.0 Chá Preto" vs
+// "Tintura Natucor 6.0 Louro Escuro" → base "Tintura Natucor").
+const SHADE_TOKEN = /^\d+(?:[.,]\d+)*$/;
+
+function prefixAccepted(candidate: string[], a: string[], b: string[]): boolean {
+  if (candidate.length >= MIN_PREFIX_WORDS) return true;
+  if (candidate.length >= 2) {
+    const na = a[candidate.length];
+    const nb = b[candidate.length];
+    // "a" may already be the shrunken prefix (no word after it) — then only
+    // "b" needs a shade token right after the common prefix.
+    if (nb && SHADE_TOKEN.test(nb) && (na === undefined || SHADE_TOKEN.test(na)))
+      return true;
+  }
+  return false;
+}
+
 function commonWordPrefix(a: string[], b: string[]): string[] {
   const out: string[] = [];
   const n = Math.min(a.length, b.length);
@@ -193,8 +212,9 @@ function mergeRunsByPrefix(produtos: Produto[]): Produto[] {
         !mergeable(next)
       )
         break;
-      const candidate = commonWordPrefix(prefix, next.nome.trim().split(/\s+/));
-      if (candidate.length < MIN_PREFIX_WORDS) break;
+      const nextWords = next.nome.trim().split(/\s+/);
+      const candidate = commonWordPrefix(prefix, nextWords);
+      if (!prefixAccepted(candidate, prefix, nextWords)) break;
       prefix = candidate;
       j++;
     }
