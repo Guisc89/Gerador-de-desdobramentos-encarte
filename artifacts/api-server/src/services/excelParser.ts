@@ -115,19 +115,26 @@ const CONSULTE_REGEX = /^consulte\s+apresenta/i;
 // (same base name and price, differing only by flavor/variant suffix) collapse
 // into a single entry. The base name is everything before the " - variant"
 // suffix; the single entry keeps "Consulte apresentações" as its descrição.
+// Only the FIRST variant carries the text in column E; the sibling rows come
+// right after with the same base name and price (column E empty or repeated).
 export function dedupeConsulteApresentacoes(produtos: Produto[]): Produto[] {
-  const seen = new Set<string>();
+  const consulteKeys = new Set<string>();
   const result: Produto[] = [];
+  const keyOf = (p: Produto, baseNome: string) =>
+    `${normalizeHeader(baseNome)}||${p.precoInteiro},${p.precoCentavos}`;
+
   for (const p of produtos) {
-    if (!CONSULTE_REGEX.test(p.descricao.trim())) {
-      result.push(p);
+    const baseNome = p.nome.split(/\s+[-–]\s+/)[0]!.trim() || p.nome;
+    const key = keyOf(p, baseNome);
+    if (CONSULTE_REGEX.test(p.descricao.trim())) {
+      if (consulteKeys.has(key)) continue;
+      consulteKeys.add(key);
+      result.push({ ...p, nome: baseNome, descricao: "Consulte apresentações" });
       continue;
     }
-    const baseNome = p.nome.split(/\s+[-–]\s+/)[0]!.trim() || p.nome;
-    const key = `${normalizeHeader(baseNome)}||${p.precoInteiro},${p.precoCentavos}`;
-    if (seen.has(key)) continue;
-    seen.add(key);
-    result.push({ ...p, nome: baseNome });
+    // Sibling variant of an already-registered "Consulte" product: skip it.
+    if (consulteKeys.has(key)) continue;
+    result.push(p);
   }
   return result;
 }
