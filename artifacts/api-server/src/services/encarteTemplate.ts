@@ -213,7 +213,7 @@ export function renderEncarteHtml(
   }
   .nome {
     font-weight: 800;
-    font-size: 11pt;
+    font-size: 12pt;
     line-height: 1.15;
     color: #111;
     margin-bottom: 1mm;
@@ -223,7 +223,7 @@ export function renderEncarteHtml(
     -webkit-box-orient: vertical;
   }
   .descricao {
-    font-size: 8.5pt;
+    font-size: 9.5pt;
     line-height: 1.2;
     color: #2a2a2a;
     overflow: hidden;
