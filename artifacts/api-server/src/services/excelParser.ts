@@ -86,6 +86,29 @@ function findHeader(rows: unknown[][]): HeaderMap | null {
   return null;
 }
 
+// Units that identify a trailing "apresentação" token (quantity/size) at the
+// end of a product name, e.g. "140Unds", "50 Unds", "30 comprimidos", "200ml".
+const APRESENTACAO_UNIT =
+  /^(uns?|unds?|unid(?:ades?)?|comprimidos?|dr[aá]geas?|c[aá]ps(?:ulas?)?\.?|s(?:a)ch[eê]s?|envelopes?|tiras?|fraldas?|len[cç]os?|ml|mg|mcg|g|kg|l|lts?|litros?|m|mts?|metros?)$/i;
+
+export function splitApresentacao(
+  nome: string,
+): { nome: string; apresentacao: string } | null {
+  // Match a trailing "<number><unit>" or "<number> <unit>" token.
+  const m = nome.match(/^(.*\S)\s+(\d+(?:[.,]\d+)?)\s*([A-Za-zÀ-ÿ.]+)$/);
+  if (!m) return null;
+  const [, resto, numero, unidade] = m;
+  if (!resto || !numero || !unidade) return null;
+  if (!APRESENTACAO_UNIT.test(unidade)) return null;
+  // Keep at least two words in the product name so we never strip it bare.
+  if (resto.trim().split(/\s+/).length < 2) return null;
+  // Metric measures stay compact ("250g", "30ml"); count units get a space
+  // ("140 Unds", "30 comprimidos") like the reference art.
+  const compact = /^(ml|mg|mcg|g|kg|l)$/i.test(unidade);
+  const sep = compact ? "" : " ";
+  return { nome: resto.trim(), apresentacao: `${numero}${sep}${unidade}` };
+}
+
 function cell(row: unknown[], idx: number | undefined): string {
   if (idx === undefined) return "";
   const v = row[idx];
@@ -147,13 +170,24 @@ export function parseExcel(buffer: Buffer, opts: ParseOptions): ParseResult {
       continue;
     }
 
-    const descricao = cell(row, header.descricaoComplementar);
+    let descricao = cell(row, header.descricaoComplementar);
+    let nomeFinal = nome;
+    if (!descricao) {
+      // Fallback: apresentação embedded at the end of the Descrição cell
+      // (e.g. "Toalha Umedecida Crescendo 140Unds") — split it out so the
+      // preçário shows it smaller, without bold, like the reference art.
+      const split = splitApresentacao(nome);
+      if (split) {
+        nomeFinal = split.nome;
+        descricao = split.apresentacao;
+      }
+    }
 
     produtos.push({
       espaco: cell(row, header.espaco),
       fabricante: cell(row, header.fabricante),
       ean: cell(row, header.ean),
-      nome,
+      nome: nomeFinal,
       descricao,
       precoOriginal: price.precoOriginal,
       precoInteiro: price.precoInteiro,
