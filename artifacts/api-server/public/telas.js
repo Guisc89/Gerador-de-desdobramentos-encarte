@@ -318,7 +318,10 @@
         </div>
         <div class="field">
           <label>Foto do produto</label>
-          <input type="file" accept="image/*" data-act="foto" />
+          <div class="foto-input-row">
+            <input type="file" accept="image/*" data-act="foto" />
+            <button type="button" class="btn-colar" data-act="colar" title="Copie uma imagem na internet (botão direito → Copiar imagem) e clique aqui">Colar imagem</button>
+          </div>
         </div>
         <div class="tela-item-thumb ${it.foto ? "" : "hidden"}">
           ${it.foto ? `<img src="${it.foto}" alt="" />` : ""}
@@ -386,6 +389,54 @@
       publishFoto(it.nome, it.descricao, it.foto);
       renderItems();
       schedulePreview();
+    });
+
+    function applyFotoBlob(blob) {
+      return fileToDataUri(blob).then((uri) => {
+        it.foto = uri;
+        publishFoto(it.nome, it.descricao, it.foto);
+        renderItems();
+        schedulePreview();
+      });
+    }
+
+    // "Colar imagem": reads an image copied to the clipboard (e.g. right-click
+    // → "Copiar imagem" on a website) and uses it as the product photo.
+    row.querySelector('[data-act="colar"]').addEventListener("click", async () => {
+      try {
+        if (!navigator.clipboard || !navigator.clipboard.read) {
+          throw new Error("sem suporte");
+        }
+        const items = await navigator.clipboard.read();
+        for (const item of items) {
+          const type = item.types.find((t) => t.startsWith("image/"));
+          if (type) {
+            await applyFotoBlob(await item.getType(type));
+            return;
+          }
+        }
+        alert(
+          "Nenhuma imagem encontrada na área de transferência.\n\n" +
+            "Na internet, clique com o botão direito na imagem e escolha " +
+            '"Copiar imagem". Depois clique em "Colar imagem" aqui.',
+        );
+      } catch (_) {
+        alert(
+          "Não consegui acessar a área de transferência.\n\n" +
+            "Tente clicar no produto e pressionar Ctrl+V, ou use " +
+            '"Escolher arquivo" para enviar a imagem salva no computador.',
+        );
+      }
+    });
+
+    // Ctrl+V anywhere inside the product row also pastes the image.
+    row.addEventListener("paste", (e) => {
+      const files = e.clipboardData && e.clipboardData.files;
+      if (!files || !files.length) return;
+      const img = Array.from(files).find((f) => f.type.startsWith("image/"));
+      if (!img) return;
+      e.preventDefault();
+      applyFotoBlob(img);
     });
   }
 

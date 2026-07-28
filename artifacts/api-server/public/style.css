@@ -767,3 +767,25 @@ button:disabled {
   font-weight: 700;
   vertical-align: middle;
 }
+
+/* ---------- Colar imagem (telas) ---------- */
+.foto-input-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.btn-colar {
+  padding: 6px 12px;
+  border: 1px solid #14a098;
+  border-radius: 6px;
+  background: #fff;
+  color: #0d7a74;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.btn-colar:hover {
+  background: #e6f6f5;
+}
