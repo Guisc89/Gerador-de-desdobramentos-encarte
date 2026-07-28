@@ -64,7 +64,8 @@ A interface tem uma barra lateral com logo e abas (Preçários | Telas | Cards |
 
 ## Encartes RS / MS + progresso automático (v2)
 
-- Dois encartes independentes: **RS** e **MS**. O usuário escolhe ao entrar (overlay) e pode trocar pelo chip na sidebar (`workspace.js`). A escolha fica em `localStorage("encarteWS")`.
+- Dois encartes independentes: **RS** e **MS**. A escolha é **sempre a primeira tela** ao entrar (overlay em `workspace.js`); vale para a sessão do navegador (`sessionStorage("encarteWSPronto")`), o valor fica em `localStorage("encarteWS")`; chip "Trocar" na sidebar.
+- **Fluxo guiado em 5 etapas** (index.html): sidebar vira trilha numerada (1 Preçário, 2 Telas, 3 Cards, 4 Stories, 5 Finalizar) com ✓ nas concluídas; rodapé fixo com Voltar/Avançar (`window.__irParaPainel`). A etapa 5 (`#panel-finalizar`) tem checklist do que foi produzido (via `/api/estado` + `/api/auditado/status`), botão "Finalizar mês" e o histórico "Mês anterior" (injetados por `progresso.js`).
 - Toda chamada `/api/` leva o encarte: header `X-Encarte` (fetch é interceptado em `workspace.js`) ou query `?ws=` (iframes e links `<a>`, reescritos por um click-handler). No servidor, `wsOf(req)` em `encarte.ts`; query tem precedência.
 - **Persistência por encarte** no App Storage (`objectStore.ts` = cliente GCS compartilhado; `estadoStorage.ts`): `encartes/<ws>/estado.json` (produtos, mês, bg, etapa, blob do frontend com telas/fotos/fundos), `encartes/<ws>/precario.pdf`, `encartes/<ws>/auditados/`, `encartes/<ws>/historico/`.
 - **Retomar de onde parou**: `progresso.js` (carregado por último) salva com debounce (eventos `encarte:*`) e restaura ao abrir via hooks `window.__precarioRestaurar`, `__telasSnapshot/__telasRestaurar`, `__cardsSnapshot/Restaurar`, `__storiesSnapshot/Restaurar`. A etapa (aba) é salva ao trocar de aba. Backend hidrata a memória de `estado.json` após restart (`hydrate()`).

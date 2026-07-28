@@ -73,13 +73,22 @@
         : "") +
       "</div>";
     overlay.querySelectorAll(".ws-opt").forEach(function (btn) {
+      if (btn.getAttribute("data-ws") === ws) btn.classList.add("ws-opt-atual");
       btn.addEventListener("click", function () {
         var novo = btn.getAttribute("data-ws");
         var mudou = novo !== ws;
         setWs(novo);
+        window.EncarteWS.escolhido = true;
         overlay.remove();
-        if (isTroca && mudou) window.location.reload();
-        if (!isTroca) document.dispatchEvent(new CustomEvent("encarte:ws-escolhido"));
+        // A escolha vale para toda a sessão do navegador: recarregamentos não
+        // perguntam de novo; só uma nova visita (nova aba/sessão) pergunta.
+        try { sessionStorage.setItem("encarteWSPronto", "1"); } catch (_) {}
+        if (mudou) {
+          // Recarrega para que tudo (dados já buscados) aponte pro encarte certo.
+          window.location.reload();
+          return;
+        }
+        document.dispatchEvent(new CustomEvent("encarte:ws-escolhido"));
       });
     });
     var cancel = overlay.querySelector(".ws-cancel");
@@ -87,7 +96,19 @@
     return overlay;
   }
 
+  // A escolha do encarte é SEMPRE a primeira tela ao entrar no sistema
+  // (exceto logo após trocar de encarte, para não perguntar duas vezes).
+  window.EncarteWS.escolhido = false;
   document.addEventListener("DOMContentLoaded", function () {
-    if (!ws) document.body.appendChild(buildOverlay(false));
+    var pronto = false;
+    try {
+      pronto = sessionStorage.getItem("encarteWSPronto") === "1";
+    } catch (_) {}
+    if (pronto && ws) {
+      window.EncarteWS.escolhido = true;
+      document.dispatchEvent(new CustomEvent("encarte:ws-escolhido"));
+    } else {
+      document.body.appendChild(buildOverlay(false));
+    }
   });
 })();

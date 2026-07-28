@@ -12,30 +12,27 @@
       <div class="sidebar-brand">
         <img class="sidebar-logo" src="logo-sidebar.png" alt="Farmácias Associadas" />
       </div>
-      <nav class="nav" id="tabs">
+      <div class="nav-steps-title">Etapas do encarte</div>
+      <nav class="nav nav-steps" id="tabs">
         <button type="button" class="nav-item active" data-panel="precarios">
-          <span class="nav-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41 13.42 20.6a2 2 0 0 1-2.83 0L3 13V3h10l7.59 7.59a2 2 0 0 1 0 2.82Z"/><circle cx="7.5" cy="7.5" r="1.25" fill="currentColor" stroke="none"/></svg>
-          </span>
-          <span>Preçários</span>
+          <span class="step-num">1</span>
+          <span class="step-label">Preçário<small>Planilha, PDF e auditado</small></span>
         </button>
         <button type="button" class="nav-item" data-panel="telas">
-          <span class="nav-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
-          </span>
-          <span>Telas</span>
+          <span class="step-num">2</span>
+          <span class="step-label">Telas<small>TVs e organização</small></span>
         </button>
         <button type="button" class="nav-item" data-panel="cards">
-          <span class="nav-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="13" height="14" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2h-2"/></svg>
-          </span>
-          <span>Cards</span>
+          <span class="step-num">3</span>
+          <span class="step-label">Cards<small>Feed 1080×1440</small></span>
         </button>
         <button type="button" class="nav-item" data-panel="stories">
-          <span class="nav-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="2" width="10" height="20" rx="2.5"/><path d="M12 18h.01"/></svg>
-          </span>
-          <span>Stories</span>
+          <span class="step-num">4</span>
+          <span class="step-label">Stories<small>1080×1920</small></span>
+        </button>
+        <button type="button" class="nav-item" data-panel="finalizar">
+          <span class="step-num">5</span>
+          <span class="step-label">Finalizar<small>Encerrar o mês</small></span>
         </button>
       </nav>
       <div class="sidebar-foot">
@@ -452,6 +449,28 @@
         </div>
       </div>
     </section>
+
+    <!-- ============ FINALIZAR (etapa 5) ============ -->
+    <section id="panel-finalizar" class="panel hidden">
+      <header>
+        <h1>Finalizar encarte</h1>
+        <p class="subtitle">
+          Confira o que já foi produzido neste encarte e, quando tudo estiver pronto,
+          encerre o mês. O material atual vira o <strong>Mês anterior</strong> e a área
+          fica limpa para a próxima campanha.
+        </p>
+      </header>
+      <div id="finResumo" class="fin-resumo"></div>
+      <div id="finAcoes" class="fin-acoes"></div>
+      <div id="finHistorico" class="fin-historico"></div>
+    </section>
+      </div>
+
+      <!-- Barra de navegação entre etapas -->
+      <div class="step-footer">
+        <button type="button" id="stepVoltar" class="step-btn step-btn-back">‹ Voltar</button>
+        <span id="stepFooterInfo" class="step-footer-info"></span>
+        <button type="button" id="stepAvancar" class="step-btn step-btn-next">Avançar ›</button>
       </div>
     </main>
   </div>
@@ -466,20 +485,71 @@
   <script src="stories.js"></script>
   <script>
     (function () {
+      var ORDEM = ["precarios", "telas", "cards", "stories", "finalizar"];
+      var NOMES = { precarios: "Preçário", telas: "Telas", cards: "Cards", stories: "Stories", finalizar: "Finalizar" };
       var tabs = document.getElementById("tabs");
+      var voltarBtn = document.getElementById("stepVoltar");
+      var avancarBtn = document.getElementById("stepAvancar");
+      var footerInfo = document.getElementById("stepFooterInfo");
+
+      function painelAtual() {
+        var ativo = tabs.querySelector(".nav-item.active[data-panel]");
+        return ativo ? ativo.getAttribute("data-panel") : "precarios";
+      }
+
+      function atualizarStepper() {
+        var atual = painelAtual();
+        var idx = ORDEM.indexOf(atual);
+        Array.prototype.forEach.call(tabs.querySelectorAll(".nav-item[data-panel]"), function (t) {
+          var i = ORDEM.indexOf(t.getAttribute("data-panel"));
+          t.classList.toggle("step-done", i > -1 && i < idx);
+        });
+        voltarBtn.disabled = idx <= 0;
+        if (idx >= ORDEM.length - 1) {
+          avancarBtn.classList.add("hidden");
+        } else {
+          avancarBtn.classList.remove("hidden");
+          avancarBtn.textContent = "Avançar: " + NOMES[ORDEM[idx + 1]] + " ›";
+        }
+        footerInfo.textContent = "Etapa " + (idx + 1) + " de " + ORDEM.length + " — " + NOMES[atual];
+        if (atual === "finalizar") {
+          document.dispatchEvent(new CustomEvent("encarte:abriu-finalizar"));
+        }
+      }
+
+      window.__irParaPainel = function (panel) {
+        if (ORDEM.indexOf(panel) === -1) panel = "precarios";
+        Array.prototype.forEach.call(tabs.querySelectorAll(".nav-item[data-panel]"), function (t) {
+          t.classList.toggle("active", t.getAttribute("data-panel") === panel);
+        });
+        Array.prototype.forEach.call(document.querySelectorAll('[id^="panel-"]'), function (p) {
+          p.classList.toggle("hidden", p.id !== "panel-" + panel);
+        });
+        atualizarStepper();
+      };
+
       if (tabs) {
         tabs.addEventListener("click", function (ev) {
           var btn = ev.target.closest(".nav-item");
           if (!btn || !btn.hasAttribute("data-panel")) return;
-          var panel = btn.getAttribute("data-panel");
-          Array.prototype.forEach.call(tabs.querySelectorAll(".nav-item[data-panel]"), function (t) {
-            t.classList.toggle("active", t === btn);
-          });
-          Array.prototype.forEach.call(document.querySelectorAll('[id^="panel-"]'), function (p) {
-            p.classList.toggle("hidden", p.id !== "panel-" + panel);
-          });
+          window.__irParaPainel(btn.getAttribute("data-panel"));
         });
       }
+      voltarBtn.addEventListener("click", function () {
+        var idx = ORDEM.indexOf(painelAtual());
+        if (idx > 0) {
+          var alvo = tabs.querySelector('.nav-item[data-panel="' + ORDEM[idx - 1] + '"]');
+          if (alvo) alvo.click();
+        }
+      });
+      avancarBtn.addEventListener("click", function () {
+        var idx = ORDEM.indexOf(painelAtual());
+        if (idx < ORDEM.length - 1) {
+          var alvo = tabs.querySelector('.nav-item[data-panel="' + ORDEM[idx + 1] + '"]');
+          if (alvo) alvo.click();
+        }
+      });
+      atualizarStepper();
 
       var logoutBtn = document.getElementById("logoutBtn");
       if (logoutBtn) {

@@ -26,34 +26,71 @@
     }
 
     var foot = document.querySelector(".sidebar-foot");
-    if (!foot) return;
+    if (foot) {
+      indicador = document.createElement("div");
+      indicador.className = "ws-save-indicator";
+      indicador.textContent = "";
+      foot.insertAdjacentElement("beforebegin", indicador);
+    }
 
-    indicador = document.createElement("div");
-    indicador.className = "ws-save-indicator";
-    indicador.textContent = "";
-    foot.insertAdjacentElement("beforebegin", indicador);
+    // Etapa 5 — Finalizar: botão + histórico dentro do painel.
+    var acoes = document.getElementById("finAcoes");
+    if (acoes) {
+      var fin = document.createElement("button");
+      fin.type = "button";
+      fin.className = "ws-finalizar";
+      fin.textContent = "Finalizar mês do Encarte " + window.EncarteWS.nome();
+      fin.addEventListener("click", finalizarMes);
+      acoes.appendChild(fin);
+      var aviso = document.createElement("p");
+      aviso.className = "fin-aviso";
+      aviso.textContent =
+        "Ao finalizar, o preçário e o PDF auditado atuais são guardados como \"Mês anterior\" e a área fica limpa para a nova campanha.";
+      acoes.appendChild(aviso);
+    }
 
-    var hist = document.createElement("details");
-    hist.className = "ws-historico";
-    hist.id = "wsHistorico";
-    hist.innerHTML =
-      "<summary>Mês anterior</summary>" +
-      '<div class="ws-historico-body" id="wsHistoricoBody"><span class="ws-hist-vazio">Nenhum mês finalizado ainda.</span></div>';
-    foot.insertAdjacentElement("beforebegin", hist);
+    document.addEventListener("encarte:abriu-finalizar", atualizarResumoFinal);
+  }
 
-    var fin = document.createElement("button");
-    fin.type = "button";
-    fin.className = "ws-finalizar";
-    fin.textContent = "Finalizar mês";
-    fin.addEventListener("click", finalizarMes);
-    foot.insertAdjacentElement("beforebegin", fin);
+  function atualizarResumoFinal() {
+    var resumo = document.getElementById("finResumo");
+    if (!resumo) return;
+    resumo.innerHTML = '<p class="fin-carregando">Conferindo o que já foi feito…</p>';
+    Promise.all([
+      fetch("/api/estado").then(function (r) { return r.json(); }).catch(function () { return null; }),
+      fetch("/api/auditado/status").then(function (r) { return r.json(); }).catch(function () { return null; }),
+    ]).then(function (res) {
+      var estado = res[0] || {};
+      var aud = res[1] || {};
+      var sv = estado.servidor || null;
+      var f = estado.frontend || {};
+      var telas = f.telas && Array.isArray(f.telas.telas) ? f.telas.telas.length : 0;
+      function item(ok, textoOk, textoFalta) {
+        return (
+          '<div class="fin-item ' + (ok ? "fin-ok" : "fin-falta") + '">' +
+          '<span class="fin-check">' + (ok ? "✓" : "•") + "</span>" +
+          "<span>" + (ok ? textoOk : textoFalta) + "</span></div>"
+        );
+      }
+      resumo.innerHTML =
+        '<h3>Resumo do Encarte ' + window.EncarteWS.nome() + "</h3>" +
+        item(
+          sv && sv.produtos && sv.produtos.length,
+          "Preçário gerado" + (sv && sv.mes ? " — " + escapeHtml(sv.mes) : "") +
+            (sv && sv.produtos ? " (" + sv.produtos.length + " produtos)" : ""),
+          "Preçário ainda não gerado (etapa 1)",
+        ) +
+        item(!!aud.atual, "PDF auditado enviado", "PDF auditado ainda não enviado (etapa 1 — opcional)") +
+        item(telas > 0, telas + " telas organizadas", "Telas ainda não organizadas (etapa 2)");
+      renderHistorico(estado.historico);
+    });
   }
 
   function renderHistorico(meta) {
-    var body = document.getElementById("wsHistoricoBody");
+    var body = document.getElementById("finHistorico");
     if (!body) return;
     if (!meta) {
-      body.innerHTML = '<span class="ws-hist-vazio">Nenhum mês finalizado ainda.</span>';
+      body.innerHTML = "";
       return;
     }
     var quando = "";
@@ -61,17 +98,18 @@
       quando = new Date(meta.finalizadoEm).toLocaleDateString("pt-BR");
     } catch (_) {}
     var html =
+      "<h3>Mês anterior</h3>" +
       '<div class="ws-hist-meta">' +
       (meta.mes ? "<strong>" + escapeHtml(meta.mes) + "</strong> · " : "") +
       "finalizado em " + quando +
-      "</div>";
+      "</div><div class='ws-hist-links'>";
     if (meta.temPrecario)
-      html += '<a href="/api/historico/download/precario">Baixar preçário</a>';
+      html += '<a class="btn-download" href="/api/historico/download/precario">Baixar preçário</a>';
     if (meta.temAuditado)
-      html += '<a href="/api/historico/download/auditado">Baixar auditado</a>';
+      html += '<a class="btn-download" href="/api/historico/download/auditado">Baixar auditado</a>';
     if (!meta.temPrecario && !meta.temAuditado)
       html += '<span class="ws-hist-vazio">Sem arquivos guardados.</span>';
-    body.innerHTML = html;
+    body.innerHTML = html + "</div>";
   }
 
   function escapeHtml(s) {
@@ -179,8 +217,12 @@
 
   // ---------- Restauração ----------
   function abrirEtapa(painel) {
-    var btn = document.querySelector('.nav-item[data-panel="' + painel + '"]');
-    if (btn) btn.click();
+    if (typeof window.__irParaPainel === "function") {
+      window.__irParaPainel(painel);
+    } else {
+      var btn = document.querySelector('.nav-item[data-panel="' + painel + '"]');
+      if (btn) btn.click();
+    }
   }
 
   function toast(msg) {
@@ -236,7 +278,7 @@
           abrirEtapa(data.etapa);
         }
         if (temAlgo) {
-          var nomes = { precarios: "Preçários", telas: "Telas", cards: "Cards", stories: "Stories" };
+          var nomes = { precarios: "Preçário", telas: "Telas", cards: "Cards", stories: "Stories", finalizar: "Finalizar" };
           toast(
             "Encarte " + window.EncarteWS.nome() + ": retomando de onde você parou (" +
               (nomes[data.etapa] || "Preçários") + ").",
