@@ -1265,3 +1265,6 @@ body {
   width: 100%;
 }
 .foto-tile-vazia { opacity: 0.75; border-style: dashed; }
+
+/* Indicador de erro do autosave */
+.save-erro { color: #c0392b !important; font-weight: 700; }

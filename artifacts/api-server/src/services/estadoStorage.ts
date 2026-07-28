@@ -81,6 +81,72 @@ export function mergeEstado(
   });
 }
 
+// Blobs de frontend que o autosave envia. Merge defensivo: um cliente "vazio"
+// (aba recém-aberta, restauração incompleta, save disparado cedo demais) NUNCA
+// pode apagar dados bons já persistidos — sub-blocos null/ausentes preservam o
+// valor existente, e o mapa de fotos é mesclado chave a chave.
+interface FrontendBlob {
+  catalogo?: unknown;
+  fotos?: Record<string, unknown>;
+  // Chaves que o cliente pede para APAGAR do mapa de fotos (remoções e
+  // renomeações). Necessário porque o merge é aditivo: a ausência de uma chave
+  // nunca apaga nada — só um pedido explícito (tombstone ou valor null).
+  fotosRemovidas?: unknown;
+  telas?: unknown;
+  cardsExtras?: unknown;
+  storiesExtras?: unknown;
+}
+
+export function mergeEstadoFrontend(
+  ws: Workspace,
+  patch: Partial<EstadoEncarte>,
+  frontendPatch: unknown,
+): Promise<EstadoEncarte> {
+  return enqueue(ws, async () => {
+    const atual = await getEstado(ws);
+    const velho = (atual.frontend || {}) as FrontendBlob;
+    const novoFe = (frontendPatch || {}) as FrontendBlob;
+
+    const escolhe = <K extends keyof FrontendBlob>(k: K): FrontendBlob[K] => {
+      const v = novoFe[k];
+      return v === null || v === undefined ? velho[k] : v;
+    };
+
+    // Fotos: mescla chave a chave — chaves novas vencem, antigas não somem só
+    // porque o cliente ainda não as tinha carregado.
+    const fotosVelhas = velho.fotos && typeof velho.fotos === "object" ? velho.fotos : {};
+    const fotosNovas = novoFe.fotos && typeof novoFe.fotos === "object" ? novoFe.fotos : {};
+    const fotos: Record<string, unknown> = { ...fotosVelhas, ...fotosNovas };
+    // Exclusões explícitas: tombstones enviados pelo cliente e valores null
+    // (usado pelo POST /estado/foto para remover uma única foto).
+    if (Array.isArray(novoFe.fotosRemovidas)) {
+      for (const k of novoFe.fotosRemovidas) {
+        if (typeof k === "string") delete fotos[k];
+      }
+    }
+    for (const k of Object.keys(fotos)) {
+      if (fotos[k] === null) delete fotos[k];
+    }
+
+    const frontend: FrontendBlob = {
+      catalogo: escolhe("catalogo"),
+      fotos,
+      telas: escolhe("telas"),
+      cardsExtras: escolhe("cardsExtras"),
+      storiesExtras: escolhe("storiesExtras"),
+    };
+
+    const novo: EstadoEncarte = {
+      ...atual,
+      ...patch,
+      frontend,
+      frontendAtualizadoEm: new Date().toISOString(),
+    };
+    await storeSaveJson(estadoPath(ws), novo);
+    return novo;
+  });
+}
+
 export function savePrecarioPdf(ws: Workspace, pdf: Buffer): Promise<void> {
   return enqueue(ws, () => storeSave(precarioPath(ws), pdf, "application/pdf"));
 }

@@ -14,6 +14,7 @@ import { parseWorkspace, type Workspace } from "../services/objectStore";
 import {
   getEstado,
   mergeEstado,
+  mergeEstadoFrontend,
   savePrecarioPdf,
   loadPrecarioPdf,
   finalizarMes,
@@ -404,11 +405,13 @@ router.post("/estado", async (req, res) => {
     const patch: Record<string, unknown> = {};
     const etapa = parseEtapa(body.etapa);
     if (etapa) patch["etapa"] = etapa;
-    if (body.frontend !== undefined) {
-      patch["frontend"] = body.frontend;
-      patch["frontendAtualizadoEm"] = new Date().toISOString();
+    const temFrontend = body.frontend !== undefined;
+    if (Object.keys(patch).length === 0 && !temFrontend) {
+      res.json({ ok: true });
+      return;
     }
-    if (Object.keys(patch).length === 0) {
+    if (temFrontend) {
+      await mergeEstadoFrontend(ws, patch, body.frontend);
       res.json({ ok: true });
       return;
     }
@@ -417,6 +420,29 @@ router.post("/estado", async (req, res) => {
   } catch (err) {
     req.log.error({ err }, "Erro ao salvar estado");
     res.status(500).json({ error: "Erro ao salvar o progresso." });
+  }
+});
+
+// Salva UMA foto imediatamente (pacote pequeno). É a proteção principal contra
+// perda de fotos: o autosave completo pode ser grande/lento e morrer junto com
+// a página; este endpoint mescla só a chave enviada no mapa frontend.fotos.
+router.post("/estado/foto", async (req, res) => {
+  const ws = wsOf(req);
+  try {
+    const { key, foto } = (req.body ?? {}) as { key?: unknown; foto?: unknown };
+    if (typeof key !== "string" || !key.trim()) {
+      res.status(400).json({ error: "key obrigatória" });
+      return;
+    }
+    if (foto !== null && typeof foto !== "string") {
+      res.status(400).json({ error: "foto deve ser string (data URI) ou null" });
+      return;
+    }
+    await mergeEstadoFrontend(ws, {}, { fotos: { [key]: foto } });
+    res.json({ ok: true });
+  } catch (err) {
+    req.log.error({ err }, "Erro ao salvar foto");
+    res.status(500).json({ error: "Erro ao salvar a foto." });
   }
 });
 

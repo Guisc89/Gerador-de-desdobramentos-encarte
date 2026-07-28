@@ -102,8 +102,13 @@
     if (!(nome || "").trim()) return;
     const key = fotoKey(nome, descricao);
     const store = sharedFotos();
-    if (foto) store[key] = foto;
-    else delete store[key];
+    if (foto) {
+      store[key] = foto;
+      delete tombstones()[key];
+    } else {
+      delete store[key];
+      tombstones()[key] = true;
+    }
     document.dispatchEvent(
       new CustomEvent("encarte:fotos", {
         detail: { key, foto: foto || null },
@@ -113,13 +118,25 @@
   // Move a photo's entry to a new key when its product name/apresentação is
   // edited in place, so the shared store stays keyed by the current values.
   // Done quietly (no event) to avoid re-rendering the row while typing.
+  // Chaves de foto removidas/renomeadas nesta sessão. O autosave envia esta
+  // lista para o servidor apagar explicitamente (o merge do servidor é
+  // propositalmente aditivo e nunca apaga por ausência — ver estadoStorage.ts).
+  function tombstones() {
+    if (!window.__encarteFotosRemovidas) window.__encarteFotosRemovidas = {};
+    return window.__encarteFotosRemovidas;
+  }
+
   function rekeyFoto(oldNome, oldDescricao, novoNome, novoDescricao, foto) {
     const oldKey = fotoKey(oldNome, oldDescricao);
     const newKey = fotoKey(novoNome, novoDescricao);
     if (oldKey === newKey) return;
     const store = sharedFotos();
     delete store[oldKey];
-    if (foto && (novoNome || "").trim()) store[newKey] = foto;
+    tombstones()[oldKey] = true;
+    if (foto && (novoNome || "").trim()) {
+      store[newKey] = foto;
+      delete tombstones()[newKey];
+    }
   }
 
   function escapeHtml(s) {
@@ -867,7 +884,11 @@
           descricao: it.descricao,
           precoInteiro: it.precoInteiro,
           precoCentavos: it.precoCentavos,
-          foto: it.foto,
+          // A foto já vive no mapa global (window.__encarteFotos, salvo como
+          // frontend.fotos). Só duplica aqui quando divergir do mapa — na
+          // restauração o fallback fotoFor() recupera pelo nome+descrição.
+          // Isso corta o tamanho do autosave quase pela metade.
+          foto: it.foto && fotoFor(it.nome, it.descricao) === it.foto ? null : it.foto,
         })),
       })),
     };

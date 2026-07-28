@@ -145,48 +145,123 @@
     return {
       catalogo: window.__encarteCatalogo || null,
       fotos: window.__encarteFotos || {},
+      // Chaves para o servidor APAGAR (renomeações/remoções) — o merge do
+      // servidor nunca apaga por ausência, só por pedido explícito.
+      fotosRemovidas: Object.keys(window.__encarteFotosRemovidas || {}),
       telas: typeof window.__telasSnapshot === "function" ? window.__telasSnapshot() : null,
       cardsExtras: typeof window.__cardsSnapshot === "function" ? window.__cardsSnapshot() : null,
       storiesExtras: typeof window.__storiesSnapshot === "function" ? window.__storiesSnapshot() : null,
     };
   }
 
+  // "Sujo" = há mudanças ainda não confirmadas pelo servidor. Só limpa quando
+  // um save com frontend completo responde OK. Em falha, reagenda sozinho.
+  var dirty = false;
+  var retryDelay = 3000;
+  var salvandoAgora = false;
+
   function markSaved() {
     if (!indicador) return;
     var agora = new Date();
+    indicador.classList.remove("save-erro");
     indicador.textContent =
       "Progresso salvo às " +
       String(agora.getHours()).padStart(2, "0") + ":" +
       String(agora.getMinutes()).padStart(2, "0");
   }
 
+  function markSaveFailed() {
+    if (!indicador) return;
+    indicador.classList.add("save-erro");
+    indicador.textContent = "Não foi possível salvar — tentando de novo…";
+  }
+
   function saveNow(includeFrontend) {
+    if (salvandoAgora) {
+      // Já existe um save em voo (pode ser um save só de etapa, que não
+      // reagenda nada ao terminar) — reagenda explicitamente para não perder.
+      if (includeFrontend) scheduleSave(500);
+      return Promise.resolve();
+    }
     var body = { etapa: etapaAtual };
-    if (includeFrontend) body.frontend = collectFrontend();
+    if (includeFrontend) {
+      body.frontend = collectFrontend();
+      dirty = false; // otimista; refeito em caso de falha
+    }
+    salvandoAgora = true;
     return fetch("/api/estado", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
     })
       .then(function (r) {
-        if (r.ok) markSaved();
+        salvandoAgora = false;
+        if (r.ok) {
+          retryDelay = 3000;
+          if (includeFrontend && dirty) {
+            // Chegaram mudanças enquanto salvava — salva de novo em seguida.
+            scheduleSave(1000);
+          } else if (includeFrontend) {
+            markSaved();
+          }
+          return;
+        }
+        onSaveError(includeFrontend);
       })
-      .catch(function () {});
+      .catch(function () {
+        salvandoAgora = false;
+        onSaveError(includeFrontend);
+      });
   }
 
-  function scheduleSave() {
+  function onSaveError(includeFrontend) {
+    if (!includeFrontend) return;
+    // NUNCA descartar mudanças em silêncio: marca como pendente, avisa o
+    // usuário e tenta de novo com espera crescente (máx. 30s).
+    dirty = true;
+    markSaveFailed();
+    scheduleSave(retryDelay);
+    retryDelay = Math.min(retryDelay * 2, 30000);
+  }
+
+  function scheduleSave(delayMs) {
     if (restaurando) return;
+    dirty = true;
     if (saveTimer) clearTimeout(saveTimer);
     saveTimer = setTimeout(function () {
+      saveTimer = null;
       saveNow(true);
-    }, 3000);
+    }, typeof delayMs === "number" ? delayMs : 3000);
   }
 
-  ["encarte:telas", "encarte:fotos", "encarte:catalogo", "encarte:catalogo-update", "encarte:extras"].forEach(
+  ["encarte:telas", "encarte:catalogo", "encarte:catalogo-update", "encarte:extras"].forEach(
     function (evt) {
-      document.addEventListener(evt, scheduleSave);
+      document.addEventListener(evt, function () { scheduleSave(); });
     },
   );
+  // Fotos são o dado mais precioso (e o mais pesado de refazer). Duas camadas:
+  // 1) salva SÓ a foto imediatamente (pacote pequeno, sobrevive a quedas);
+  // 2) o autosave completo continua como pano de fundo.
+  function salvarFoto(key, foto, tentativa) {
+    fetch("/api/estado/foto", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ key: key, foto: foto }),
+    })
+      .then(function (r) {
+        if (!r.ok) throw new Error("HTTP " + r.status);
+      })
+      .catch(function () {
+        var n = (tentativa || 0) + 1;
+        if (n <= 3) setTimeout(function () { salvarFoto(key, foto, n); }, n * 2000);
+        else markSaveFailed();
+      });
+  }
+  document.addEventListener("encarte:fotos", function (ev) {
+    var d = (ev && ev.detail) || {};
+    if (!restaurando && d.key) salvarFoto(d.key, d.foto || null, 0);
+    scheduleSave(800);
+  });
 
   // Etapa: acompanha a troca de abas.
   var tabs = document.getElementById("tabs");
@@ -202,18 +277,39 @@
     });
   }
 
-  // Última chance de salvar ao fechar a página.
-  window.addEventListener("beforeunload", function () {
-    if (!saveTimer) return; // nada pendente
-    clearTimeout(saveTimer);
+  // Última chance de salvar ao fechar a página. Atenção: sendBeacon tem limite
+  // de ~64KB na maioria dos navegadores — com fotos em base64 o pacote completo
+  // quase sempre estoura. Por isso: (1) tenta fetch keepalive primeiro (aceita
+  // corpos maiores em alguns navegadores), (2) o beacon é só reserva, e (3) a
+  // proteção real é o autosave com retentativa acima — não este handler.
+  function salvarAoSair() {
+    if (!dirty && !saveTimer) return; // nada pendente
+    if (saveTimer) {
+      clearTimeout(saveTimer);
+      saveTimer = null;
+    }
+    var payload = JSON.stringify({ etapa: etapaAtual, frontend: collectFrontend() });
+    var url = "/api/estado?ws=" + window.EncarteWS.ws;
+    var enviado = false;
     try {
-      var blob = new Blob(
-        [JSON.stringify({ etapa: etapaAtual, frontend: collectFrontend() })],
-        { type: "application/json" },
-      );
-      navigator.sendBeacon("/api/estado?ws=" + window.EncarteWS.ws, blob);
+      // Chromium rejeita keepalive com corpo >64KB — a rejeição é assíncrona,
+      // então também tentamos o beacon como reserva sempre que possível.
+      fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: payload,
+        keepalive: true,
+      }).catch(function () {});
+      enviado = payload.length < 60000;
     } catch (_) {}
-  });
+    if (!enviado) {
+      try {
+        navigator.sendBeacon(url, new Blob([payload], { type: "application/json" }));
+      } catch (_) {}
+    }
+  }
+  window.addEventListener("pagehide", salvarAoSair);
+  window.addEventListener("beforeunload", salvarAoSair);
 
   // ---------- Restauração ----------
   function abrirEtapa(painel) {

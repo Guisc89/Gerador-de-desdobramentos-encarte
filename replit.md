@@ -73,6 +73,13 @@ A interface tem uma barra lateral com logo e abas (Preçários | Telas | Cards |
 - O override do auditado em `/download/:filename` agora só vale para o PDF do preçário (filename salvo por ws) — PNGs/PDFs de telas nunca são sequestrados.
 - Versão anterior (fluxo único, sem RS/MS) marcada como tag git `versao-1`.
 
+## Autosave robusto (correção de perda de fotos)
+
+- Cada foto é salva no servidor **na hora do upload** via `POST /api/estado/foto` (pacote pequeno; 3 retentativas). O autosave completo (3s; fotos 800ms) tem dirty-flag e retentativa com backoff até 30s; falhas mostram "Não foi possível salvar — tentando de novo…" no indicador.
+- O save de saída (pagehide/beforeunload) usa fetch keepalive + beacon, mas ambos têm limite ~64KB no navegador — é só reserva; a proteção real são os itens acima.
+- No servidor, `mergeEstadoFrontend` faz merge defensivo: sub-blocos null/ausentes nunca apagam dados; fotos são mescladas chave a chave; exclusão só por tombstone (`fotosRemovidas`) ou valor null. Renomear produto registra tombstone da chave antiga (`window.__encarteFotosRemovidas`).
+- No snapshot das telas, a foto é deduplicada contra o mapa global (restauração cai para `fotoFor()`), cortando o tamanho do autosave pela metade.
+
 ## UI v3 — Telas/Cards/Stories mais limpos
 
 - **Telas**: bloco "Campanha" mostra só Mês + Nome base; validade/endereço e fundo ficam em `<details class="cfg-adv">` recolhidos. Produtos viram acordeão (`.acc-item` em telas.js): fechado mostra miniatura + nome + preço; o estado aberto fica em `it.aberto` (itens sem nome abrem sozinhos). Vários podem ficar abertos ao mesmo tempo.

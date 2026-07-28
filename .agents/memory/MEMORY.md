@@ -1,3 +1,4 @@
 - [Batch route validation parity](batch-route-validation.md) — batch generation routes must enforce the same per-item contract as single-item routes, not just skip empties.
 - [Telas/Cards photo keying](telas-photo-keying.md) — product photos must be keyed by name + apresentação (descrição), never name alone, or same-name variants share one image.
 - [Consulte apresentações dedupe](consulte-apresentacoes-dedupe.md) — flavor variants auto-merge by fabricante+base-name+price; user's manual spreadsheet edits never arrive, prefer server-side logic.
+- [Autosave de fotos anti-perda](autosave-fotos.md) — sendBeacon/keepalive limitam 64KB; fotos salvam por-chave na hora; merge do servidor é aditivo, exclusão só por tombstone.
