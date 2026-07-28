@@ -219,8 +219,20 @@ export function renderTelaHtml(state: TelaState): string {
     justify-content: center;
     padding: 1vw;
     background: #fff;
+    /* A foto não participa do layout: o card tem sempre o mesmo tamanho e a
+       imagem se ajusta ao espaço branco (amplia a pequena, reduz a grande),
+       sempre mantendo a proporção. */
+    position: relative;
+    min-height: 10.5vw;
   }
-  .card-photo img { max-width: 100%; max-height: 100%; object-fit: contain; }
+  .card-photo img {
+    position: absolute;
+    top: 1vw;
+    left: 1vw;
+    width: calc(100% - 2vw);
+    height: calc(100% - 2vw);
+    object-fit: contain;
+  }
   .card-photo-empty {
     font-size: 0.95vw;
     color: #b4bcae;

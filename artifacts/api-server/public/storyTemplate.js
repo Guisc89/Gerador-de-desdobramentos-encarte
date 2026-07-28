@@ -1,14 +1,14 @@
-"use strict";var StoryTemplate=(()=>{var l=Object.defineProperty;var m=Object.getOwnPropertyDescriptor;var h=Object.getOwnPropertyNames;var w=Object.prototype.hasOwnProperty;var y=(e,t)=>{for(var a in t)l(e,a,{get:t[a],enumerable:!0})},b=(e,t,a,o)=>{if(t&&typeof t=="object"||typeof t=="function")for(let i of h(t))!w.call(e,i)&&i!==a&&l(e,i,{get:()=>t[i],enumerable:!(o=m(t,i))||o.enumerable});return e};var x=e=>b(l({},"__esModule",{value:!0}),e);var $={};y($,{renderStoryHtml:()=>k});function n(e){return String(e??"").replace(/[&<>"']/g,t=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"})[t])}function p(e){let t=(e.precoCentavos||"00").padStart(2,"0").slice(0,2),a=e.foto?`<img src="${n(e.foto)}" alt="" />`:'<span class="card-photo-empty">Sem foto</span>',o=e.descricao?`<div class="card-desc">${n(e.descricao)}</div>`:"";return`
+"use strict";var StoryTemplate=(()=>{var l=Object.defineProperty;var m=Object.getOwnPropertyDescriptor;var h=Object.getOwnPropertyNames;var w=Object.prototype.hasOwnProperty;var y=(e,t)=>{for(var a in t)l(e,a,{get:t[a],enumerable:!0})},b=(e,t,a,i)=>{if(t&&typeof t=="object"||typeof t=="function")for(let o of h(t))!w.call(e,o)&&o!==a&&l(e,o,{get:()=>t[o],enumerable:!(i=m(t,o))||i.enumerable});return e};var x=e=>b(l({},"__esModule",{value:!0}),e);var z={};y(z,{renderStoryHtml:()=>k});function n(e){return String(e??"").replace(/[&<>"']/g,t=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"})[t])}function f(e){let t=(e.precoCentavos||"00").padStart(2,"0").slice(0,2),a=e.foto?`<img src="${n(e.foto)}" alt="" />`:'<span class="card-photo-empty">Sem foto</span>',i=e.descricao?`<div class="card-desc">${n(e.descricao)}</div>`:"";return`
     <div class="card">
       <div class="card-photo">${a}</div>
       <div class="card-info">
         <div class="card-nome">${n(e.nome)}</div>
-        ${o}
+        ${i}
         <div class="card-price">
           <span class="rs">R$</span><span class="int">${n(e.precoInteiro||"0")}</span><span class="cent-group"><span class="cent">,${n(t)}</span><span class="cada">cada</span></span>
         </div>
       </div>
-    </div>`}function s(e){return String(e??"").replace(/[&<>"']/g,t=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"})[t])}var u="Os pre\xE7os e produtos anunciados s\xE3o v\xE1lidos exclusivamente para esta loja.";function k(e){let t=Array.isArray(e.produtos)?e.produtos:[],a=t.length,o=!!e.isCapa,i=e.background?`style="background-image:url('${s(e.background)}')"`:"",v=e.background?"story-bg":"story-bg story-bg-default",g=e.endereco?s(e.endereco):"Insira aqui seu endere\xE7o",f=r=>`<div class="story-slot">${p(r)}</div>`,d;if(o){let r=[e.mes?s(e.mes):"",e.validadeInicio||e.validadeFim?`Validade: ${s(e.validadeInicio)} a ${s(e.validadeFim)}`:""].filter(Boolean).join(" | "),c=a>0?t.map(f).join(`
+    </div>`}function s(e){return String(e??"").replace(/[&<>"']/g,t=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"})[t])}var u="Os pre\xE7os e produtos anunciados s\xE3o v\xE1lidos exclusivamente para esta loja.";function k(e){let t=Array.isArray(e.produtos)?e.produtos:[],a=t.length,i=!!e.isCapa,o=e.background?`style="background-image:url('${s(e.background)}')"`:"",v=e.background?"story-bg":"story-bg story-bg-default",g=e.endereco?s(e.endereco):"Insira aqui seu endere\xE7o",p=r=>`<div class="story-slot">${f(r)}</div>`,d;if(i){let r=[e.mes?s(e.mes):"",e.validadeInicio||e.validadeFim?`Validade: ${s(e.validadeInicio)} a ${s(e.validadeFim)}`:""].filter(Boolean).join(" | "),c=a>0?t.map(p).join(`
 `):'<div class="story-empty">Adicione produtos para montar o story.</div>';d=`
       <div class="story-topinfo">
         ${r?`<div class="si-mesval">${r}</div>`:""}
@@ -17,7 +17,7 @@
       </div>
       <div class="story-stack" data-count="${a}">
         ${c}
-      </div>`}else{let r=a>=3?"layout-3":"layout-2",c=a>0?t.map(f).join(`
+      </div>`}else{let r=a>=3?"layout-3":"layout-2",c=a>0?t.map(p).join(`
 `):'<div class="story-empty story-empty-center">Adicione produtos para montar o story.</div>';d=`
       <div class="story-body ${r}" data-count="${a}">
         ${c}
@@ -222,10 +222,10 @@
 </head>
 <body>
   <div class="story-canvas">
-    <div class="${v}" ${i}></div>
+    <div class="${v}" ${o}></div>
     <div class="story-overlay">
       ${d}
     </div>
   </div>
 </body>
-</html>`}return x($);})();
+</html>`}return x(z);})();
