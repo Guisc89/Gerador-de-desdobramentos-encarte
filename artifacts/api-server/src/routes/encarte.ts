@@ -4,6 +4,12 @@ import path from "node:path";
 import fs from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { parseExcel, type Produto } from "../services/excelParser";
+import {
+  getAuditadoStatus,
+  saveAuditado,
+  downloadAuditado,
+  removeAuditado,
+} from "../services/auditadoStorage";
 import { renderEncarteHtml, type EncarteBg } from "../services/encarteTemplate";
 import { htmlToPdf } from "../services/pdfGenerator";
 
@@ -207,12 +213,126 @@ router.post("/generate", async (req, res) => {
 router.get("/download/:filename", async (req, res) => {
   const { filename } = req.params;
   const safe = path.basename(filename);
+
+  // If an audited preçário was uploaded, it replaces the generated PDF for
+  // downloads (unless ?original=1 explicitly asks for the generated one).
+  if (req.query["original"] !== "1") {
+    try {
+      const auditado = await downloadAuditado("atual");
+      if (auditado) {
+        res
+          .type("application/pdf")
+          .setHeader(
+            "Content-Disposition",
+            `attachment; filename="${safe.replace(/\.pdf$/i, "")}_auditado.pdf"`,
+          )
+          .send(auditado.pdf);
+        return;
+      }
+    } catch (err) {
+      req.log.warn({ err }, "Falha ao buscar preçário auditado; servindo o gerado");
+    }
+  }
+
   const filepath = path.join(OUTPUT_DIR, safe);
   if (!existsSync(filepath)) {
     res.status(404).json({ error: "Arquivo não encontrado." });
     return;
   }
   res.download(filepath, safe);
+});
+
+// ---------- Preçário auditado (PDF conferido fora da plataforma) ----------
+
+const uploadPdf = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 25 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    const ok =
+      file.originalname.toLowerCase().endsWith(".pdf") ||
+      file.mimetype === "application/pdf";
+    if (!ok) {
+      cb(new Error("Apenas arquivos .pdf são aceitos"));
+      return;
+    }
+    cb(null, true);
+  },
+});
+
+router.get("/auditado/status", async (req, res) => {
+  try {
+    res.json(await getAuditadoStatus());
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Erro desconhecido";
+    req.log.error({ err }, "Erro ao consultar preçário auditado");
+    res.status(500).json({ error: message });
+  }
+});
+
+router.post("/auditado/upload", uploadPdf.single("pdf"), async (req, res) => {
+  try {
+    if (!req.file) {
+      res.status(400).json({ error: "Nenhum arquivo enviado." });
+      return;
+    }
+    // Basic sanity check: PDF magic bytes.
+    if (!req.file.buffer.subarray(0, 5).toString("latin1").startsWith("%PDF")) {
+      res.status(400).json({ error: "O arquivo não parece ser um PDF válido." });
+      return;
+    }
+    const mes = String(req.body?.mes ?? "").trim();
+    const status = await saveAuditado(req.file.buffer, {
+      mes,
+      nomeOriginal: req.file.originalname,
+    });
+    req.log.info(
+      { mes, size: req.file.size, nome: req.file.originalname },
+      "Preçário auditado salvo",
+    );
+    res.json({ ok: true, ...status });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Erro desconhecido";
+    req.log.error({ err }, "Erro ao salvar preçário auditado");
+    res.status(500).json({ error: message });
+  }
+});
+
+router.get("/auditado/download/:slot", async (req, res) => {
+  const slot = req.params["slot"] === "anterior" ? "anterior" : "atual";
+  try {
+    const result = await downloadAuditado(slot);
+    if (!result) {
+      res.status(404).json({ error: "Nenhum preçário auditado encontrado." });
+      return;
+    }
+    const mesSafe = (result.meta.mes || "")
+      .replace(/[^a-zA-Z0-9_\-\s]/g, "")
+      .trim()
+      .replace(/\s+/g, "_");
+    const nome = mesSafe
+      ? `precario_auditado_${mesSafe}.pdf`
+      : `precario_auditado_${slot}.pdf`;
+    res
+      .type("application/pdf")
+      .setHeader("Content-Disposition", `attachment; filename="${nome}"`)
+      .send(result.pdf);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Erro desconhecido";
+    req.log.error({ err }, "Erro ao baixar preçário auditado");
+    res.status(500).json({ error: message });
+  }
+});
+
+router.delete("/auditado/:slot", async (req, res) => {
+  const slot = req.params["slot"] === "anterior" ? "anterior" : "atual";
+  try {
+    await removeAuditado(slot);
+    res.json({ ok: true, ...(await getAuditadoStatus()) });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Erro desconhecido";
+    req.log.error({ err }, "Erro ao remover preçário auditado");
+    res.status(500).json({ error: message });
+  }
 });
 
 router.get("/preview", (req, res) => {

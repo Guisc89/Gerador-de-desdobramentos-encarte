@@ -62,6 +62,12 @@ A interface tem uma barra lateral com logo e abas (Preçários | Telas | Cards |
 - O parser do Excel detecta automaticamente a aba que começa com "ENCARTE", localiza o cabeçalho buscando por "Descrição" e "Venda Encarte" (tolerante a colunas vazias entre eles), e usa a coluna seguinte à descrição como descrição complementar.
 - O template do PDF usa CSS Grid (2×7) com `@page A4` e divisórias pontilhadas (vertical entre colunas, horizontal entre linhas via `border-bottom` dos cards).
 
+## Preçário auditado
+
+- Seção "Preçário auditado" na aba Preçários: upload de PDF já conferido fora da plataforma. O auditado SUBSTITUI o gerado no botão "Baixar PDF" (`GET /api/download/:filename` serve o auditado quando existe; `?original=1` força o gerado). Badge "Auditado ✓" ao lado do botão.
+- Guardados só 2: mês atual + mês anterior (rotação automática a cada novo upload). Persistência no App Storage do Replit (bucket GCS, `PRIVATE_OBJECT_DIR`, serviço `src/services/auditadoStorage.ts`) — sobrevive a republicações.
+- Rotas: `GET /api/auditado/status`, `POST /api/auditado/upload` (multipart `pdf` + `mes`), `GET /api/auditado/download/:slot`, `DELETE /api/auditado/:slot` (slot = atual|anterior).
+
 ## Product
 
 - Tela `/api/` com upload de planilha `.xlsx`, campos de mês, validade inicial/final e nome do arquivo.

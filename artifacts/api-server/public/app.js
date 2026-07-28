@@ -231,3 +231,115 @@
     }
   });
 })();
+
+// ---------- Preçário auditado ----------
+(function () {
+  const fileInput = document.getElementById("auditadoFile");
+  const enviarBtn = document.getElementById("auditadoEnviar");
+  const statusBox = document.getElementById("auditadoStatus");
+  const downloadLink = document.getElementById("downloadLink");
+  const mesInput = document.getElementById("mes");
+  if (!fileInput || !enviarBtn || !statusBox) return;
+
+  let badge = null;
+  function setBadge(on) {
+    if (on && !badge && downloadLink) {
+      badge = document.createElement("span");
+      badge.className = "auditado-badge";
+      badge.textContent = "Auditado ✓";
+      downloadLink.insertAdjacentElement("afterend", badge);
+    }
+    if (!on && badge) {
+      badge.remove();
+      badge = null;
+    }
+  }
+
+  function fmtData(iso) {
+    try {
+      const d = new Date(iso);
+      return d.toLocaleDateString("pt-BR") + " " + d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+    } catch (_) {
+      return iso;
+    }
+  }
+
+  function renderStatus(st) {
+    statusBox.innerHTML = "";
+    const slots = [
+      ["atual", "Mês atual"],
+      ["anterior", "Mês anterior"],
+    ];
+    let any = false;
+    for (const [slot, label] of slots) {
+      const info = st && st[slot];
+      if (!info) continue;
+      any = true;
+      const div = document.createElement("div");
+      div.className = "auditado-item";
+      const mes = info.mes ? " · " + info.mes : "";
+      div.innerHTML =
+        '<span class="tag">' + label + "</span>" +
+        "<span>" + (info.nomeOriginal || "PDF") + mes + " · enviado em " + fmtData(info.enviadoEm) + "</span>" +
+        '<a href="/api/auditado/download/' + slot + '">Baixar</a>';
+      const rm = document.createElement("button");
+      rm.type = "button";
+      rm.textContent = "Remover";
+      rm.addEventListener("click", async () => {
+        if (!confirm("Remover o preçário auditado (" + label.toLowerCase() + ")?")) return;
+        const res = await fetch("/api/auditado/" + slot, { method: "DELETE" });
+        const data = await res.json().catch(() => ({}));
+        renderStatus(data);
+      });
+      div.appendChild(rm);
+      statusBox.appendChild(div);
+    }
+    if (!any) {
+      const p = document.createElement("div");
+      p.className = "auditado-item";
+      p.innerHTML = "<span>Nenhum preçário auditado enviado ainda.</span>";
+      statusBox.appendChild(p);
+    }
+    setBadge(!!(st && st.atual));
+  }
+
+  async function refresh() {
+    try {
+      const res = await fetch("/api/auditado/status");
+      if (!res.ok) return;
+      renderStatus(await res.json());
+    } catch (_) {
+      /* silencioso */
+    }
+  }
+
+  enviarBtn.addEventListener("click", async () => {
+    const file = fileInput.files && fileInput.files[0];
+    if (!file) {
+      alert("Escolha um arquivo PDF primeiro.");
+      return;
+    }
+    enviarBtn.disabled = true;
+    enviarBtn.textContent = "Enviando...";
+    try {
+      const fd = new FormData();
+      fd.append("pdf", file);
+      fd.append("mes", (mesInput && mesInput.value) || "");
+      const res = await fetch("/api/auditado/upload", { method: "POST", body: fd });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        alert("Erro ao enviar: " + (data.error || res.status));
+        return;
+      }
+      fileInput.value = "";
+      renderStatus(data);
+    } catch (err) {
+      alert("Erro inesperado: " + (err && err.message ? err.message : String(err)));
+    } finally {
+      enviarBtn.disabled = false;
+      enviarBtn.textContent = "Enviar PDF auditado";
+    }
+  });
+
+  refresh();
+})();
