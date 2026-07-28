@@ -62,6 +62,16 @@ A interface tem uma barra lateral com logo e abas (Preçários | Telas | Cards |
 - O parser do Excel detecta automaticamente a aba que começa com "ENCARTE", localiza o cabeçalho buscando por "Descrição" e "Venda Encarte" (tolerante a colunas vazias entre eles), e usa a coluna seguinte à descrição como descrição complementar.
 - O template do PDF usa CSS Grid (2×7) com `@page A4` e divisórias pontilhadas (vertical entre colunas, horizontal entre linhas via `border-bottom` dos cards).
 
+## Encartes RS / MS + progresso automático (v2)
+
+- Dois encartes independentes: **RS** e **MS**. O usuário escolhe ao entrar (overlay) e pode trocar pelo chip na sidebar (`workspace.js`). A escolha fica em `localStorage("encarteWS")`.
+- Toda chamada `/api/` leva o encarte: header `X-Encarte` (fetch é interceptado em `workspace.js`) ou query `?ws=` (iframes e links `<a>`, reescritos por um click-handler). No servidor, `wsOf(req)` em `encarte.ts`; query tem precedência.
+- **Persistência por encarte** no App Storage (`objectStore.ts` = cliente GCS compartilhado; `estadoStorage.ts`): `encartes/<ws>/estado.json` (produtos, mês, bg, etapa, blob do frontend com telas/fotos/fundos), `encartes/<ws>/precario.pdf`, `encartes/<ws>/auditados/`, `encartes/<ws>/historico/`.
+- **Retomar de onde parou**: `progresso.js` (carregado por último) salva com debounce (eventos `encarte:*`) e restaura ao abrir via hooks `window.__precarioRestaurar`, `__telasSnapshot/__telasRestaurar`, `__cardsSnapshot/Restaurar`, `__storiesSnapshot/Restaurar`. A etapa (aba) é salva ao trocar de aba. Backend hidrata a memória de `estado.json` após restart (`hydrate()`).
+- **Finalizar mês**: botão na sidebar → `POST /api/finalizar` arquiva preçário + auditado + estado em `historico/` (guarda só 1 mês), limpa o ciclo atual. Histórico discreto (details "Mês anterior" na sidebar) com downloads via `/api/historico/download/:qual`.
+- O override do auditado em `/download/:filename` agora só vale para o PDF do preçário (filename salvo por ws) — PNGs/PDFs de telas nunca são sequestrados.
+- Versão anterior (fluxo único, sem RS/MS) marcada como tag git `versao-1`.
+
 ## Preçário auditado
 
 - Seção "Preçário auditado" na aba Preçários: upload de PDF já conferido fora da plataforma. O auditado SUBSTITUI o gerado no botão "Baixar PDF" (`GET /api/download/:filename` serve o auditado quando existe; `?original=1` força o gerado). Badge "Auditado ✓" ao lado do botão.

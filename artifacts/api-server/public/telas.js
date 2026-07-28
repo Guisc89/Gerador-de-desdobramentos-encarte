@@ -826,6 +826,70 @@
     }
   });
 
+  // ---------- Snapshot / restauração (progresso automático) ----------
+  window.__telasSnapshot = function () {
+    if (!telas.length || (telas.length === 1 && telas[0].produtos.every((p) => !p.nome))) {
+      return null;
+    }
+    return {
+      mes: mesInput.value,
+      nomeArquivo: nomeArquivoInput.value,
+      validadeInicio: validadeInicioInput.value,
+      validadeFim: validadeFimInput.value,
+      endereco: enderecoInput.value,
+      bgDataUri: bgDataUri,
+      current: current,
+      telas: telas.map((t) => ({
+        produtos: t.produtos.map((it) => ({
+          nome: it.nome,
+          descricao: it.descricao,
+          precoInteiro: it.precoInteiro,
+          precoCentavos: it.precoCentavos,
+          foto: it.foto,
+        })),
+      })),
+    };
+  };
+
+  window.__telasRestaurar = function (saved) {
+    if (!saved || !Array.isArray(saved.telas) || saved.telas.length === 0) return;
+    if (saved.mes) mesInput.value = saved.mes;
+    if (saved.nomeArquivo) nomeArquivoInput.value = saved.nomeArquivo;
+    if (saved.validadeInicio) validadeInicioInput.value = saved.validadeInicio;
+    if (saved.validadeFim) validadeFimInput.value = saved.validadeFim;
+    if (saved.endereco) enderecoInput.value = saved.endereco;
+    if (saved.bgDataUri) {
+      bgDataUri = saved.bgDataUri;
+      bgThumb.src = bgDataUri;
+      bgThumbWrap.classList.remove("hidden");
+      bgRemoveBtn.classList.remove("hidden");
+    }
+    if (window.__encarteCatalogo && Array.isArray(window.__encarteCatalogo.produtos)) {
+      catalogo = window.__encarteCatalogo.produtos;
+    }
+    telas = saved.telas.map((t) =>
+      newTela((t.produtos || []).map((p) => {
+        const it = newItem(null);
+        it.nome = p.nome || "";
+        it.descricao = p.descricao || "";
+        it.precoInteiro = p.precoInteiro || "";
+        it.precoCentavos = p.precoCentavos || "";
+        it.foto = p.foto || fotoFor(it.nome, it.descricao);
+        return it;
+      })),
+    );
+    current = Math.min(Math.max(0, saved.current || 0), telas.length - 1);
+    emptyState.classList.add("hidden");
+    workspace.classList.remove("hidden");
+    if (parseInfo) {
+      parseInfo.textContent =
+        (catalogo.length ? catalogo.length + " produtos · " : "") +
+        telas.length + " telas restauradas.";
+      parseInfo.classList.remove("hidden");
+    }
+    renderAll();
+  };
+
   function triggerDownload(url, filename) {
     const a = document.createElement("a");
     a.href = url;

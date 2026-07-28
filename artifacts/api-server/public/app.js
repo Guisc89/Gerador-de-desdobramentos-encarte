@@ -59,9 +59,35 @@
     previewFrame.src =
       "/api/preview?edit=1&bg=" +
       encodeURIComponent(currentBg) +
+      (window.EncarteWS ? "&ws=" + window.EncarteWS.ws : "") +
       "&v=" +
       Date.now();
   }
+
+  // Restaura o preçário salvo no servidor (usado pelo progresso.js ao abrir).
+  window.__precarioRestaurar = function (sv) {
+    produtos = Array.isArray(sv.produtos) ? sv.produtos : [];
+    if (produtos.length === 0) return;
+    currentMes = sv.mes || "";
+    currentNome = sv.nomeArquivo || "encarte";
+    currentBg = sv.bg === "color" ? "color" : "white";
+    bgButtons.forEach((b) => {
+      b.classList.toggle("active", b.dataset.bg === currentBg);
+    });
+    const mesInput = document.getElementById("mes");
+    const nomeInput = document.getElementById("nomeArquivo");
+    if (mesInput && !mesInput.value.trim() && currentMes) mesInput.value = currentMes;
+    if (nomeInput && !nomeInput.value.trim() && sv.nomeArquivo)
+      nomeInput.value = sv.nomeArquivo;
+    if (sv.filename) {
+      currentDownloadUrl = "/api/download/" + encodeURIComponent(sv.filename);
+      downloadLink.href = currentDownloadUrl;
+    }
+    updateCount();
+    editorSection.classList.remove("hidden");
+    setDirty(false);
+    loadEditablePreview();
+  };
 
   function setBg(next) {
     if (next !== "white" && next !== "color") return;

@@ -514,4 +514,45 @@
       downloadPdfBtn.textContent = "Baixar todas em PDF";
     }
   });
+
+  // ---------- Snapshot / restauração (progresso automático) ----------
+  window.__cardsSnapshot = function () {
+    if (!bgDataUri && !enderecoInput.value.trim() && !nomeArquivoInput.value.trim()) return null;
+    return {
+      bgDataUri: bgDataUri,
+      endereco: enderecoInput.value,
+      nomeArquivo: nomeArquivoInput.value,
+    };
+  };
+
+  window.__cardsRestaurar = function (saved) {
+    if (!saved) return;
+    if (saved.endereco && !enderecoInput.value.trim()) enderecoInput.value = saved.endereco;
+    if (saved.nomeArquivo && !nomeArquivoInput.value.trim()) nomeArquivoInput.value = saved.nomeArquivo;
+    if (saved.bgDataUri) {
+      bgDataUri = saved.bgDataUri;
+      bgThumb.src = bgDataUri;
+      bgThumbWrap.classList.remove("hidden");
+      bgRemoveBtn.classList.remove("hidden");
+    }
+    if (window.__encarteTelas) mirrorTelas(window.__encarteTelas);
+  };
+
+  // Avisa o progresso automático quando fundo/endereço mudam nesta aba.
+  [bgInput, bgRemoveBtn].forEach(function (el) {
+    el.addEventListener("click", function () {
+      setTimeout(function () {
+        document.dispatchEvent(new CustomEvent("encarte:extras"));
+      }, 300);
+    });
+  });
+  bgInput.addEventListener("change", function () {
+    setTimeout(function () {
+      document.dispatchEvent(new CustomEvent("encarte:extras"));
+    }, 300);
+  });
+  enderecoInput.addEventListener("input", function () {
+    document.dispatchEvent(new CustomEvent("encarte:extras"));
+  });
+
 })();

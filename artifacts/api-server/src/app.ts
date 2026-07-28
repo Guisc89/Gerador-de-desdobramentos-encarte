@@ -33,8 +33,8 @@ app.use(
 );
 app.use(cors());
 // Larger limit: tela state carries base64 data URIs (product photos + background)
-app.use(express.json({ limit: "30mb" }));
-app.use(express.urlencoded({ extended: true, limit: "30mb" }));
+app.use(express.json({ limit: "100mb" }));
+app.use(express.urlencoded({ extended: true, limit: "100mb" }));
 
 // Health check (deployment startup probe) is mounted FIRST, before the session
 // middleware, so the probe never touches Postgres. Otherwise the autoscale
