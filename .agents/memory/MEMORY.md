@@ -2,4 +2,5 @@
 - [Telas/Cards photo keying](telas-photo-keying.md) — product photos must be keyed by name + apresentação (descrição), never name alone, or same-name variants share one image.
 - [Consulte apresentações dedupe](consulte-apresentacoes-dedupe.md) — flavor variants auto-merge by fabricante+base-name+price; user's manual spreadsheet edits never arrive, prefer server-side logic.
 - [Autosave de fotos anti-perda](autosave-fotos.md) — sendBeacon/keepalive limitam 64KB; fotos salvam por-chave na hora; merge do servidor é aditivo, exclusão só por tombstone.
+- [Recorte de fotos de produto](recorte-fotos-produto.md) — fotos vêm com moldura vazia enorme; auto-trim no cliente (alpha/quase-branco) antes do card, senão o produto fica minúsculo.
 - [Limites do app publicado](limites-app-publicado.md) — ~32MB/120s por requisição em produção; estourou → HTML "Unexpected token '<'"; imagens sempre via EncarteImg (WebP) e trabalho longo em lotes.

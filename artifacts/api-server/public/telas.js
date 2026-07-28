@@ -424,14 +424,14 @@
     row.querySelector('[data-act="foto"]').addEventListener("change", async (e) => {
       const file = e.target.files && e.target.files[0];
       if (!file) return;
-      it.foto = await window.EncarteImg.comprimirBlob(file, { maxDim: 1200 });
+      it.foto = await window.EncarteImg.comprimirBlob(file, { maxDim: 1200, recortar: true });
       publishFoto(it.nome, it.descricao, it.foto);
       renderItems();
       schedulePreview();
     });
 
     function applyFotoBlob(blob) {
-      return window.EncarteImg.comprimirBlob(blob, { maxDim: 1200 }).then((uri) => {
+      return window.EncarteImg.comprimirBlob(blob, { maxDim: 1200, recortar: true }).then((uri) => {
         it.foto = uri;
         publishFoto(it.nome, it.descricao, it.foto);
         renderItems();

@@ -31,8 +31,53 @@
     }
   }
 
+  // Encontra a caixa que contém o produto de fato, descartando bordas vazias
+  // (transparentes ou quase brancas). Muitas fotos vêm quadradas com o produto
+  // ocupando só uma faixa — sem o recorte, o produto aparece minúsculo no
+  // card. Devolve {x, y, w, h} ou null se não houver o que recortar.
+  function caixaDoConteudo(img, w, h) {
+    try {
+      var canvas = document.createElement("canvas");
+      canvas.width = w;
+      canvas.height = h;
+      var ctx = canvas.getContext("2d");
+      ctx.drawImage(img, 0, 0, w, h);
+      var data = ctx.getImageData(0, 0, w, h).data;
+      var minX = w, minY = h, maxX = -1, maxY = -1;
+      for (var y = 0; y < h; y++) {
+        for (var x = 0; x < w; x++) {
+          var i = (y * w + x) * 4;
+          var a = data[i + 3];
+          if (a < 20) continue; // transparente = vazio
+          // quase branco (fundo de estúdio) = vazio
+          if (data[i] > 247 && data[i + 1] > 247 && data[i + 2] > 247) continue;
+          if (x < minX) minX = x;
+          if (x > maxX) maxX = x;
+          if (y < minY) minY = y;
+          if (y > maxY) maxY = y;
+        }
+      }
+      if (maxX < 0) return null; // imagem toda vazia — não mexe
+      // Margem de 2% para não colar o produto na borda do card.
+      var mx = Math.round(w * 0.02);
+      var my = Math.round(h * 0.02);
+      minX = Math.max(0, minX - mx);
+      minY = Math.max(0, minY - my);
+      maxX = Math.min(w - 1, maxX + mx);
+      maxY = Math.min(h - 1, maxY + my);
+      var bw = maxX - minX + 1;
+      var bh = maxY - minY + 1;
+      // Só vale a pena se remover uma fatia relevante (>8% da área).
+      if (bw * bh > w * h * 0.92) return null;
+      return { x: minX, y: minY, w: bw, h: bh };
+    } catch (e) {
+      return null; // canvas contaminado etc. — segue sem recorte
+    }
+  }
+
   // Comprime um data URI de imagem. Retorna o próprio URI se já for pequeno,
-  // se não for imagem, ou se a compressão não reduzir o tamanho.
+  // se não for imagem, ou se a compressão não reduzir o tamanho. Com
+  // opts.recortar, também apara bordas vazias (mesmo em arquivos pequenos).
   function comprimirDataUri(uri, opts) {
     opts = opts || {};
     var maxDim = opts.maxDim || 1200;
@@ -41,20 +86,26 @@
     if (typeof uri !== "string" || uri.indexOf("data:image") !== 0) {
       return Promise.resolve(uri);
     }
-    if (uri.length <= limiar) return Promise.resolve(uri);
+    if (!opts.recortar && uri.length <= limiar) return Promise.resolve(uri);
     return carregarImagem(uri)
       .then(function (img) {
         var w = img.naturalWidth || img.width;
         var h = img.naturalHeight || img.height;
         if (!w || !h) return uri;
-        var escala = Math.min(1, maxDim / Math.max(w, h));
-        var nw = Math.max(1, Math.round(w * escala));
-        var nh = Math.max(1, Math.round(h * escala));
+        var caixa = opts.recortar ? caixaDoConteudo(img, w, h) : null;
+        if (!caixa && uri.length <= limiar) return uri; // pequeno e sem recorte
+        var sx = caixa ? caixa.x : 0;
+        var sy = caixa ? caixa.y : 0;
+        var sw = caixa ? caixa.w : w;
+        var sh = caixa ? caixa.h : h;
+        var escala = Math.min(1, maxDim / Math.max(sw, sh));
+        var nw = Math.max(1, Math.round(sw * escala));
+        var nh = Math.max(1, Math.round(sh * escala));
         var canvas = document.createElement("canvas");
         canvas.width = nw;
         canvas.height = nh;
         var ctx = canvas.getContext("2d");
-        ctx.drawImage(img, 0, 0, nw, nh);
+        ctx.drawImage(img, sx, sy, sw, sh, 0, 0, nw, nh);
         // WebP comprime muito mais que PNG e preserva transparência (fotos
         // recortadas). Se o navegador não suportar WebP (toDataURL devolve
         // PNG), cai para PNG com alpha / JPEG sem alpha.
@@ -64,7 +115,11 @@
             ? canvas.toDataURL("image/png")
             : canvas.toDataURL("image/jpeg", quality);
         }
-        return out && out.length < uri.length ? out : uri;
+        if (!out) return uri;
+        // Recorte melhora a exibição mesmo que os bytes cresçam um pouco;
+        // sem recorte, só troca se ficar menor.
+        if (caixa) return out.length < uri.length * 1.5 ? out : uri;
+        return out.length < uri.length ? out : uri;
       })
       .catch(function () { return uri; });
   }
@@ -98,7 +153,7 @@
           um(s.background, { maxDim: 2600, quality: 0.9 }),
           Promise.all(
             (s.produtos || []).map(function (p) {
-              return um(p.foto, { maxDim: 1200 }).then(function (f) {
+              return um(p.foto, { maxDim: 1200, recortar: true }).then(function (f) {
                 if (f !== p.foto) p.foto = f;
               });
             }),
@@ -111,19 +166,21 @@
     );
   }
 
-  // Migração única: comprime fotos grandes já salvas no mapa global
-  // (window.__encarteFotos) e republica cada uma via evento "encarte:fotos" —
-  // isso atualiza as telas na hora e dispara o salvamento por-foto, deixando a
-  // versão leve persistida no servidor.
+  // Migração: comprime e apara bordas vazias das fotos já salvas no mapa
+  // global (window.__encarteFotos) e republica cada uma via evento
+  // "encarte:fotos" — isso atualiza as telas na hora e dispara o salvamento
+  // por-foto, deixando a versão leve persistida no servidor. Roda em todas as
+  // fotos (o recorte vale mesmo para arquivos pequenos); as que não precisam
+  // de nada voltam idênticas e são ignoradas.
   function comprimirMapaFotos() {
     var store = window.__encarteFotos || {};
     var chaves = Object.keys(store);
     var fila = Promise.resolve();
     chaves.forEach(function (key) {
       var uri = store[key];
-      if (typeof uri !== "string" || uri.length <= LIMIAR) return;
+      if (typeof uri !== "string" || uri.indexOf("data:image") !== 0) return;
       fila = fila.then(function () {
-        return comprimirDataUri(uri, { maxDim: 1200 }).then(function (novo) {
+        return comprimirDataUri(uri, { maxDim: 1200, recortar: true }).then(function (novo) {
           // Só aplica se ninguém trocou a foto enquanto comprimíamos.
           if (novo !== uri && window.__encarteFotos && window.__encarteFotos[key] === uri) {
             window.__encarteFotos[key] = novo;
