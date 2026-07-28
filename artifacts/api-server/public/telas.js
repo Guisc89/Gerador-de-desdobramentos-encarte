@@ -424,14 +424,14 @@
     row.querySelector('[data-act="foto"]').addEventListener("change", async (e) => {
       const file = e.target.files && e.target.files[0];
       if (!file) return;
-      it.foto = await fileToDataUri(file);
+      it.foto = await window.EncarteImg.comprimirBlob(file, { maxDim: 1200 });
       publishFoto(it.nome, it.descricao, it.foto);
       renderItems();
       schedulePreview();
     });
 
     function applyFotoBlob(blob) {
-      return fileToDataUri(blob).then((uri) => {
+      return window.EncarteImg.comprimirBlob(blob, { maxDim: 1200 }).then((uri) => {
         it.foto = uri;
         publishFoto(it.nome, it.descricao, it.foto);
         renderItems();
@@ -644,7 +644,7 @@
   bgInput.addEventListener("change", async (e) => {
     const file = e.target.files && e.target.files[0];
     if (!file) return;
-    bgDataUri = await fileToDataUri(file);
+    bgDataUri = await window.EncarteImg.comprimirBlob(file, { maxDim: 2600, quality: 0.9 });
     bgThumb.src = bgDataUri;
     bgThumbWrap.classList.remove("hidden");
     bgRemoveBtn.classList.remove("hidden");
@@ -742,6 +742,60 @@
   });
 
   // ---- Download all telas ----
+  // Geração em lotes: renderizar 30+ telas numa requisição só passava de 2
+  // minutos e o proxy do app publicado corta em ~120s devolvendo HTML (o erro
+  // "Unexpected token '<'"). Aqui enviamos as telas em partes pequenas, cada
+  // uma bem abaixo do limite de tempo e de tamanho, com progresso no botão.
+  async function gerarEmLotes(modo, onProgresso) {
+    const estados = await window.EncarteImg.comprimirTelasPayload(
+      telas.map((t, i) => telaState(t, i === 0)),
+    );
+    const itens = [];
+    let vazias = 0;
+    estados.forEach((s, index) => {
+      if ((s.produtos || []).some((p) => (p.nome || "").trim())) {
+        itens.push({ index, tela: s });
+      } else {
+        vazias += 1;
+      }
+    });
+    if (itens.length === 0) throw new Error("Todas as telas estão sem produtos.");
+
+    async function post(url, body) {
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      let data = null;
+      try {
+        data = await res.json();
+      } catch (e) {
+        throw new Error("O servidor demorou ou respondeu de forma inesperada. Tente de novo.");
+      }
+      if (!res.ok) throw new Error(data && data.error ? data.error : res.statusText);
+      return data;
+    }
+
+    const inicio = await post("/api/telas/lote/inicio", {
+      nomeArquivo: nomeArquivoInput.value.trim() || "tela",
+    });
+    const TAMANHO_PARTE = 4;
+    let feitas = 0;
+    if (onProgresso) onProgresso(0, itens.length);
+    for (let i = 0; i < itens.length; i += TAMANHO_PARTE) {
+      const parte = itens.slice(i, i + TAMANHO_PARTE);
+      await post("/api/telas/lote/parte", { jobId: inicio.jobId, telas: parte });
+      feitas += parte.length;
+      if (onProgresso) onProgresso(feitas, itens.length);
+    }
+    return post("/api/telas/lote/fim", {
+      jobId: inicio.jobId,
+      modo: modo,
+      vazias: vazias,
+    });
+  }
+
   downloadAllBtn.addEventListener("click", async () => {
     const vazias = telas.filter((t) => t.produtos.length === 0).length;
     const comProdutos = telas.length - vazias;
@@ -767,21 +821,9 @@
     allLinks.classList.add("hidden");
     allLinks.innerHTML = "";
     try {
-      const body = {
-        nomeArquivo: nomeArquivoInput.value.trim() || "tela",
-        telas: telas.map((t, i) => telaState(t, i === 0)),
-      };
-      const res = await fetch("/api/telas/generate-all", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
+      const data = await gerarEmLotes("png", (feitas, total) => {
+        downloadAllBtn.textContent = "Gerando... (" + feitas + "/" + total + ")";
       });
-      const data = await res.json();
-      if (!res.ok) {
-        genInfo.textContent = "Erro: " + (data.error || res.statusText);
-        genInfo.classList.remove("hidden");
-        return;
-      }
       genInfo.textContent =
         data.arquivos.length +
         " tela(s) geradas" +
@@ -832,21 +874,9 @@
     allLinks.classList.add("hidden");
     allLinks.innerHTML = "";
     try {
-      const body = {
-        nomeArquivo: nomeArquivoInput.value.trim() || "tela",
-        telas: telas.map((t, i) => telaState(t, i === 0)),
-      };
-      const res = await fetch("/api/telas/generate-pdf", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
+      const data = await gerarEmLotes("pdf", (feitas, total) => {
+        downloadPdfBtn.textContent = "Gerando PDF... (" + feitas + "/" + total + ")";
       });
-      const data = await res.json();
-      if (!res.ok) {
-        genInfo.textContent = "Erro: " + (data.error || res.statusText);
-        genInfo.classList.remove("hidden");
-        return;
-      }
       genInfo.textContent =
         "PDF gerado com " +
         data.total +

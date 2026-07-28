@@ -273,7 +273,7 @@
   bgInput.addEventListener("change", async (e) => {
     const file = e.target.files && e.target.files[0];
     if (!file) return;
-    bgDataUri = await fileToDataUri(file);
+    bgDataUri = await window.EncarteImg.comprimirBlob(file, { maxDim: 2600, quality: 0.9 });
     bgThumb.src = bgDataUri;
     bgThumbWrap.classList.remove("hidden");
     bgRemoveBtn.classList.remove("hidden");

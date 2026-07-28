@@ -369,6 +369,11 @@
         } finally {
           restaurando = false;
         }
+        // Migração única: fotos grandes salvas antes da compressão existir são
+        // comprimidas agora e re-salvas (leves) via evento "encarte:fotos".
+        if (window.EncarteImg) {
+          setTimeout(function () { window.EncarteImg.comprimirMapaFotos(); }, 2000);
+        }
         if (data.etapa && data.etapa !== "precarios") {
           etapaAtual = data.etapa;
           abrirEtapa(data.etapa);

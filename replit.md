@@ -73,6 +73,13 @@ A interface tem uma barra lateral com logo e abas (Preçários | Telas | Cards |
 - O override do auditado em `/download/:filename` agora só vale para o PDF do preçário (filename salvo por ws) — PNGs/PDFs de telas nunca são sequestrados.
 - Versão anterior (fluxo único, sem RS/MS) marcada como tag git `versao-1`.
 
+## Compressão de imagens + geração em lotes (correção dos erros em produção)
+
+- `public/imagem.js` (`window.EncarteImg`): toda foto/fundo é comprimida no navegador na hora do upload — redimensiona (fotos máx 1200px, fundos máx 2600px) e converte para WebP (fallback PNG/JPEG). Uma foto de 1,6MB vira ~105KB. Fotos grandes já salvas são migradas automaticamente após a restauração (`comprimirMapaFotos`, disparada em progresso.js).
+- Motivo: o app publicado tem limite de ~32MB por requisição e ~120s por resposta; payloads com base64 sem compressão estouravam ambos e o proxy devolvia HTML ("Unexpected token '<'").
+- "Baixar todas (PNG)" e "Baixar todas em PDF" agora geram em lotes: rotas `/api/telas/lote/inicio|parte|fim` (jobs em memória, 30min TTL, serializados por job, PNGs temporários `output/lote_*` com varredura periódica). O cliente envia 4 telas por vez com progresso no botão ("Gerando PDF... (12/39)").
+- O PDF é montado com pdf-lib direto dos PNGs (sem segunda passada de Chromium — a antiga estourava memória com 30+ telas: "TargetCloseError").
+
 ## Autosave robusto (correção de perda de fotos)
 
 - Cada foto é salva no servidor **na hora do upload** via `POST /api/estado/foto` (pacote pequeno; 3 retentativas). O autosave completo (3s; fotos 800ms) tem dirty-flag e retentativa com backoff até 30s; falhas mostram "Não foi possível salvar — tentando de novo…" no indicador.

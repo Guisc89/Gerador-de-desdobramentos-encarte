@@ -1,4 +1,5 @@
 import puppeteer from "puppeteer";
+import { PDFDocument } from "pdf-lib";
 import { resolveChromiumPath } from "../lib/chromium";
 import { logger } from "../lib/logger";
 
@@ -117,46 +118,27 @@ export interface PdfPageSize {
   height: number;
 }
 
-// Assemble already-rendered PNGs into a single multi-page PDF (one PNG per page).
-// Each PNG is embedded as a full-bleed data URI so the PDF is pixel-identical to
-// the downloadable PNGs. preferCSSPageSize honors the @page size below over the
-// default A4. The page size defaults to landscape 16:9 (telas); cards pass their
-// portrait 3:4 page size instead.
+// Assemble already-rendered PNGs into a single multi-page PDF (one PNG per
+// page, full bleed) using pdf-lib — no browser involved. The previous approach
+// embedded every PNG as a base64 <img> in one giant HTML page and asked
+// Chromium to print it; with many telas (e.g. 39 pages at 3840×2160) Chromium
+// ran out of memory and crashed ("Protocol error ... Target closed"). pdf-lib
+// streams the PNGs straight into the PDF, so memory stays proportional to the
+// image bytes and the page count no longer matters.
 export async function pngsToPdf(
   pngs: Buffer[],
   pageSize: PdfPageSize = { width: 1280, height: 720 },
 ): Promise<Buffer> {
   const { width, height } = pageSize;
-  logger.info({ count: pngs.length, width, height }, "Launching Puppeteer (PDF)");
-  const browser = await launchBrowser();
-  try {
-    const page = await browser.newPage();
-    const pagesHtml = pngs
-      .map(
-        (b) =>
-          `<div class="page"><img src="data:image/png;base64,${b.toString(
-            "base64",
-          )}"></div>`,
-      )
-      .join("");
-    const html = `<!doctype html><html><head><meta charset="utf-8"><style>
-* { margin: 0; padding: 0; box-sizing: border-box; }
-@page { size: ${width}px ${height}px; margin: 0; }
-html, body { background: #fff; }
-.page { width: ${width}px; height: ${height}px; overflow: hidden; page-break-after: always; }
-.page:last-child { page-break-after: auto; }
-img { width: ${width}px; height: ${height}px; display: block; }
-</style></head><body>${pagesHtml}</body></html>`;
-    await page.setContent(html, { waitUntil: "networkidle0" });
-    const pdf = await page.pdf({
-      printBackground: true,
-      preferCSSPageSize: true,
-      margin: { top: "0", right: "0", bottom: "0", left: "0" },
-    });
-    return Buffer.from(pdf);
-  } finally {
-    await browser.close().catch(() => {});
+  logger.info({ count: pngs.length, width, height }, "Assembling PDF (pdf-lib)");
+  const doc = await PDFDocument.create();
+  for (const png of pngs) {
+    const img = await doc.embedPng(png);
+    const page = doc.addPage([width, height]);
+    page.drawImage(img, { x: 0, y: 0, width, height });
   }
+  const bytes = await doc.save();
+  return Buffer.from(bytes);
 }
 
 // Render many HTML pages to PNG reusing a single browser instance (much faster
