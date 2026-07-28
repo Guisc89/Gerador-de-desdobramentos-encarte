@@ -1,4 +1,4 @@
-"use strict";var StoryTemplate=(()=>{var l=Object.defineProperty;var m=Object.getOwnPropertyDescriptor;var h=Object.getOwnPropertyNames;var w=Object.prototype.hasOwnProperty;var y=(e,t)=>{for(var a in t)l(e,a,{get:t[a],enumerable:!0})},b=(e,t,a,i)=>{if(t&&typeof t=="object"||typeof t=="function")for(let o of h(t))!w.call(e,o)&&o!==a&&l(e,o,{get:()=>t[o],enumerable:!(i=m(t,o))||i.enumerable});return e};var x=e=>b(l({},"__esModule",{value:!0}),e);var z={};y(z,{renderStoryHtml:()=>k});function n(e){return String(e??"").replace(/[&<>"']/g,t=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"})[t])}function f(e){let t=(e.precoCentavos||"00").padStart(2,"0").slice(0,2),a=e.foto?`<img src="${n(e.foto)}" alt="" />`:'<span class="card-photo-empty">Sem foto</span>',i=e.descricao?`<div class="card-desc">${n(e.descricao)}</div>`:"";return`
+"use strict";var StoryTemplate=(()=>{var l=Object.defineProperty;var m=Object.getOwnPropertyDescriptor;var w=Object.getOwnPropertyNames;var h=Object.prototype.hasOwnProperty;var y=(e,t)=>{for(var a in t)l(e,a,{get:t[a],enumerable:!0})},b=(e,t,a,i)=>{if(t&&typeof t=="object"||typeof t=="function")for(let o of w(t))!h.call(e,o)&&o!==a&&l(e,o,{get:()=>t[o],enumerable:!(i=m(t,o))||i.enumerable});return e};var x=e=>b(l({},"__esModule",{value:!0}),e);var z={};y(z,{renderStoryHtml:()=>k});function n(e){return String(e??"").replace(/[&<>"']/g,t=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"})[t])}function f(e){let t=(e.precoCentavos||"00").padStart(2,"0").slice(0,2),a=e.foto?`<img src="${n(e.foto)}" alt="" />`:'<span class="card-photo-empty">Sem foto</span>',i=e.descricao?`<div class="card-desc">${n(e.descricao)}</div>`:"";return`
     <div class="card">
       <div class="card-photo">${a}</div>
       <div class="card-info">
@@ -157,8 +157,20 @@
     justify-content: center;
     padding: 2.5cqw;
     background: #fff;
+    /* Mesma regra das telas: a foto n\xE3o participa do layout \u2014 o card tem
+       sempre o mesmo tamanho e a imagem se ajusta ao espa\xE7o branco (amplia a
+       pequena, reduz a grande), mantendo a propor\xE7\xE3o. */
+    position: relative;
+    min-height: 29cqw;
   }
-  .card-photo img { max-width: 100%; max-height: 100%; object-fit: contain; }
+  .card-photo img {
+    position: absolute;
+    top: 1cqw;
+    left: 1cqw;
+    width: calc(100% - 2cqw);
+    height: calc(100% - 2cqw);
+    object-fit: contain;
+  }
   .card-photo-empty {
     font-size: 2.4cqw;
     color: #b4bcae;

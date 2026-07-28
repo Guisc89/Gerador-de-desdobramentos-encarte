@@ -232,8 +232,20 @@ export function renderStoryHtml(state: StoryState): string {
     justify-content: center;
     padding: 2.5cqw;
     background: #fff;
+    /* Mesma regra das telas: a foto não participa do layout — o card tem
+       sempre o mesmo tamanho e a imagem se ajusta ao espaço branco (amplia a
+       pequena, reduz a grande), mantendo a proporção. */
+    position: relative;
+    min-height: 29cqw;
   }
-  .card-photo img { max-width: 100%; max-height: 100%; object-fit: contain; }
+  .card-photo img {
+    position: absolute;
+    top: 1cqw;
+    left: 1cqw;
+    width: calc(100% - 2cqw);
+    height: calc(100% - 2cqw);
+    object-fit: contain;
+  }
   .card-photo-empty {
     font-size: 2.4cqw;
     color: #b4bcae;
