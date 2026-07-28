@@ -223,14 +223,14 @@ export function renderTelaHtml(state: TelaState): string {
        imagem se ajusta ao espaço branco (amplia a pequena, reduz a grande),
        sempre mantendo a proporção. */
     position: relative;
-    min-height: 10.5vw;
+    min-height: 11.5vw;
   }
   .card-photo img {
     position: absolute;
-    top: 1vw;
-    left: 1vw;
-    width: calc(100% - 2vw);
-    height: calc(100% - 2vw);
+    top: 0.4vw;
+    left: 0.4vw;
+    width: calc(100% - 0.8vw);
+    height: calc(100% - 0.8vw);
     object-fit: contain;
   }
   .card-photo-empty {
