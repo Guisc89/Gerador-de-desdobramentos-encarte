@@ -73,6 +73,14 @@ A interface tem uma barra lateral com logo e abas (Preçários | Telas | Cards |
 - O override do auditado em `/download/:filename` agora só vale para o PDF do preçário (filename salvo por ws) — PNGs/PDFs de telas nunca são sequestrados.
 - Versão anterior (fluxo único, sem RS/MS) marcada como tag git `versao-1`.
 
+## UI v3 — Telas/Cards/Stories mais limpos
+
+- **Telas**: bloco "Campanha" mostra só Mês + Nome base; validade/endereço e fundo ficam em `<details class="cfg-adv">` recolhidos. Produtos viram acordeão (`.acc-item` em telas.js): fechado mostra miniatura + nome + preço; o estado aberto fica em `it.aberto` (itens sem nome abrem sozinhos). Vários podem ficar abertos ao mesmo tempo.
+- **Cards/Stories**: bloco "Fundo da campanha" vem primeiro; "Campanha" só com Nome do arquivo + details recolhido (mês/validade/endereço espelham as Telas). Fotos dos produtos em grade compacta (`.foto-tile`, somente leitura).
+- Todos os IDs de inputs foram preservados — os espelhamentos entre abas continuam iguais.
+- Em desenvolvimento o servidor manda `Cache-Control: no-store` para o frontend (src/app.ts) — sem isso o navegador segurava versões antigas dos .js.
+- Tags git locais: `versao-1` (fluxo único) e `versao-2` (RS/MS + etapas).
+
 ## Preçário auditado
 
 - Seção "Preçário auditado" na aba Preçários: upload de PDF já conferido fora da plataforma. O auditado SUBSTITUI o gerado no botão "Baixar PDF" (`GET /api/download/:filename` serve o auditado quando existe; `?original=1` força o gerado). Badge "Auditado ✓" ao lado do botão.

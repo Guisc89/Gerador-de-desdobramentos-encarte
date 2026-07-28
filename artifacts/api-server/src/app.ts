@@ -94,6 +94,14 @@ app.use("/api", (req: Request, res: Response, next: NextFunction) => {
 // Everything below requires auth
 app.use("/api", requireAuth);
 app.use("/api", router);
+// In development, don't let the browser cache the frontend files — otherwise
+// UI changes may not show up until a hard refresh.
+if (process.env.NODE_ENV !== "production") {
+  app.use("/api", (_req: Request, res: Response, next: NextFunction) => {
+    res.setHeader("Cache-Control", "no-store");
+    next();
+  });
+}
 app.use("/api", express.static(PUBLIC_DIR, { index: "index.html" }));
 
 logger.info({ PUBLIC_DIR }, "Static frontend mounted at /api");

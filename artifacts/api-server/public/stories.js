@@ -232,20 +232,15 @@
 
     itemsEl.innerHTML = "";
     story.produtos.forEach((it, idx) => {
-      const row = document.createElement("div");
-      row.className = "tela-item";
-      row.innerHTML = `
-        <div class="tela-item-head">
-          <span class="tela-item-num">${
-            escapeHtml(it.nome) || "Produto " + (idx + 1)
-          }</span>
-        </div>
-        <div class="tela-item-thumb ${it.foto ? "" : "hidden"}">
-          ${it.foto ? `<img src="${it.foto}" alt="" />` : ""}
-        </div>
-        ${!it.foto ? `<p class="tela-hint">Sem foto para este produto.</p>` : ""}
+      const tile = document.createElement("div");
+      tile.className = "foto-tile" + (it.foto ? "" : " foto-tile-vazia");
+      tile.innerHTML = `
+        <span class="foto-tile-img">${
+          it.foto ? `<img src="${it.foto}" alt="" />` : "<span>sem foto</span>"
+        }</span>
+        <span class="foto-tile-nome">${escapeHtml(it.nome) || "Produto " + (idx + 1)}</span>
       `;
-      itemsEl.appendChild(row);
+      itemsEl.appendChild(tile);
     });
   }
 

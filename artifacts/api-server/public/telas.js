@@ -283,48 +283,64 @@
 
     itemsEl.innerHTML = "";
     tela.produtos.forEach((it, idx) => {
+      // Accordion: fechado mostra só um resumo (foto, nome, preço); clicar abre
+      // o formulário completo. Itens sem nome abrem sozinhos (precisam de atenção).
+      const aberto = it.aberto === undefined ? !it.nome : !!it.aberto;
+      const preco =
+        it.precoInteiro || it.precoCentavos
+          ? "R$ " + (it.precoInteiro || "0") + "," + (it.precoCentavos || "00")
+          : "";
       const row = document.createElement("div");
-      row.className = "tela-item";
+      row.className = "tela-item acc-item" + (aberto ? " acc-open" : "");
       row.innerHTML = `
-        <div class="tela-item-head">
-          <span class="tela-item-num">Produto ${idx + 1}</span>
-          <button type="button" class="product-remove" data-act="remove"${
-            canRemove ? "" : " disabled"
-          }>Remover</button>
-        </div>
-        <div class="field">
-          <label>Selecionar da planilha</label>
-          <select data-act="pick">${catalogOptions(it.nome)}</select>
-        </div>
-        <div class="row">
+        <button type="button" class="acc-head" data-act="toggle">
+          <span class="acc-thumb">${
+            it.foto ? `<img src="${it.foto}" alt="" />` : `<span class="acc-thumb-vazio">sem<br>foto</span>`
+          }</span>
+          <span class="acc-title">
+            <strong>${escapeHtml(it.nome) || "Produto " + (idx + 1) + " — preencher"}</strong>
+            <small>${escapeHtml(it.descricao) || ""}</small>
+          </span>
+          <span class="acc-preco">${preco}</span>
+          <span class="acc-chevron">›</span>
+        </button>
+        <div class="acc-body${aberto ? "" : " hidden"}">
           <div class="field">
-            <label>Nome</label>
-            <input type="text" data-field="nome" value="${escapeHtml(it.nome)}" />
+            <label>Selecionar da planilha</label>
+            <select data-act="pick">${catalogOptions(it.nome)}</select>
+          </div>
+          <div class="row">
+            <div class="field">
+              <label>Nome</label>
+              <input type="text" data-field="nome" value="${escapeHtml(it.nome)}" />
+            </div>
+            <div class="field">
+              <label>Descrição</label>
+              <input type="text" data-field="descricao" value="${escapeHtml(it.descricao)}" />
+            </div>
+          </div>
+          <div class="row">
+            <div class="field">
+              <label>Preço (reais)</label>
+              <input type="text" inputmode="numeric" data-field="precoInteiro" value="${escapeHtml(it.precoInteiro)}" />
+            </div>
+            <div class="field">
+              <label>Centavos</label>
+              <input type="text" inputmode="numeric" data-field="precoCentavos" value="${escapeHtml(it.precoCentavos)}" />
+            </div>
           </div>
           <div class="field">
-            <label>Descrição</label>
-            <input type="text" data-field="descricao" value="${escapeHtml(it.descricao)}" />
+            <label>Foto do produto</label>
+            <div class="foto-input-row">
+              <input type="file" accept="image/*" data-act="foto" />
+              <button type="button" class="btn-colar" data-act="colar" title="Copie uma imagem na internet (botão direito → Copiar imagem) e clique aqui">Colar imagem</button>
+            </div>
           </div>
-        </div>
-        <div class="row">
-          <div class="field">
-            <label>Preço (reais)</label>
-            <input type="text" inputmode="numeric" data-field="precoInteiro" value="${escapeHtml(it.precoInteiro)}" />
+          <div class="acc-foot">
+            <button type="button" class="product-remove" data-act="remove"${
+              canRemove ? "" : " disabled"
+            }>Remover produto</button>
           </div>
-          <div class="field">
-            <label>Centavos</label>
-            <input type="text" inputmode="numeric" data-field="precoCentavos" value="${escapeHtml(it.precoCentavos)}" />
-          </div>
-        </div>
-        <div class="field">
-          <label>Foto do produto</label>
-          <div class="foto-input-row">
-            <input type="file" accept="image/*" data-act="foto" />
-            <button type="button" class="btn-colar" data-act="colar" title="Copie uma imagem na internet (botão direito → Copiar imagem) e clique aqui">Colar imagem</button>
-          </div>
-        </div>
-        <div class="tela-item-thumb ${it.foto ? "" : "hidden"}">
-          ${it.foto ? `<img src="${it.foto}" alt="" />` : ""}
         </div>
       `;
       bindRow(row, it);
@@ -333,6 +349,12 @@
   }
 
   function bindRow(row, it) {
+    row.querySelector('[data-act="toggle"]').addEventListener("click", () => {
+      it.aberto = !(it.aberto === undefined ? !it.nome : !!it.aberto);
+      row.classList.toggle("acc-open", it.aberto);
+      row.querySelector(".acc-body").classList.toggle("hidden", !it.aberto);
+    });
+
     row.querySelector('[data-act="remove"]').addEventListener("click", () => {
       const tela = currentTela();
       const isCapa = current === 0;
