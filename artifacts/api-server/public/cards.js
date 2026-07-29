@@ -20,6 +20,7 @@
   const enderecoInput = document.getElementById("cardEndereco");
   const disclaimerInput = document.getElementById("cardDisclaimer");
   const infoCorInput = document.getElementById("cardInfoCor");
+  let infoCorEspelhada = ""; // última cor herdada das Telas
 
   // Background
   const bgInput = document.getElementById("cardBgInput");
@@ -110,8 +111,13 @@
       validadeFimInput.value = snapshot.validadeFim;
     if (snapshot.endereco && !enderecoInput.value.trim())
       enderecoInput.value = snapshot.endereco;
-    if (snapshot.infoCor && !infoCorInput.value.trim())
-      infoCorInput.value = snapshot.infoCor;
+    // Cor HEX: acompanha as Telas enquanto o usuário não digitar uma cor
+    // própria nesta aba (valor vazio ou igual ao último espelhado = segue).
+    var corAtual = infoCorInput.value.trim();
+    if (!corAtual || corAtual === infoCorEspelhada) {
+      infoCorInput.value = snapshot.infoCor || "";
+    }
+    infoCorEspelhada = (snapshot.infoCor || "").trim();
 
     cards = snapshot.telas.map((t) =>
       newCard((t.produtos || []).map((p) => newItem(p))),

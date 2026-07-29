@@ -23,6 +23,7 @@
   const enderecoInput = document.getElementById("storyEndereco");
   const disclaimerInput = document.getElementById("storyDisclaimer");
   const infoCorInput = document.getElementById("storyInfoCor");
+  let infoCorEspelhada = ""; // última cor herdada das Telas
 
   // Background
   const bgInput = document.getElementById("storyBgInput");
@@ -135,8 +136,13 @@
       validadeFimInput.value = snapshot.validadeFim;
     if (snapshot.endereco && !enderecoInput.value.trim())
       enderecoInput.value = snapshot.endereco;
-    if (snapshot.infoCor && !infoCorInput.value.trim())
-      infoCorInput.value = snapshot.infoCor;
+    // Cor HEX: acompanha as Telas enquanto o usuário não digitar uma cor
+    // própria nesta aba (valor vazio ou igual ao último espelhado = segue).
+    var corAtual = infoCorInput.value.trim();
+    if (!corAtual || corAtual === infoCorEspelhada) {
+      infoCorInput.value = snapshot.infoCor || "";
+    }
+    infoCorEspelhada = (snapshot.infoCor || "").trim();
 
     // Flatten every product from the telas, in order.
     const todos = [];
