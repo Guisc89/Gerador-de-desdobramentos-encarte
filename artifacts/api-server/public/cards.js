@@ -24,6 +24,10 @@
   const bgRemoveBtn = document.getElementById("cardBgRemove");
   const bgThumbWrap = document.getElementById("cardBgThumbWrap");
   const bgThumb = document.getElementById("cardBgThumb");
+  const bg2Input = document.getElementById("cardBg2Input");
+  const bg2RemoveBtn = document.getElementById("cardBg2Remove");
+  const bg2ThumbWrap = document.getElementById("cardBg2ThumbWrap");
+  const bg2Thumb = document.getElementById("cardBg2Thumb");
 
   // Per-page photo list (read-only: only show/hide each product photo)
   const itemsEl = document.getElementById("cardItems");
@@ -44,7 +48,10 @@
   const allLinks = document.getElementById("cardAllLinks");
 
   // ---- State ----
+  // bgDataUri = fundo da capa (página 1); bg2DataUri = demais páginas
+  // (sem o segundo, todas usam o da capa — compatível com estados antigos).
   let bgDataUri = null;
+  let bg2DataUri = null;
   let cards = []; // [{ id, produtos: [item, ...] }] mirrored from the Telas tab
   let current = 0;
   let nextId = 1;
@@ -127,7 +134,7 @@
       validadeInicio: validadeInicioInput.value.trim(),
       validadeFim: validadeFimInput.value.trim(),
       endereco: enderecoInput.value.trim(),
-      background: bgDataUri,
+      background: isCapa ? bgDataUri : bg2DataUri || bgDataUri,
       isCapa: !!isCapa,
       produtos: card.produtos.map((it) => ({
         nome: it.nome,
@@ -285,6 +292,24 @@
     bgInput.value = "";
     bgThumbWrap.classList.add("hidden");
     bgRemoveBtn.classList.add("hidden");
+    schedulePreview();
+  });
+
+  bg2Input.addEventListener("change", async (e) => {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+    bg2DataUri = await window.EncarteImg.comprimirBlob(file, { maxDim: 2600, quality: 0.9 });
+    bg2Thumb.src = bg2DataUri;
+    bg2ThumbWrap.classList.remove("hidden");
+    bg2RemoveBtn.classList.remove("hidden");
+    schedulePreview();
+  });
+
+  bg2RemoveBtn.addEventListener("click", () => {
+    bg2DataUri = null;
+    bg2Input.value = "";
+    bg2ThumbWrap.classList.add("hidden");
+    bg2RemoveBtn.classList.add("hidden");
     schedulePreview();
   });
 
@@ -512,9 +537,10 @@
 
   // ---------- Snapshot / restauração (progresso automático) ----------
   window.__cardsSnapshot = function () {
-    if (!bgDataUri && !enderecoInput.value.trim() && !nomeArquivoInput.value.trim()) return null;
+    if (!bgDataUri && !bg2DataUri && !enderecoInput.value.trim() && !nomeArquivoInput.value.trim()) return null;
     return {
       bgDataUri: bgDataUri,
+      bg2DataUri: bg2DataUri,
       endereco: enderecoInput.value,
       nomeArquivo: nomeArquivoInput.value,
     };
@@ -530,21 +556,29 @@
       bgThumbWrap.classList.remove("hidden");
       bgRemoveBtn.classList.remove("hidden");
     }
+    if (saved.bg2DataUri) {
+      bg2DataUri = saved.bg2DataUri;
+      bg2Thumb.src = bg2DataUri;
+      bg2ThumbWrap.classList.remove("hidden");
+      bg2RemoveBtn.classList.remove("hidden");
+    }
     if (window.__encarteTelas) mirrorTelas(window.__encarteTelas);
   };
 
   // Avisa o progresso automático quando fundo/endereço mudam nesta aba.
-  [bgInput, bgRemoveBtn].forEach(function (el) {
+  [bgInput, bgRemoveBtn, bg2Input, bg2RemoveBtn].forEach(function (el) {
     el.addEventListener("click", function () {
       setTimeout(function () {
         document.dispatchEvent(new CustomEvent("encarte:extras"));
       }, 300);
     });
   });
-  bgInput.addEventListener("change", function () {
-    setTimeout(function () {
-      document.dispatchEvent(new CustomEvent("encarte:extras"));
-    }, 300);
+  [bgInput, bg2Input].forEach(function (el) {
+    el.addEventListener("change", function () {
+      setTimeout(function () {
+        document.dispatchEvent(new CustomEvent("encarte:extras"));
+      }, 300);
+    });
   });
   enderecoInput.addEventListener("input", function () {
     document.dispatchEvent(new CustomEvent("encarte:extras"));

@@ -23,6 +23,10 @@
   const bgRemoveBtn = document.getElementById("telaBgRemove");
   const bgThumbWrap = document.getElementById("telaBgThumbWrap");
   const bgThumb = document.getElementById("telaBgThumb");
+  const bg2Input = document.getElementById("telaBg2Input");
+  const bg2RemoveBtn = document.getElementById("telaBg2Remove");
+  const bg2ThumbWrap = document.getElementById("telaBg2ThumbWrap");
+  const bg2Thumb = document.getElementById("telaBg2Thumb");
 
   // Per-tela product editor
   const itemsEl = document.getElementById("telaItems");
@@ -48,7 +52,11 @@
 
   // ---- State ----
   let catalogo = []; // produtos from spreadsheet
+  // bgDataUri = fundo da capa (página 1); bg2DataUri = fundo das demais
+  // páginas. Sem o segundo, todas as páginas usam o da capa (compatível com
+  // estados salvos antes desta funcionalidade).
   let bgDataUri = null;
+  let bg2DataUri = null;
   let telas = []; // [{ id, produtos: [item, ...] }]
   let current = 0;
   let nextId = 1;
@@ -192,7 +200,7 @@
       validadeInicio: validadeInicioInput.value.trim(),
       validadeFim: validadeFimInput.value.trim(),
       endereco: enderecoInput.value.trim(),
-      background: bgDataUri,
+      background: isCapa ? bgDataUri : bg2DataUri || bgDataUri,
       isCapa: !!isCapa,
       produtos: tela.produtos.map((it) => ({
         nome: it.nome,
@@ -659,6 +667,24 @@
     schedulePreview();
   });
 
+  bg2Input.addEventListener("change", async (e) => {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+    bg2DataUri = await window.EncarteImg.comprimirBlob(file, { maxDim: 2600, quality: 0.9 });
+    bg2Thumb.src = bg2DataUri;
+    bg2ThumbWrap.classList.remove("hidden");
+    bg2RemoveBtn.classList.remove("hidden");
+    schedulePreview();
+  });
+
+  bg2RemoveBtn.addEventListener("click", () => {
+    bg2DataUri = null;
+    bg2Input.value = "";
+    bg2ThumbWrap.classList.add("hidden");
+    bg2RemoveBtn.classList.add("hidden");
+    schedulePreview();
+  });
+
   // ---- Per-tela product add ----
   addBtn.addEventListener("click", () => {
     const tela = currentTela();
@@ -929,6 +955,7 @@
       validadeFim: validadeFimInput.value,
       endereco: enderecoInput.value,
       bgDataUri: bgDataUri,
+      bg2DataUri: bg2DataUri,
       current: current,
       telas: telas.map((t) => ({
         produtos: t.produtos.map((it) => ({
@@ -958,6 +985,12 @@
       bgThumb.src = bgDataUri;
       bgThumbWrap.classList.remove("hidden");
       bgRemoveBtn.classList.remove("hidden");
+    }
+    if (saved.bg2DataUri) {
+      bg2DataUri = saved.bg2DataUri;
+      bg2Thumb.src = bg2DataUri;
+      bg2ThumbWrap.classList.remove("hidden");
+      bg2RemoveBtn.classList.remove("hidden");
     }
     if (window.__encarteCatalogo && Array.isArray(window.__encarteCatalogo.produtos)) {
       catalogo = window.__encarteCatalogo.produtos;

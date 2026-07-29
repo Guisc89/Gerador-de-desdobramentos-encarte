@@ -81,6 +81,7 @@ A interface tem uma barra lateral com logo e abas (Preçários | Telas | Cards |
 - Produção (autoscale) tem várias máquinas sem disco compartilhado: as partes do lote e o resultado final são persistidos no Object Storage (`lotes/<jobId>/…`, `arquivos/<nome>`); jobs são recuperáveis entre máquinas via `lotes/<jobId>/job.json` e o `/fim` é idempotente (`resultado.json`). `GET /api/download/:filename` tenta disco local e cai para `arquivos/<nome>` no bucket.
 - O PDF das telas é montado com JPEG (qualidade 82) em vez de PNG: 39 telas caíram de 116MB para ~17MB, abaixo do limite de resposta (~32MB) do app publicado. Modo PNG individual continua PNG.
 - Recorte automático de fotos (`EncarteImg`): a decisão usa a caixa bruta do conteúdo (<88% da área) antes da margem de 1% — precisa ser idempotente, senão re-recorta e re-salva todas as fotos a cada reload (estoura rate limit do storage).
+- Fundos duplos por modalidade (Telas/Cards/Stories): `bgDataUri` = fundo da capa (página 1) e `bg2DataUri` = fundo das demais páginas (fallback para o da capa quando vazio). Mudança 100% no frontend — as funções `telaState`/`cardState`/`storyState` escolhem o `background` por `isCapa`; servidor e templates inalterados. Estados antigos (só `bgDataUri`) seguem valendo para todas as páginas.
 - O PDF é montado com pdf-lib direto dos PNGs (sem segunda passada de Chromium — a antiga estourava memória com 30+ telas: "TargetCloseError").
 
 ## Autosave robusto (correção de perda de fotos)

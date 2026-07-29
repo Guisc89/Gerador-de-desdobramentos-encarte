@@ -197,13 +197,28 @@
             <details class="cfg-adv">
               <summary>Fundo personalizado (opcional)</summary>
               <p class="tela-hint">Sem envio, é usado o fundo verde padrão.</p>
-              <div class="bg-row">
-                <input id="telaBgInput" type="file" accept="image/*" />
-                <button id="telaBgRemove" type="button" class="btn-ghost hidden">Remover fundo</button>
+              <div class="field">
+                <label for="telaBgInput">Fundo da capa (página 1)</label>
+                <div class="bg-row">
+                  <input id="telaBgInput" type="file" accept="image/*" />
+                  <button id="telaBgRemove" type="button" class="btn-ghost hidden">Remover fundo</button>
+                </div>
+                <div id="telaBgThumbWrap" class="bg-thumb-wrap hidden">
+                  <img id="telaBgThumb" alt="Prévia do fundo da capa" />
+                  <span>Fundo da capa ativo</span>
+                </div>
               </div>
-              <div id="telaBgThumbWrap" class="bg-thumb-wrap hidden">
-                <img id="telaBgThumb" alt="Prévia do fundo" />
-                <span>Fundo personalizado ativo</span>
+              <div class="field">
+                <label for="telaBg2Input">Fundo das demais páginas</label>
+                <p class="tela-hint">Sem envio, as demais páginas usam o mesmo fundo da capa.</p>
+                <div class="bg-row">
+                  <input id="telaBg2Input" type="file" accept="image/*" />
+                  <button id="telaBg2Remove" type="button" class="btn-ghost hidden">Remover fundo</button>
+                </div>
+                <div id="telaBg2ThumbWrap" class="bg-thumb-wrap hidden">
+                  <img id="telaBg2Thumb" alt="Prévia do fundo das demais páginas" />
+                  <span>Fundo das demais páginas ativo</span>
+                </div>
               </div>
             </details>
           </div>
@@ -280,13 +295,28 @@
           <div class="block">
             <h3>Fundo da campanha</h3>
             <p class="tela-hint">Envie a arte 1080×1440 (com logo, título e lettering). Sem ela, é usado um fundo neutro.</p>
-            <div class="bg-row">
-              <input id="cardBgInput" type="file" accept="image/*" />
-              <button id="cardBgRemove" type="button" class="btn-ghost hidden">Remover fundo</button>
+            <div class="field">
+              <label for="cardBgInput">Fundo da capa (página 1)</label>
+              <div class="bg-row">
+                <input id="cardBgInput" type="file" accept="image/*" />
+                <button id="cardBgRemove" type="button" class="btn-ghost hidden">Remover fundo</button>
+              </div>
+              <div id="cardBgThumbWrap" class="bg-thumb-wrap hidden">
+                <img id="cardBgThumb" alt="Prévia do fundo da capa" />
+                <span>Fundo da capa ativo</span>
+              </div>
             </div>
-            <div id="cardBgThumbWrap" class="bg-thumb-wrap hidden">
-              <img id="cardBgThumb" alt="Prévia do fundo" />
-              <span>Fundo personalizado ativo</span>
+            <div class="field">
+              <label for="cardBg2Input">Fundo das demais páginas</label>
+              <p class="tela-hint">Sem envio, as demais páginas usam o mesmo fundo da capa.</p>
+              <div class="bg-row">
+                <input id="cardBg2Input" type="file" accept="image/*" />
+                <button id="cardBg2Remove" type="button" class="btn-ghost hidden">Remover fundo</button>
+              </div>
+              <div id="cardBg2ThumbWrap" class="bg-thumb-wrap hidden">
+                <img id="cardBg2Thumb" alt="Prévia do fundo das demais páginas" />
+                <span>Fundo das demais páginas ativo</span>
+              </div>
             </div>
           </div>
 
@@ -382,13 +412,28 @@
           <div class="block">
             <h3>Fundo da campanha</h3>
             <p class="tela-hint">Envie a arte 1080×1920 (com logo, título e lettering). Sem ela, é usado um fundo neutro.</p>
-            <div class="bg-row">
-              <input id="storyBgInput" type="file" accept="image/*" />
-              <button id="storyBgRemove" type="button" class="btn-ghost hidden">Remover fundo</button>
+            <div class="field">
+              <label for="storyBgInput">Fundo da capa (página 1)</label>
+              <div class="bg-row">
+                <input id="storyBgInput" type="file" accept="image/*" />
+                <button id="storyBgRemove" type="button" class="btn-ghost hidden">Remover fundo</button>
+              </div>
+              <div id="storyBgThumbWrap" class="bg-thumb-wrap hidden">
+                <img id="storyBgThumb" alt="Prévia do fundo da capa" />
+                <span>Fundo da capa ativo</span>
+              </div>
             </div>
-            <div id="storyBgThumbWrap" class="bg-thumb-wrap hidden">
-              <img id="storyBgThumb" alt="Prévia do fundo" />
-              <span>Fundo personalizado ativo</span>
+            <div class="field">
+              <label for="storyBg2Input">Fundo das demais páginas</label>
+              <p class="tela-hint">Sem envio, as demais páginas usam o mesmo fundo da capa.</p>
+              <div class="bg-row">
+                <input id="storyBg2Input" type="file" accept="image/*" />
+                <button id="storyBg2Remove" type="button" class="btn-ghost hidden">Remover fundo</button>
+              </div>
+              <div id="storyBg2ThumbWrap" class="bg-thumb-wrap hidden">
+                <img id="storyBg2Thumb" alt="Prévia do fundo das demais páginas" />
+                <span>Fundo das demais páginas ativo</span>
+              </div>
             </div>
           </div>
 
