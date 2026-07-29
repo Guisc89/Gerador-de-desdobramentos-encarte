@@ -1,6 +1,6 @@
-"use strict";var StoryTemplate=(()=>{var l=Object.defineProperty;var b=Object.getOwnPropertyDescriptor;var x=Object.getOwnPropertyNames;var k=Object.prototype.hasOwnProperty;var $=(e,t)=>{for(var o in t)l(e,o,{get:t[o],enumerable:!0})},z=(e,t,o,r)=>{if(t&&typeof t=="object"||typeof t=="function")for(let i of x(t))!k.call(e,i)&&i!==o&&l(e,i,{get:()=>t[i],enumerable:!(r=b(t,i))||r.enumerable});return e};var q=e=>z(l({},"__esModule",{value:!0}),e);var j={};$(j,{renderStoryHtml:()=>S});var u="Os pre\xE7os e produtos anunciados s\xE3o v\xE1lidos exclusivamente para esta loja.";function v(e){let t=String(e??"").trim();return/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(t)?t:""}function s(e){return String(e??"").replace(/[&<>"']/g,t=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"})[t])}function w(e){let t=(e.precoCentavos||"00").padStart(2,"0").slice(0,2),o=e.foto?`<img src="${s(e.foto)}" alt="" />`:'<span class="card-photo-empty">Sem foto</span>',r=e.descricao?`<div class="card-desc">${s(e.descricao)}</div>`:"";return`
+"use strict";var StoryTemplate=(()=>{var l=Object.defineProperty;var b=Object.getOwnPropertyDescriptor;var x=Object.getOwnPropertyNames;var k=Object.prototype.hasOwnProperty;var $=(e,t)=>{for(var i in t)l(e,i,{get:t[i],enumerable:!0})},z=(e,t,i,r)=>{if(t&&typeof t=="object"||typeof t=="function")for(let o of x(t))!k.call(e,o)&&o!==i&&l(e,o,{get:()=>t[o],enumerable:!(r=b(t,o))||r.enumerable});return e};var q=e=>z(l({},"__esModule",{value:!0}),e);var j={};$(j,{renderStoryHtml:()=>S});var u="Os pre\xE7os e produtos anunciados s\xE3o v\xE1lidos exclusivamente para esta loja.";function v(e){let t=String(e??"").trim();return/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(t)?t:""}function s(e){return String(e??"").replace(/[&<>"']/g,t=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"})[t])}function w(e){let t=(e.precoCentavos||"00").padStart(2,"0").slice(0,2),i=e.foto?`<img src="${s(e.foto)}" alt="" />`:'<span class="card-photo-empty">Sem foto</span>',r=e.descricao?`<div class="card-desc">${s(e.descricao)}</div>`:"";return`
     <div class="card">
-      <div class="card-photo">${o}</div>
+      <div class="card-photo">${i}</div>
       <div class="card-info">
         <div class="card-nome">${s(e.nome)}</div>
         ${r}
@@ -8,18 +8,18 @@
           <span class="rs">R$</span><span class="int">${s(e.precoInteiro||"0")}</span><span class="cent-group"><span class="cent">,${s(t)}</span><span class="cada">cada</span></span>
         </div>
       </div>
-    </div>`}function a(e){return String(e??"").replace(/[&<>"']/g,t=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"})[t])}var C=u;function S(e){let t=Array.isArray(e.produtos)?e.produtos:[],o=t.length,r=!!e.isCapa,i=e.background?`style="background-image:url('${a(e.background)}')"`:"",h=e.background?"story-bg":"story-bg story-bg-default",g=e.endereco?a(e.endereco):"Insira aqui seu endere\xE7o",f=e.disclaimer&&e.disclaimer.trim()?a(e.disclaimer.trim()):a(C),p=v(e.infoCor),y=p?`.si-mesval, .si-endereco, .sf-endereco { color: ${p}; }`:"",m=n=>`<div class="story-slot">${w(n)}</div>`,d;if(r){let n=[e.mes?a(e.mes):"",e.validadeInicio||e.validadeFim?`Validade: ${a(e.validadeInicio)} a ${a(e.validadeFim)}`:""].filter(Boolean).join(" | "),c=o>0?t.map(m).join(`
+    </div>`}function a(e){return String(e??"").replace(/[&<>"']/g,t=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"})[t])}var C=u;function S(e){let t=Array.isArray(e.produtos)?e.produtos:[],i=t.length,r=!!e.isCapa,o=e.background?`style="background-image:url('${a(e.background)}')"`:"",h=e.background?"story-bg":"story-bg story-bg-default",g=e.endereco?a(e.endereco):"Insira aqui seu endere\xE7o",f=e.disclaimer&&e.disclaimer.trim()?a(e.disclaimer.trim()):a(C),p=v(e.infoCor),y=p?`.si-mesval, .si-endereco, .si-disclaimer, .sf-endereco, .sf-disclaimer { color: ${p}; }`:"",m=n=>`<div class="story-slot">${w(n)}</div>`,d;if(r){let n=[e.mes?a(e.mes):"",e.validadeInicio||e.validadeFim?`Validade: ${a(e.validadeInicio)} a ${a(e.validadeFim)}`:""].filter(Boolean).join(" | "),c=i>0?t.map(m).join(`
 `):'<div class="story-empty">Adicione produtos para montar o story.</div>';d=`
       <div class="story-topinfo">
         ${n?`<div class="si-mesval">${n}</div>`:""}
         <div class="si-disclaimer">${f}</div>
         <div class="si-endereco">${g}</div>
       </div>
-      <div class="story-stack" data-count="${o}">
+      <div class="story-stack" data-count="${i}">
         ${c}
-      </div>`}else{let n=o>=3?"layout-3":"layout-2",c=o>0?t.map(m).join(`
+      </div>`}else{let n=i>=3?"layout-3":"layout-2",c=i>0?t.map(m).join(`
 `):'<div class="story-empty story-empty-center">Adicione produtos para montar o story.</div>';d=`
-      <div class="story-body ${n}" data-count="${o}">
+      <div class="story-body ${n}" data-count="${i}">
         ${c}
       </div>
       <div class="story-footer">
@@ -235,7 +235,7 @@
 </head>
 <body>
   <div class="story-canvas">
-    <div class="${h}" ${i}></div>
+    <div class="${h}" ${o}></div>
     <div class="story-overlay">
       ${d}
     </div>

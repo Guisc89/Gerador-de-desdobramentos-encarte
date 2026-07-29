@@ -64,7 +64,7 @@ export function renderCardHtml(state: CardState): string {
       : esc(DISCLAIMER);
   const infoCor = corHexValida(state.infoCor);
   const infoCorCss = infoCor
-    ? `.ci-mesval, .ci-endereco, .cf-endereco { color: ${infoCor}; }`
+    ? `.ci-mesval, .ci-endereco, .ci-disclaimer, .cf-endereco, .cf-disclaimer { color: ${infoCor}; }`
     : "";
 
   const slots = (p: CardProduto): string =>

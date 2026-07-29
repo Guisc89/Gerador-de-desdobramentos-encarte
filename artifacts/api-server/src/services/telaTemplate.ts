@@ -95,7 +95,7 @@ export function renderTelaHtml(state: TelaState): string {
       : esc(DISCLAIMER_PADRAO);
   const infoCor = corHexValida(state.infoCor);
   const infoCorCss = infoCor
-    ? `.tela-info-validade, .tela-info-endereco { color: ${infoCor}; }`
+    ? `.tela-info-mes, .tela-info-validade, .tela-info-endereco, .tela-info-disclaimer { color: ${infoCor}; }`
     : "";
 
   const infoBlock = `

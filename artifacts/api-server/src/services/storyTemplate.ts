@@ -62,7 +62,7 @@ export function renderStoryHtml(state: StoryState): string {
       : esc(DISCLAIMER);
   const infoCor = corHexValida(state.infoCor);
   const infoCorCss = infoCor
-    ? `.si-mesval, .si-endereco, .sf-endereco { color: ${infoCor}; }`
+    ? `.si-mesval, .si-endereco, .si-disclaimer, .sf-endereco, .sf-disclaimer { color: ${infoCor}; }`
     : "";
 
   const slots = (p: StoryProduto): string =>
