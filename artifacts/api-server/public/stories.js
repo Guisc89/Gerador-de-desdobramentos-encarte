@@ -135,6 +135,8 @@
       validadeFimInput.value = snapshot.validadeFim;
     if (snapshot.endereco && !enderecoInput.value.trim())
       enderecoInput.value = snapshot.endereco;
+    if (snapshot.infoCor && !infoCorInput.value.trim())
+      infoCorInput.value = snapshot.infoCor;
 
     // Flatten every product from the telas, in order.
     const todos = [];

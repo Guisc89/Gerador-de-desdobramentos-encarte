@@ -231,6 +231,7 @@
       validadeInicio: validadeInicioInput.value.trim(),
       validadeFim: validadeFimInput.value.trim(),
       endereco: enderecoInput.value.trim(),
+      infoCor: infoCorInput.value.trim(),
       telas: telas.map((t) => ({
         produtos: t.produtos.map((it) => ({
           nome: it.nome,

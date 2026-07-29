@@ -110,6 +110,8 @@
       validadeFimInput.value = snapshot.validadeFim;
     if (snapshot.endereco && !enderecoInput.value.trim())
       enderecoInput.value = snapshot.endereco;
+    if (snapshot.infoCor && !infoCorInput.value.trim())
+      infoCorInput.value = snapshot.infoCor;
 
     cards = snapshot.telas.map((t) =>
       newCard((t.produtos || []).map((p) => newItem(p))),
