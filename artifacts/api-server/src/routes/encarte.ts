@@ -10,7 +10,11 @@ import {
   downloadAuditado,
   removeAuditado,
 } from "../services/auditadoStorage";
-import { parseWorkspace, type Workspace } from "../services/objectStore";
+import {
+  parseWorkspace,
+  storeLoad,
+  type Workspace,
+} from "../services/objectStore";
 import {
   getEstado,
   mergeEstado,
@@ -337,6 +341,27 @@ router.get("/download/:filename", async (req, res) => {
   if (existsSync(filepath)) {
     res.download(filepath, safe);
     return;
+  }
+
+  // Arquivo fora do disco local: no app publicado (autoscale) a geração e o
+  // download podem cair em máquinas diferentes — o disco não é compartilhado.
+  // Os arquivos gerados em lote ficam também no bucket, em arquivos/<nome>.
+  try {
+    const fromStore = await storeLoad(`arquivos/${safe}`);
+    if (fromStore) {
+      const tipos: Record<string, string> = {
+        ".pdf": "application/pdf",
+        ".png": "image/png",
+        ".jpg": "image/jpeg",
+      };
+      res
+        .type(tipos[path.extname(safe).toLowerCase()] ?? "application/octet-stream")
+        .setHeader("Content-Disposition", `attachment; filename="${safe}"`)
+        .send(fromStore);
+      return;
+    }
+  } catch (err) {
+    req.log.warn({ err }, "Falha ao buscar arquivo gerado no bucket");
   }
 
   // Disk file gone (e.g. server restarted in production) — recover the

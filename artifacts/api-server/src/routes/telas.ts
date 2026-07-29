@@ -10,6 +10,14 @@ import {
   type TelaProduto,
 } from "../services/telaTemplate";
 import { htmlToPng, htmlToPngBatch, pngsToPdf } from "../services/pdfGenerator";
+import {
+  storeSave,
+  storeSaveJson,
+  storeLoad,
+  storeLoadJson,
+  storeDelete,
+  storeListPrefix,
+} from "../services/objectStore";
 
 const router: IRouter = Router();
 
@@ -335,17 +343,36 @@ interface LoteJob {
   id: string;
   criadoEm: number;
   baseName: string;
-  // index da tela -> caminho do PNG temporário
-  pngs: Map<number, string>;
+  modo: "pdf" | "png";
   // Estado + fila: as rotas do mesmo job rodam uma por vez (o cliente envia
   // as partes em sequência, mas retentativas/replays podem chegar em paralelo)
   // e depois que o /fim começa nenhuma /parte tardia é aceita.
   finalizado: boolean;
   fila: Promise<unknown>;
 }
+interface LoteJobMeta {
+  criadoEm: number;
+  baseName: string;
+  modo: "pdf" | "png";
+}
 const loteJobs = new Map<string, LoteJob>();
 const LOTE_TTL_MS = 30 * 60 * 1000;
 const LOTE_MAX_PARTE = 8;
+
+// IMPORTANTE (produção/autoscale): cada requisição pode cair numa máquina
+// diferente, e o disco local não é compartilhado. Por isso as imagens de cada
+// parte e o resultado final vão para o Object Storage — o mapa em memória é
+// só um atalho para a fila/serialização quando as requisições caem na mesma
+// máquina. O jobId começa com o timestamp em base36, o que permite descartar
+// lixo antigo no bucket sem precisar de metadados.
+function loteImgPath(jobId: string, index: number, modo: "pdf" | "png") {
+  return `lotes/${jobId}/${index}.${modo === "pdf" ? "jpg" : "png"}`;
+}
+
+function idadeDoJobId(jobId: string): number {
+  const ts = parseInt(jobId.slice(0, 8), 36);
+  return Number.isFinite(ts) ? Date.now() - ts : Infinity;
+}
 
 // Serializa o trabalho de um job: cada rota encadeia na fila do job.
 function naFilaDoJob<T>(job: LoteJob, fn: () => Promise<T>): Promise<T> {
@@ -354,10 +381,23 @@ function naFilaDoJob<T>(job: LoteJob, fn: () => Promise<T>): Promise<T> {
   return p;
 }
 
+async function apagarLoteStorage(jobId: string) {
+  try {
+    for (const f of await storeListPrefix(`lotes/${jobId}/`)) {
+      // job.json e resultado.json ficam até o TTL: permitem que uma
+      // retentativa do /fim (em outra máquina) devolva o mesmo resultado em
+      // vez de falhar. O sweeper por idade apaga depois.
+      if (f.endsWith("/job.json") || f.endsWith("/resultado.json")) continue;
+      await storeDelete(f).catch(() => {});
+    }
+  } catch {
+    /* melhor esforço */
+  }
+}
+
 function descartarJob(job: LoteJob) {
-  for (const f of job.pngs.values()) void fs.unlink(f).catch(() => {});
-  job.pngs.clear();
   loteJobs.delete(job.id);
+  void apagarLoteStorage(job.id);
 }
 
 function limparLotesVelhos() {
@@ -365,41 +405,71 @@ function limparLotesVelhos() {
   for (const job of Array.from(loteJobs.values())) {
     if (agora - job.criadoEm > LOTE_TTL_MS) descartarJob(job);
   }
-}
-// Varredura periódica + na subida: remove jobs expirados e qualquer
-// lote_*.png órfão de execuções anteriores (ex.: servidor reiniciado no meio).
-setInterval(limparLotesVelhos, 5 * 60 * 1000).unref();
-void (async () => {
-  try {
-    for (const f of await fs.readdir(OUTPUT_DIR)) {
-      if (/^lote_[a-z0-9]+_\d+\.png$/.test(f)) {
-        await fs.unlink(path.join(OUTPUT_DIR, f)).catch(() => {});
+  // Lixo de outras máquinas/execuções: apaga pastas de lote expiradas.
+  void (async () => {
+    try {
+      for (const f of await storeListPrefix("lotes/")) {
+        const m = /^lotes\/([a-z0-9]+)\//.exec(f);
+        if (m && idadeDoJobId(m[1]!) > LOTE_TTL_MS) {
+          await storeDelete(f).catch(() => {});
+        }
       }
+    } catch {
+      /* melhor esforço */
     }
-  } catch {
-    /* diretório pode não existir ainda */
-  }
-})();
+  })();
+}
+setInterval(limparLotesVelhos, 5 * 60 * 1000).unref();
 
-router.post("/telas/lote/inicio", (req, res) => {
-  limparLotesVelhos();
-  const body = (req.body ?? {}) as Record<string, unknown>;
-  const jobId = `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 10)}`;
-  loteJobs.set(jobId, {
+// Recupera um job vindo de outra máquina (autoscale): recria a entrada local a
+// partir do job.json persistido no bucket.
+async function obterJob(jobId: string): Promise<LoteJob | null> {
+  if (!/^[a-z0-9]{6,32}$/.test(jobId)) return null;
+  const local = loteJobs.get(jobId);
+  if (local) return local;
+  if (idadeDoJobId(jobId) > LOTE_TTL_MS) return null;
+  const meta = await storeLoadJson<LoteJobMeta>(`lotes/${jobId}/job.json`);
+  if (!meta) return null;
+  const job: LoteJob = {
     id: jobId,
-    criadoEm: Date.now(),
-    baseName: safeName(str(body["nomeArquivo"]) || "tela"),
-    pngs: new Map(),
+    criadoEm: meta.criadoEm,
+    baseName: meta.baseName,
+    modo: meta.modo === "png" ? "png" : "pdf",
     finalizado: false,
     fila: Promise.resolve(),
-  });
-  res.json({ ok: true, jobId });
+  };
+  loteJobs.set(jobId, job);
+  return job;
+}
+
+router.post("/telas/lote/inicio", async (req, res) => {
+  try {
+    limparLotesVelhos();
+    const body = (req.body ?? {}) as Record<string, unknown>;
+    const jobId = `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 10)}`;
+    const meta: LoteJobMeta = {
+      criadoEm: Date.now(),
+      baseName: safeName(str(body["nomeArquivo"]) || "tela"),
+      modo: str(body["modo"]) === "png" ? "png" : "pdf",
+    };
+    loteJobs.set(jobId, {
+      id: jobId,
+      ...meta,
+      finalizado: false,
+      fila: Promise.resolve(),
+    });
+    await storeSaveJson(`lotes/${jobId}/job.json`, meta);
+    res.json({ ok: true, jobId });
+  } catch (err: unknown) {
+    req.log.error({ err }, "Erro ao iniciar lote de telas");
+    res.status(500).json({ error: "Erro ao iniciar a geração." });
+  }
 });
 
 router.post("/telas/lote/parte", async (req, res) => {
   try {
     const body = (req.body ?? {}) as Record<string, unknown>;
-    const job = loteJobs.get(str(body["jobId"]));
+    const job = await obterJob(str(body["jobId"]));
     if (!job || job.finalizado) {
       res.status(404).json({ error: "Geração expirada. Tente novamente." });
       return;
@@ -434,17 +504,20 @@ router.post("/telas/lote/parte", async (req, res) => {
       if (job.finalizado || !loteJobs.has(job.id)) {
         throw new Error("Geração já finalizada. Tente novamente.");
       }
-      const pngs = await htmlToPngBatch(
+      // PDF: renderiza JPEG (sem alpha) — o PDF final fica várias vezes menor
+      // e cabe no limite de resposta do app publicado. PNG: mantém PNG.
+      const imgs = await htmlToPngBatch(
         itens.map((i) => renderTelaHtml(i.state)),
-        { width: 1280, height: 720, scale: 3 },
+        job.modo === "pdf"
+          ? { width: 1280, height: 720, scale: 3, tipo: "jpeg", quality: 82 }
+          : { width: 1280, height: 720, scale: 3 },
       );
       for (let i = 0; i < itens.length; i += 1) {
-        const filepath = path.join(
-          OUTPUT_DIR,
-          `lote_${job.id}_${itens[i].index}.png`,
+        await storeSave(
+          loteImgPath(job.id, itens[i].index, job.modo),
+          imgs[i],
+          job.modo === "pdf" ? "image/jpeg" : "image/png",
         );
-        await fs.writeFile(filepath, pngs[i]);
-        job.pngs.set(itens[i].index, filepath);
       }
     });
     res.json({ ok: true, geradas: itens.length });
@@ -457,7 +530,20 @@ router.post("/telas/lote/parte", async (req, res) => {
 
 router.post("/telas/lote/fim", async (req, res) => {
   const body = (req.body ?? {}) as Record<string, unknown>;
-  const job = loteJobs.get(str(body["jobId"]));
+  const jobId = str(body["jobId"]);
+  // Idempotência entre máquinas: se este job já foi finalizado (por esta ou
+  // outra instância) devolve o mesmo resultado — cobre o caso de a resposta
+  // original se perder na rede e o cliente repetir o /fim.
+  if (/^[a-z0-9]{6,32}$/.test(jobId) && idadeDoJobId(jobId) <= LOTE_TTL_MS) {
+    const pronto = await storeLoadJson<Record<string, unknown>>(
+      `lotes/${jobId}/resultado.json`,
+    ).catch(() => null);
+    if (pronto) {
+      res.json(pronto);
+      return;
+    }
+  }
+  const job = await obterJob(jobId);
   if (!job || job.finalizado) {
     res.status(404).json({ error: "Geração expirada. Tente novamente." });
     return;
@@ -467,48 +553,68 @@ router.post("/telas/lote/fim", async (req, res) => {
   job.finalizado = true;
   try {
     await naFilaDoJob(job, async () => {
-      if (job.pngs.size === 0) {
+      // Junta as imagens pelo bucket (funciona mesmo quando as partes foram
+      // geradas por outras máquinas do app publicado).
+      const ext = job.modo === "pdf" ? "jpg" : "png";
+      const indices: number[] = [];
+      for (const f of await storeListPrefix(`lotes/${job.id}/`)) {
+        const m = new RegExp(`/(\\d+)\\.${ext}$`).exec(f);
+        if (m) indices.push(Number(m[1]));
+      }
+      indices.sort((a, b) => a - b);
+      if (indices.length === 0) {
         res.status(400).json({ error: "Nenhuma tela foi gerada." });
         return;
       }
       const vazias = Math.max(0, Number(body["vazias"]) || 0);
-      const indices = Array.from(job.pngs.keys()).sort((a, b) => a - b);
 
-      if (str(body["modo"]) === "png") {
+      const carregar = async (index: number): Promise<Buffer> => {
+        const buf = await storeLoad(loteImgPath(job.id, index, job.modo));
+        if (!buf) throw new Error(`Tela ${index + 1} não encontrada.`);
+        return buf;
+      };
+
+      if (job.modo === "png") {
         const arquivos: { filename: string; downloadUrl: string }[] = [];
         for (const index of indices) {
           const num = String(index + 1).padStart(2, "0");
           const filename = `${job.baseName}_tela_${num}.png`;
-          await fs.rename(job.pngs.get(index)!, path.join(OUTPUT_DIR, filename));
-          job.pngs.delete(index);
+          const buf = await carregar(index);
+          // Persiste onde o download consegue achar de qualquer máquina, e
+          // também no disco local (atalho para o dev/mesma máquina).
+          await storeSave(`arquivos/${filename}`, buf, "image/png");
+          await fs.writeFile(path.join(OUTPUT_DIR, filename), buf);
           arquivos.push({
             filename,
             downloadUrl: `/api/download/${encodeURIComponent(filename)}`,
           });
         }
         req.log.info({ geradas: arquivos.length, vazias }, "PNGs das telas gerados (lote)");
-        res.json({ ok: true, arquivos, vazias });
+        const resposta = { ok: true, arquivos, vazias };
+        await storeSaveJson(`lotes/${job.id}/resultado.json`, resposta).catch(() => {});
+        res.json(resposta);
         return;
       }
 
-      const pngs: Buffer[] = [];
-      for (const index of indices) {
-        pngs.push(await fs.readFile(job.pngs.get(index)!));
-      }
-      const pdf = await pngsToPdf(pngs);
+      const imgs: Buffer[] = [];
+      for (const index of indices) imgs.push(await carregar(index));
+      const pdf = await pngsToPdf(imgs);
       const filename = `${job.baseName}_telas.pdf`;
+      await storeSave(`arquivos/${filename}`, pdf, "application/pdf");
       await fs.writeFile(path.join(OUTPUT_DIR, filename), pdf);
       req.log.info(
         { filename, telas: indices.length, vazias, sizeBytes: pdf.length },
         "PDF das telas gerado (lote)",
       );
-      res.json({
+      const resposta = {
         ok: true,
         filename,
         downloadUrl: `/api/download/${encodeURIComponent(filename)}`,
         total: indices.length,
         vazias,
-      });
+      };
+      await storeSaveJson(`lotes/${job.id}/resultado.json`, resposta).catch(() => {});
+      res.json(resposta);
     });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Erro desconhecido";

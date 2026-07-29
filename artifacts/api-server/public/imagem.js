@@ -58,18 +58,21 @@
         }
       }
       if (maxX < 0) return null; // imagem toda vazia — não mexe
-      // Margem de 2% para não colar o produto na borda do card.
-      var mx = Math.round(w * 0.02);
-      var my = Math.round(h * 0.02);
+      // Decide ANTES de somar a margem: só recorta se o conteúdo bruto ocupar
+      // menos de 88% da área. Importante: a margem adicionada abaixo precisa
+      // ficar fora dessa conta, senão uma foto já recortada é re-recortada a
+      // cada recarregamento (perdendo 2% por vez e re-salvando tudo em loop).
+      var rw = maxX - minX + 1;
+      var rh = maxY - minY + 1;
+      if (rw * rh > w * h * 0.88) return null;
+      // Margem de 1% para não colar o produto na borda do card.
+      var mx = Math.round(w * 0.01);
+      var my = Math.round(h * 0.01);
       minX = Math.max(0, minX - mx);
       minY = Math.max(0, minY - my);
       maxX = Math.min(w - 1, maxX + mx);
       maxY = Math.min(h - 1, maxY + my);
-      var bw = maxX - minX + 1;
-      var bh = maxY - minY + 1;
-      // Só vale a pena se remover uma fatia relevante (>8% da área).
-      if (bw * bh > w * h * 0.92) return null;
-      return { x: minX, y: minY, w: bw, h: bh };
+      return { x: minX, y: minY, w: maxX - minX + 1, h: maxY - minY + 1 };
     } catch (e) {
       return null; // canvas contaminado etc. — segue sem recorte
     }

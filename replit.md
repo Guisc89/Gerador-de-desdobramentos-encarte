@@ -77,7 +77,10 @@ A interface tem uma barra lateral com logo e abas (Preçários | Telas | Cards |
 
 - `public/imagem.js` (`window.EncarteImg`): toda foto/fundo é comprimida no navegador na hora do upload — redimensiona (fotos máx 1200px, fundos máx 2600px) e converte para WebP (fallback PNG/JPEG). Uma foto de 1,6MB vira ~105KB. Fotos grandes já salvas são migradas automaticamente após a restauração (`comprimirMapaFotos`, disparada em progresso.js).
 - Motivo: o app publicado tem limite de ~32MB por requisição e ~120s por resposta; payloads com base64 sem compressão estouravam ambos e o proxy devolvia HTML ("Unexpected token '<'").
-- "Baixar todas (PNG)" e "Baixar todas em PDF" agora geram em lotes: rotas `/api/telas/lote/inicio|parte|fim` (jobs em memória, 30min TTL, serializados por job, PNGs temporários `output/lote_*` com varredura periódica). O cliente envia 4 telas por vez com progresso no botão ("Gerando PDF... (12/39)").
+- "Baixar todas (PNG)" e "Baixar todas em PDF" agora geram em lotes: rotas `/api/telas/lote/inicio|parte|fim` (30min TTL, serializados por job). O cliente envia 4 telas por vez com progresso no botão ("Gerando PDF... (12/39)") e retentativas (3x, exceto 4xx).
+- Produção (autoscale) tem várias máquinas sem disco compartilhado: as partes do lote e o resultado final são persistidos no Object Storage (`lotes/<jobId>/…`, `arquivos/<nome>`); jobs são recuperáveis entre máquinas via `lotes/<jobId>/job.json` e o `/fim` é idempotente (`resultado.json`). `GET /api/download/:filename` tenta disco local e cai para `arquivos/<nome>` no bucket.
+- O PDF das telas é montado com JPEG (qualidade 82) em vez de PNG: 39 telas caíram de 116MB para ~17MB, abaixo do limite de resposta (~32MB) do app publicado. Modo PNG individual continua PNG.
+- Recorte automático de fotos (`EncarteImg`): a decisão usa a caixa bruta do conteúdo (<88% da área) antes da margem de 1% — precisa ser idempotente, senão re-recorta e re-salva todas as fotos a cada reload (estoura rate limit do storage).
 - O PDF é montado com pdf-lib direto dos PNGs (sem segunda passada de Chromium — a antiga estourava memória com 30+ telas: "TargetCloseError").
 
 ## Autosave robusto (correção de perda de fotos)

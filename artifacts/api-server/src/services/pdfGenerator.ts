@@ -43,6 +43,10 @@ export interface PngOptions {
   width?: number;
   height?: number;
   scale?: number;
+  // "jpeg" gera arquivos muito menores (sem alpha) — usado para montar PDFs
+  // que precisam caber no limite de resposta do app publicado (~32MB).
+  tipo?: "png" | "jpeg";
+  quality?: number; // só para jpeg (0-100)
 }
 
 async function launchBrowser() {
@@ -66,6 +70,8 @@ async function renderPng(
   width: number,
   height: number,
   scale: number,
+  tipo: "png" | "jpeg" = "png",
+  quality = 92,
 ): Promise<Buffer> {
   const page = await browser.newPage();
   try {
@@ -86,10 +92,11 @@ async function renderPng(
     });
     await page.setViewport({ width, height, deviceScaleFactor: scale });
     await page.setContent(html, { waitUntil: "networkidle0" });
-    const png = await page.screenshot({
-      type: "png",
-      clip: { x: 0, y: 0, width, height },
-    });
+    const png = await page.screenshot(
+      tipo === "jpeg"
+        ? { type: "jpeg", quality, clip: { x: 0, y: 0, width, height } }
+        : { type: "png", clip: { x: 0, y: 0, width, height } },
+    );
     return Buffer.from(png);
   } finally {
     await page.close().catch(() => {});
@@ -133,7 +140,9 @@ export async function pngsToPdf(
   logger.info({ count: pngs.length, width, height }, "Assembling PDF (pdf-lib)");
   const doc = await PDFDocument.create();
   for (const png of pngs) {
-    const img = await doc.embedPng(png);
+    // Aceita PNG ou JPEG (magic bytes) — JPEGs deixam o PDF várias vezes menor.
+    const isJpg = png.length > 2 && png[0] === 0xff && png[1] === 0xd8;
+    const img = isJpg ? await doc.embedJpg(png) : await doc.embedPng(png);
     const page = doc.addPage([width, height]);
     page.drawImage(img, { x: 0, y: 0, width, height });
   }
@@ -159,7 +168,9 @@ export async function htmlToPngBatch(
   try {
     const out: Buffer[] = [];
     for (const html of htmls) {
-      out.push(await renderPng(browser, html, width, height, scale));
+      out.push(
+        await renderPng(browser, html, width, height, scale, opts.tipo, opts.quality),
+      );
     }
     return out;
   } finally {

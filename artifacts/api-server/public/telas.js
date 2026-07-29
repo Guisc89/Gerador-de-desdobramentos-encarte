@@ -761,24 +761,46 @@
     });
     if (itens.length === 0) throw new Error("Todas as telas estão sem produtos.");
 
+    // Com retentativas: um soluço de rede/proxy (502) no meio de um lote longo
+    // não pode derrubar a geração inteira. As partes são idempotentes no
+    // servidor (regravam os mesmos índices), então repetir é seguro.
     async function post(url, body) {
-      const res = await fetch(url, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
-      let data = null;
-      try {
-        data = await res.json();
-      } catch (e) {
-        throw new Error("O servidor demorou ou respondeu de forma inesperada. Tente de novo.");
+      let ultimoErro = null;
+      for (let tentativa = 0; tentativa < 3; tentativa++) {
+        if (tentativa > 0) await new Promise((r) => setTimeout(r, 1500 * tentativa));
+        try {
+          const res = await fetch(url, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body),
+          });
+          let data = null;
+          try {
+            data = await res.json();
+          } catch (e) {
+            throw new Error("O servidor demorou ou respondeu de forma inesperada. Tente de novo.");
+          }
+          if (!res.ok) {
+            const msg = data && data.error ? data.error : res.statusText;
+            // 4xx é erro de verdade (dados inválidos/job expirado): não repete.
+            if (res.status >= 400 && res.status < 500) throw { fatal: true, msg };
+            throw new Error(msg);
+          }
+          return data;
+        } catch (err) {
+          if (err && err.fatal) throw new Error(err.msg);
+          ultimoErro = err;
+        }
       }
-      if (!res.ok) throw new Error(data && data.error ? data.error : res.statusText);
-      return data;
+      throw ultimoErro instanceof Error
+        ? ultimoErro
+        : new Error("Falha de conexão ao gerar. Tente de novo.");
     }
 
     const inicio = await post("/api/telas/lote/inicio", {
       nomeArquivo: nomeArquivoInput.value.trim() || "tela",
+      // O servidor renderiza JPEG p/ PDF (arquivo muito menor) e PNG p/ PNGs.
+      modo: modo,
     });
     const TAMANHO_PARTE = 4;
     let feitas = 0;

@@ -98,3 +98,12 @@ export async function storeCopy(from: string, to: string): Promise<boolean> {
 export async function storeDelete(objPath: string): Promise<void> {
   await file(objPath).delete({ ignoreNotFound: true });
 }
+
+// Lista os objetos sob um prefixo, devolvendo caminhos relativos ao diretório
+// privado (o mesmo formato aceito pelas demais funções deste módulo).
+export async function storeListPrefix(objPrefix: string): Promise<string[]> {
+  const { bucket, prefix } = privateBase();
+  const full = prefix ? `${prefix}/${objPrefix}` : objPrefix;
+  const [files] = await storageClient.bucket(bucket).getFiles({ prefix: full });
+  return files.map((f) => (prefix ? f.name.slice(prefix.length + 1) : f.name));
+}
