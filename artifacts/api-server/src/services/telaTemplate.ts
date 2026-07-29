@@ -11,9 +11,20 @@ export interface TelaState {
   validadeInicio: string;
   validadeFim: string;
   endereco: string;
+  disclaimer?: string;
+  infoCor?: string;
   background?: string | null;
   isCapa?: boolean;
   produtos: TelaProduto[];
+}
+
+export const DISCLAIMER_PADRAO =
+  "Os preços e produtos anunciados são válidos exclusivamente para esta loja.";
+
+// Aceita apenas cores HEX válidas (#RGB ou #RRGGBB) para injetar no CSS.
+export function corHexValida(value: unknown): string {
+  const s = String(value ?? "").trim();
+  return /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(s) ? s : "";
 }
 
 function esc(value: unknown): string {
@@ -78,6 +89,15 @@ export function renderTelaHtml(state: TelaState): string {
       ? `Validade: ${esc(state.validadeInicio)} a ${esc(state.validadeFim)}`
       : "";
 
+  const disclaimer =
+    state.disclaimer && state.disclaimer.trim()
+      ? esc(state.disclaimer.trim())
+      : esc(DISCLAIMER_PADRAO);
+  const infoCor = corHexValida(state.infoCor);
+  const infoCorCss = infoCor
+    ? `.tela-info-validade, .tela-info-endereco { color: ${infoCor}; }`
+    : "";
+
   const infoBlock = `
       <div class="tela-info">
         ${state.mes ? `<div class="tela-info-mes">${esc(state.mes)}</div>` : ""}
@@ -85,7 +105,7 @@ export function renderTelaHtml(state: TelaState): string {
         <div class="tela-info-endereco">${
           state.endereco ? esc(state.endereco) : "Insira aqui seu endereço"
         }</div>
-        <div class="tela-info-disclaimer">Os preços e produtos anunciados são válidos exclusivamente para esta loja.</div>
+        <div class="tela-info-disclaimer">${disclaimer}</div>
       </div>`;
 
   const cards =
@@ -289,6 +309,7 @@ export function renderTelaHtml(state: TelaState): string {
     border-radius: 1.2vw;
     background: rgba(255,255,255,0.5);
   }
+  ${infoCorCss}
 </style>
 </head>
 <body>

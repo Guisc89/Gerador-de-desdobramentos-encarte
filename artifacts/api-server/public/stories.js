@@ -21,6 +21,8 @@
   const validadeInicioInput = document.getElementById("storyValidadeInicio");
   const validadeFimInput = document.getElementById("storyValidadeFim");
   const enderecoInput = document.getElementById("storyEndereco");
+  const disclaimerInput = document.getElementById("storyDisclaimer");
+  const infoCorInput = document.getElementById("storyInfoCor");
 
   // Background
   const bgInput = document.getElementById("storyBgInput");
@@ -172,6 +174,8 @@
       validadeInicio: validadeInicioInput.value.trim(),
       validadeFim: validadeFimInput.value.trim(),
       endereco: enderecoInput.value.trim(),
+      disclaimer: disclaimerInput.value.trim(),
+      infoCor: infoCorInput.value.trim(),
       background: isCapa ? bgDataUri : bg2DataUri || bgDataUri,
       isCapa: !!isCapa,
       produtos: story.produtos.map((it) => ({
@@ -356,7 +360,7 @@
   nextBtn.addEventListener("click", () => goTo(current + 1));
 
   // ---- Global info inputs ----
-  [mesInput, validadeInicioInput, validadeFimInput, enderecoInput].forEach(
+  [mesInput, validadeInicioInput, validadeFimInput, enderecoInput, disclaimerInput, infoCorInput].forEach(
     (inp) => {
       inp.addEventListener("input", schedulePreview);
     },
@@ -575,11 +579,13 @@
 
   // ---------- Snapshot / restauração (progresso automático) ----------
   window.__storiesSnapshot = function () {
-    if (!bgDataUri && !bg2DataUri && !enderecoInput.value.trim() && !nomeArquivoInput.value.trim()) return null;
+    if (!bgDataUri && !bg2DataUri && !enderecoInput.value.trim() && !nomeArquivoInput.value.trim() && !disclaimerInput.value.trim() && !infoCorInput.value.trim()) return null;
     return {
       bgDataUri: bgDataUri,
       bg2DataUri: bg2DataUri,
       endereco: enderecoInput.value,
+      disclaimer: disclaimerInput.value,
+      infoCor: infoCorInput.value,
       nomeArquivo: nomeArquivoInput.value,
     };
   };
@@ -587,6 +593,8 @@
   window.__storiesRestaurar = function (saved) {
     if (!saved) return;
     if (saved.endereco && !enderecoInput.value.trim()) enderecoInput.value = saved.endereco;
+    if (saved.disclaimer && !disclaimerInput.value.trim()) disclaimerInput.value = saved.disclaimer;
+    if (saved.infoCor && !infoCorInput.value.trim()) infoCorInput.value = saved.infoCor;
     if (saved.nomeArquivo && !nomeArquivoInput.value.trim()) nomeArquivoInput.value = saved.nomeArquivo;
     if (saved.bgDataUri) {
       bgDataUri = saved.bgDataUri;
@@ -618,8 +626,10 @@
       }, 300);
     });
   });
-  enderecoInput.addEventListener("input", function () {
-    document.dispatchEvent(new CustomEvent("encarte:extras"));
+  [enderecoInput, disclaimerInput, infoCorInput].forEach(function (el) {
+    el.addEventListener("input", function () {
+      document.dispatchEvent(new CustomEvent("encarte:extras"));
+    });
   });
 
 })();

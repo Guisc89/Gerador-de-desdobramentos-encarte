@@ -97,6 +97,8 @@ function sanitizeState(body: unknown, forcedIsCapa?: boolean): TelaState {
     validadeInicio: str(obj["validadeInicio"]),
     validadeFim: str(obj["validadeFim"]),
     endereco: str(obj["endereco"]),
+    disclaimer: str(obj["disclaimer"]),
+    infoCor: str(obj["infoCor"]),
     background: dataImage(obj["background"]),
     isCapa,
     produtos,

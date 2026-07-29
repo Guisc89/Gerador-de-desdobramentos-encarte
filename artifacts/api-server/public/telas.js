@@ -17,6 +17,8 @@
   const validadeInicioInput = document.getElementById("telaValidadeInicio");
   const validadeFimInput = document.getElementById("telaValidadeFim");
   const enderecoInput = document.getElementById("telaEndereco");
+  const disclaimerInput = document.getElementById("telaDisclaimer");
+  const infoCorInput = document.getElementById("telaInfoCor");
 
   // Background
   const bgInput = document.getElementById("telaBgInput");
@@ -200,6 +202,8 @@
       validadeInicio: validadeInicioInput.value.trim(),
       validadeFim: validadeFimInput.value.trim(),
       endereco: enderecoInput.value.trim(),
+      disclaimer: disclaimerInput.value.trim(),
+      infoCor: infoCorInput.value.trim(),
       background: isCapa ? bgDataUri : bg2DataUri || bgDataUri,
       isCapa: !!isCapa,
       produtos: tela.produtos.map((it) => ({
@@ -725,7 +729,7 @@
   });
 
   // ---- Global info inputs ----
-  [mesInput, validadeInicioInput, validadeFimInput, enderecoInput].forEach((inp) => {
+  [mesInput, validadeInicioInput, validadeFimInput, enderecoInput, disclaimerInput, infoCorInput].forEach((inp) => {
     inp.addEventListener("input", schedulePreview);
   });
 
@@ -954,6 +958,8 @@
       validadeInicio: validadeInicioInput.value,
       validadeFim: validadeFimInput.value,
       endereco: enderecoInput.value,
+      disclaimer: disclaimerInput.value,
+      infoCor: infoCorInput.value,
       bgDataUri: bgDataUri,
       bg2DataUri: bg2DataUri,
       current: current,
@@ -980,6 +986,8 @@
     if (saved.validadeInicio) validadeInicioInput.value = saved.validadeInicio;
     if (saved.validadeFim) validadeFimInput.value = saved.validadeFim;
     if (saved.endereco) enderecoInput.value = saved.endereco;
+    if (saved.disclaimer) disclaimerInput.value = saved.disclaimer;
+    if (saved.infoCor) infoCorInput.value = saved.infoCor;
     if (saved.bgDataUri) {
       bgDataUri = saved.bgDataUri;
       bgThumb.src = bgDataUri;

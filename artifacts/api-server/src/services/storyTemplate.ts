@@ -1,4 +1,9 @@
-import { renderProductCard, type TelaProduto } from "./telaTemplate";
+import {
+  renderProductCard,
+  corHexValida,
+  DISCLAIMER_PADRAO,
+  type TelaProduto,
+} from "./telaTemplate";
 
 // A "Story" is a 1080x1920 (portrait 9:16) post. The decorative art (logo,
 // title phrase, lettering, hero photo) comes from a campaign BACKGROUND image
@@ -17,6 +22,8 @@ export interface StoryState {
   validadeInicio: string;
   validadeFim: string;
   endereco: string;
+  disclaimer?: string;
+  infoCor?: string;
   background?: string | null;
   isCapa?: boolean;
   produtos: StoryProduto[];
@@ -36,8 +43,7 @@ function esc(value: unknown): string {
   );
 }
 
-const DISCLAIMER =
-  "Os preços e produtos anunciados são válidos exclusivamente para esta loja.";
+const DISCLAIMER = DISCLAIMER_PADRAO;
 
 export function renderStoryHtml(state: StoryState): string {
   const produtos = Array.isArray(state.produtos) ? state.produtos : [];
@@ -50,6 +56,14 @@ export function renderStoryHtml(state: StoryState): string {
   const bgClass = state.background ? "story-bg" : "story-bg story-bg-default";
 
   const endereco = state.endereco ? esc(state.endereco) : "Insira aqui seu endereço";
+  const disclaimer =
+    state.disclaimer && state.disclaimer.trim()
+      ? esc(state.disclaimer.trim())
+      : esc(DISCLAIMER);
+  const infoCor = corHexValida(state.infoCor);
+  const infoCorCss = infoCor
+    ? `.si-mesval, .si-endereco, .sf-endereco { color: ${infoCor}; }`
+    : "";
 
   const slots = (p: StoryProduto): string =>
     `<div class="story-slot">${renderProductCard(p)}</div>`;
@@ -76,7 +90,7 @@ export function renderStoryHtml(state: StoryState): string {
     overlay = `
       <div class="story-topinfo">
         ${mesVal ? `<div class="si-mesval">${mesVal}</div>` : ""}
-        <div class="si-disclaimer">${DISCLAIMER}</div>
+        <div class="si-disclaimer">${disclaimer}</div>
         <div class="si-endereco">${endereco}</div>
       </div>
       <div class="story-stack" data-count="${count}">
@@ -96,7 +110,7 @@ export function renderStoryHtml(state: StoryState): string {
       </div>
       <div class="story-footer">
         <div class="sf-rule"></div>
-        <div class="sf-disclaimer">${DISCLAIMER}</div>
+        <div class="sf-disclaimer">${disclaimer}</div>
         <div class="sf-endereco">${endereco}</div>
       </div>`;
   }
@@ -305,6 +319,7 @@ export function renderStoryHtml(state: StoryState): string {
     width: 82%;
     margin: auto;
   }
+  ${infoCorCss}
 </style>
 </head>
 <body>

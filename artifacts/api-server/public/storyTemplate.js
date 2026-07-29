@@ -1,30 +1,30 @@
-"use strict";var StoryTemplate=(()=>{var l=Object.defineProperty;var m=Object.getOwnPropertyDescriptor;var w=Object.getOwnPropertyNames;var h=Object.prototype.hasOwnProperty;var y=(e,t)=>{for(var a in t)l(e,a,{get:t[a],enumerable:!0})},b=(e,t,a,i)=>{if(t&&typeof t=="object"||typeof t=="function")for(let o of w(t))!h.call(e,o)&&o!==a&&l(e,o,{get:()=>t[o],enumerable:!(i=m(t,o))||i.enumerable});return e};var x=e=>b(l({},"__esModule",{value:!0}),e);var z={};y(z,{renderStoryHtml:()=>k});function n(e){return String(e??"").replace(/[&<>"']/g,t=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"})[t])}function f(e){let t=(e.precoCentavos||"00").padStart(2,"0").slice(0,2),a=e.foto?`<img src="${n(e.foto)}" alt="" />`:'<span class="card-photo-empty">Sem foto</span>',i=e.descricao?`<div class="card-desc">${n(e.descricao)}</div>`:"";return`
+"use strict";var StoryTemplate=(()=>{var l=Object.defineProperty;var b=Object.getOwnPropertyDescriptor;var x=Object.getOwnPropertyNames;var k=Object.prototype.hasOwnProperty;var $=(e,t)=>{for(var o in t)l(e,o,{get:t[o],enumerable:!0})},z=(e,t,o,r)=>{if(t&&typeof t=="object"||typeof t=="function")for(let i of x(t))!k.call(e,i)&&i!==o&&l(e,i,{get:()=>t[i],enumerable:!(r=b(t,i))||r.enumerable});return e};var q=e=>z(l({},"__esModule",{value:!0}),e);var j={};$(j,{renderStoryHtml:()=>S});var u="Os pre\xE7os e produtos anunciados s\xE3o v\xE1lidos exclusivamente para esta loja.";function v(e){let t=String(e??"").trim();return/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(t)?t:""}function s(e){return String(e??"").replace(/[&<>"']/g,t=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"})[t])}function w(e){let t=(e.precoCentavos||"00").padStart(2,"0").slice(0,2),o=e.foto?`<img src="${s(e.foto)}" alt="" />`:'<span class="card-photo-empty">Sem foto</span>',r=e.descricao?`<div class="card-desc">${s(e.descricao)}</div>`:"";return`
     <div class="card">
-      <div class="card-photo">${a}</div>
+      <div class="card-photo">${o}</div>
       <div class="card-info">
-        <div class="card-nome">${n(e.nome)}</div>
-        ${i}
+        <div class="card-nome">${s(e.nome)}</div>
+        ${r}
         <div class="card-price">
-          <span class="rs">R$</span><span class="int">${n(e.precoInteiro||"0")}</span><span class="cent-group"><span class="cent">,${n(t)}</span><span class="cada">cada</span></span>
+          <span class="rs">R$</span><span class="int">${s(e.precoInteiro||"0")}</span><span class="cent-group"><span class="cent">,${s(t)}</span><span class="cada">cada</span></span>
         </div>
       </div>
-    </div>`}function s(e){return String(e??"").replace(/[&<>"']/g,t=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"})[t])}var u="Os pre\xE7os e produtos anunciados s\xE3o v\xE1lidos exclusivamente para esta loja.";function k(e){let t=Array.isArray(e.produtos)?e.produtos:[],a=t.length,i=!!e.isCapa,o=e.background?`style="background-image:url('${s(e.background)}')"`:"",v=e.background?"story-bg":"story-bg story-bg-default",g=e.endereco?s(e.endereco):"Insira aqui seu endere\xE7o",p=r=>`<div class="story-slot">${f(r)}</div>`,d;if(i){let r=[e.mes?s(e.mes):"",e.validadeInicio||e.validadeFim?`Validade: ${s(e.validadeInicio)} a ${s(e.validadeFim)}`:""].filter(Boolean).join(" | "),c=a>0?t.map(p).join(`
+    </div>`}function a(e){return String(e??"").replace(/[&<>"']/g,t=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"})[t])}var C=u;function S(e){let t=Array.isArray(e.produtos)?e.produtos:[],o=t.length,r=!!e.isCapa,i=e.background?`style="background-image:url('${a(e.background)}')"`:"",h=e.background?"story-bg":"story-bg story-bg-default",g=e.endereco?a(e.endereco):"Insira aqui seu endere\xE7o",f=e.disclaimer&&e.disclaimer.trim()?a(e.disclaimer.trim()):a(C),p=v(e.infoCor),y=p?`.si-mesval, .si-endereco, .sf-endereco { color: ${p}; }`:"",m=n=>`<div class="story-slot">${w(n)}</div>`,d;if(r){let n=[e.mes?a(e.mes):"",e.validadeInicio||e.validadeFim?`Validade: ${a(e.validadeInicio)} a ${a(e.validadeFim)}`:""].filter(Boolean).join(" | "),c=o>0?t.map(m).join(`
 `):'<div class="story-empty">Adicione produtos para montar o story.</div>';d=`
       <div class="story-topinfo">
-        ${r?`<div class="si-mesval">${r}</div>`:""}
-        <div class="si-disclaimer">${u}</div>
+        ${n?`<div class="si-mesval">${n}</div>`:""}
+        <div class="si-disclaimer">${f}</div>
         <div class="si-endereco">${g}</div>
       </div>
-      <div class="story-stack" data-count="${a}">
+      <div class="story-stack" data-count="${o}">
         ${c}
-      </div>`}else{let r=a>=3?"layout-3":"layout-2",c=a>0?t.map(p).join(`
+      </div>`}else{let n=o>=3?"layout-3":"layout-2",c=o>0?t.map(m).join(`
 `):'<div class="story-empty story-empty-center">Adicione produtos para montar o story.</div>';d=`
-      <div class="story-body ${r}" data-count="${a}">
+      <div class="story-body ${n}" data-count="${o}">
         ${c}
       </div>
       <div class="story-footer">
         <div class="sf-rule"></div>
-        <div class="sf-disclaimer">${u}</div>
+        <div class="sf-disclaimer">${f}</div>
         <div class="sf-endereco">${g}</div>
       </div>`}return`<!DOCTYPE html>
 <html lang="pt-BR">
@@ -230,14 +230,15 @@
     width: 82%;
     margin: auto;
   }
+  ${y}
 </style>
 </head>
 <body>
   <div class="story-canvas">
-    <div class="${v}" ${o}></div>
+    <div class="${h}" ${i}></div>
     <div class="story-overlay">
       ${d}
     </div>
   </div>
 </body>
-</html>`}return x(z);})();
+</html>`}return q(j);})();

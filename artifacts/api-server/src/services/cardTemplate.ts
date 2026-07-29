@@ -1,4 +1,9 @@
-import { renderProductCard, type TelaProduto } from "./telaTemplate";
+import {
+  renderProductCard,
+  corHexValida,
+  DISCLAIMER_PADRAO,
+  type TelaProduto,
+} from "./telaTemplate";
 
 // A "Card" is a 1080x1440 (portrait 3:4) feed post. The decorative art (title
 // phrase, lettering, hero photo, logo) comes from a campaign BACKGROUND image
@@ -19,6 +24,8 @@ export interface CardState {
   validadeInicio: string;
   validadeFim: string;
   endereco: string;
+  disclaimer?: string;
+  infoCor?: string;
   background?: string | null;
   isCapa?: boolean;
   produtos: CardProduto[];
@@ -38,8 +45,7 @@ function esc(value: unknown): string {
   );
 }
 
-const DISCLAIMER =
-  "Os preços e produtos anunciados são válidos exclusivamente para esta loja.";
+const DISCLAIMER = DISCLAIMER_PADRAO;
 
 export function renderCardHtml(state: CardState): string {
   const produtos = Array.isArray(state.produtos) ? state.produtos : [];
@@ -52,6 +58,14 @@ export function renderCardHtml(state: CardState): string {
   const bgClass = state.background ? "card-bg" : "card-bg card-bg-default";
 
   const endereco = state.endereco ? esc(state.endereco) : "Insira aqui seu endereço";
+  const disclaimer =
+    state.disclaimer && state.disclaimer.trim()
+      ? esc(state.disclaimer.trim())
+      : esc(DISCLAIMER);
+  const infoCor = corHexValida(state.infoCor);
+  const infoCorCss = infoCor
+    ? `.ci-mesval, .ci-endereco, .cf-endereco { color: ${infoCor}; }`
+    : "";
 
   const slots = (p: CardProduto): string =>
     `<div class="card-slot">${renderProductCard(p)}</div>`;
@@ -76,7 +90,7 @@ export function renderCardHtml(state: CardState): string {
     overlay = `
       <div class="card-topinfo">
         ${mesVal ? `<div class="ci-mesval">${mesVal}</div>` : ""}
-        <div class="ci-disclaimer">${DISCLAIMER}</div>
+        <div class="ci-disclaimer">${disclaimer}</div>
         <div class="ci-endereco">${endereco}</div>
       </div>
       <div class="card-stack" data-count="${count}">
@@ -97,7 +111,7 @@ export function renderCardHtml(state: CardState): string {
       </div>
       <div class="card-footer">
         <div class="cf-rule"></div>
-        <div class="cf-disclaimer">${DISCLAIMER}</div>
+        <div class="cf-disclaimer">${disclaimer}</div>
         <div class="cf-endereco">${endereco}</div>
       </div>`;
   }
@@ -313,6 +327,7 @@ export function renderCardHtml(state: CardState): string {
     width: 78%;
     margin: auto;
   }
+  ${infoCorCss}
 </style>
 </head>
 <body>
