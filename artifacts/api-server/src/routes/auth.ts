@@ -13,6 +13,29 @@ const router: IRouter = Router();
 
 router.get("/login", (req, res) => {
   if (req.session?.authed === true) {
+    if (req.session.perfil === undefined) {
+      req.session.perfil = "operador";
+      req.session.save((error) => {
+        if (error) {
+          req.log.error({ err: error }, "Falha ao atualizar sessão antiga");
+          res.status(500).send("Não foi possível validar a sessão.");
+          return;
+        }
+        res.redirect("/api/");
+      });
+      return;
+    }
+
+    if (
+      req.session.perfil !== "operador" &&
+      req.session.perfil !== "administrador"
+    ) {
+      req.session.destroy(() => {
+        res.redirect("/api/login");
+      });
+      return;
+    }
+
     res.redirect("/api/");
     return;
   }
@@ -70,7 +93,21 @@ router.post("/login", (req, res) => {
 });
 
 router.post("/logout", (req, res) => {
-  req.session.destroy(() => {
+  req.session.destroy((error) => {
+    if (error) {
+      req.log.error({ err: error }, "Falha ao encerrar sessão");
+      res.status(500).json({
+        ok: false,
+        error: "Não foi possível sair. Tente novamente.",
+      });
+      return;
+    }
+    res.clearCookie("encarte.sid", {
+      httpOnly: true,
+      sameSite: "none",
+      secure: true,
+      path: "/",
+    });
     res.json({ ok: true, redirect: "/api/login" });
   });
 });

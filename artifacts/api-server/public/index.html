@@ -629,11 +629,21 @@
       if (logoutBtn) {
         logoutBtn.addEventListener("click", function () {
           fetch("logout", { method: "POST", credentials: "same-origin" })
-            .then(function (r) { return r.json().catch(function () { return {}; }); })
-            .then(function (data) {
-              window.location.href = (data && data.redirect) || "login";
+            .then(function (r) {
+              return r.json().catch(function () { return {}; }).then(function (data) {
+                return { ok: r.ok, data: data };
+              });
             })
-            .catch(function () { window.location.href = "login"; });
+            .then(function (result) {
+              if (!result.ok || !result.data.ok) {
+                alert(result.data.error || "Não foi possível sair. Tente novamente.");
+                return;
+              }
+              window.location.href = result.data.redirect || "login";
+            })
+            .catch(function () {
+              alert("Não foi possível sair. Verifique sua conexão e tente novamente.");
+            });
         });
       }
     })();

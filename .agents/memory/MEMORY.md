@@ -4,3 +4,4 @@
 - [Autosave de fotos anti-perda](autosave-fotos.md) — sendBeacon/keepalive limitam 64KB; fotos salvam por-chave na hora; merge do servidor é aditivo, exclusão só por tombstone.
 - [Recorte de fotos de produto](recorte-fotos-produto.md) — fotos vêm com moldura vazia enorme; auto-trim no cliente (alpha/quase-branco) antes do card, senão o produto fica minúsculo.
 - [Limites do app publicado](limites-app-publicado.md) — ~32MB/120s por requisição em produção; estourou → HTML "Unexpected token '<'"; imagens sempre via EncarteImg (WebP) e trabalho longo em lotes.
+- [Acesso administrativo](admin-access-roles.md) — os dois perfis compartilham as ferramentas e os encartes RS/MS; o perfil não restringe o fluxo existente.
