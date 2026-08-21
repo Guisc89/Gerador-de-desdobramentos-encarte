@@ -12,8 +12,21 @@
       <img class="logo" src="logo-login.png" alt="Farmácias Associadas" />
     </div>
     <h1>Acesso restrito</h1>
-    <p class="subtitle">Informe a senha para acessar o gerador.</p>
+    <p class="subtitle">Escolha o perfil e informe a senha para acessar o gerador.</p>
     <form id="loginForm" autocomplete="off">
+      <fieldset class="profile-choice">
+        <legend>Perfil de acesso</legend>
+        <div class="profile-options">
+          <label class="profile-option">
+            <input type="radio" name="perfil" value="operador" checked />
+            <span>Operador</span>
+          </label>
+          <label class="profile-option">
+            <input type="radio" name="perfil" value="administrador" />
+            <span>Administrador</span>
+          </label>
+        </div>
+      </fieldset>
       <label for="senha">Senha</label>
       <input id="senha" name="senha" type="password" required autofocus />
       <div id="error" class="error hidden"></div>

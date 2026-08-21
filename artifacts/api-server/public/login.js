@@ -3,6 +3,7 @@
   const senhaInput = document.getElementById("senha");
   const errorEl = document.getElementById("error");
   const submitBtn = document.getElementById("submit");
+  const perfilInputs = Array.from(document.querySelectorAll('input[name="perfil"]'));
 
   function showError(msg) {
     errorEl.textContent = msg;
@@ -13,6 +14,14 @@
     errorEl.classList.add("hidden");
   }
 
+  perfilInputs.forEach(function (input) {
+    input.addEventListener("change", function () {
+      clearError();
+      senhaInput.value = "";
+      senhaInput.focus();
+    });
+  });
+
   form.addEventListener("submit", async (ev) => {
     ev.preventDefault();
     clearError();
@@ -22,7 +31,10 @@
       const res = await fetch("/api/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ senha: senhaInput.value }),
+        body: JSON.stringify({
+          perfil: form.elements.perfil.value,
+          senha: senhaInput.value,
+        }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok || !data.ok) {

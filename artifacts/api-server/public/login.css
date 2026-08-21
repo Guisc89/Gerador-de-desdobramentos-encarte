@@ -71,6 +71,59 @@ label {
   letter-spacing: 0.02em;
 }
 
+.profile-choice {
+  margin: 0 0 4px;
+  padding: 0;
+  border: 0;
+}
+
+.profile-choice legend {
+  margin-bottom: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #ffffff;
+  letter-spacing: 0.02em;
+}
+
+.profile-options {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.profile-option {
+  position: relative;
+  cursor: pointer;
+}
+
+.profile-option input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.profile-option span {
+  display: block;
+  padding: 10px 8px;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 10px;
+  color: rgba(255, 255, 255, 0.88);
+  text-align: center;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.profile-option input:checked + span {
+  background: #ffffff;
+  border-color: #ffffff;
+  color: #016b69;
+  font-weight: 700;
+}
+
+.profile-option input:focus-visible + span {
+  outline: 3px solid rgba(255, 255, 255, 0.4);
+  outline-offset: 2px;
+}
+
 input[type="password"] {
   width: 100%;
   padding: 12px 14px;
