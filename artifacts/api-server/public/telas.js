@@ -950,9 +950,6 @@
 
   // ---------- Snapshot / restauração (progresso automático) ----------
   window.__telasSnapshot = function () {
-    if (!telas.length || (telas.length === 1 && telas[0].produtos.every((p) => !p.nome))) {
-      return null;
-    }
     return {
       mes: mesInput.value,
       nomeArquivo: nomeArquivoInput.value,
@@ -981,28 +978,51 @@
   };
 
   window.__telasRestaurar = function (saved) {
-    if (!saved || !Array.isArray(saved.telas) || saved.telas.length === 0) return;
-    if (saved.mes) mesInput.value = saved.mes;
-    if (saved.nomeArquivo) nomeArquivoInput.value = saved.nomeArquivo;
-    if (saved.validadeInicio) validadeInicioInput.value = saved.validadeInicio;
-    if (saved.validadeFim) validadeFimInput.value = saved.validadeFim;
-    if (saved.endereco) enderecoInput.value = saved.endereco;
-    if (saved.disclaimer) disclaimerInput.value = saved.disclaimer;
-    if (saved.infoCor) infoCorInput.value = saved.infoCor;
+    if (!saved || !Array.isArray(saved.telas)) return;
+    if ("mes" in saved) mesInput.value = saved.mes || "";
+    if ("nomeArquivo" in saved) nomeArquivoInput.value = saved.nomeArquivo || "";
+    if ("validadeInicio" in saved) validadeInicioInput.value = saved.validadeInicio || "";
+    if ("validadeFim" in saved) validadeFimInput.value = saved.validadeFim || "";
+    if ("endereco" in saved) enderecoInput.value = saved.endereco || "";
+    if ("disclaimer" in saved) disclaimerInput.value = saved.disclaimer || "";
+    if ("infoCor" in saved) infoCorInput.value = saved.infoCor || "";
     if (saved.bgDataUri) {
       bgDataUri = saved.bgDataUri;
       bgThumb.src = bgDataUri;
       bgThumbWrap.classList.remove("hidden");
       bgRemoveBtn.classList.remove("hidden");
+    } else if ("bgDataUri" in saved) {
+      bgDataUri = null;
+      bgThumb.removeAttribute("src");
+      bgThumbWrap.classList.add("hidden");
+      bgRemoveBtn.classList.add("hidden");
     }
     if (saved.bg2DataUri) {
       bg2DataUri = saved.bg2DataUri;
       bg2Thumb.src = bg2DataUri;
       bg2ThumbWrap.classList.remove("hidden");
       bg2RemoveBtn.classList.remove("hidden");
+    } else if ("bg2DataUri" in saved) {
+      bg2DataUri = null;
+      bg2Thumb.removeAttribute("src");
+      bg2ThumbWrap.classList.add("hidden");
+      bg2RemoveBtn.classList.add("hidden");
     }
     if (window.__encarteCatalogo && Array.isArray(window.__encarteCatalogo.produtos)) {
       catalogo = window.__encarteCatalogo.produtos;
+    }
+    if (saved.telas.length === 0) {
+      telas = [];
+      current = 0;
+      emptyState.classList.remove("hidden");
+      workspace.classList.add("hidden");
+      if (parseInfo) {
+        parseInfo.textContent = "";
+        parseInfo.classList.add("hidden");
+      }
+      previewFrame.srcdoc = "";
+      publishTelas();
+      return;
     }
     telas = saved.telas.map((t) =>
       newTela((t.produtos || []).map((p) => {

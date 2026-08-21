@@ -99,8 +99,19 @@
   // Consume everything set up in the Telas tab: same pages/products/texts/prices
   // and photos. No product data is edited here.
   function mirrorTelas(snapshot) {
-    if (!snapshot || !Array.isArray(snapshot.telas) || snapshot.telas.length === 0)
+    if (!snapshot || !Array.isArray(snapshot.telas)) return;
+    if (snapshot.telas.length === 0) {
+      cards = [];
+      current = 0;
+      emptyState.classList.remove("hidden");
+      workspace.classList.add("hidden");
+      if (parseInfo) {
+        parseInfo.textContent = "";
+        parseInfo.classList.add("hidden");
+      }
+      previewFrame.srcdoc = "";
       return;
+    }
 
     // Fill global info from the telas, only where the card field is still empty
     // (so a card-specific value the user typed isn't clobbered on re-sync).
@@ -549,7 +560,6 @@
 
   // ---------- Snapshot / restauração (progresso automático) ----------
   window.__cardsSnapshot = function () {
-    if (!bgDataUri && !bg2DataUri && !enderecoInput.value.trim() && !nomeArquivoInput.value.trim() && !disclaimerInput.value.trim() && !infoCorInput.value.trim()) return null;
     return {
       bgDataUri: bgDataUri,
       bg2DataUri: bg2DataUri,
@@ -562,21 +572,31 @@
 
   window.__cardsRestaurar = function (saved) {
     if (!saved) return;
-    if (saved.endereco && !enderecoInput.value.trim()) enderecoInput.value = saved.endereco;
-    if (saved.disclaimer && !disclaimerInput.value.trim()) disclaimerInput.value = saved.disclaimer;
-    if (saved.infoCor && !infoCorInput.value.trim()) infoCorInput.value = saved.infoCor;
-    if (saved.nomeArquivo && !nomeArquivoInput.value.trim()) nomeArquivoInput.value = saved.nomeArquivo;
+    if ("endereco" in saved) enderecoInput.value = saved.endereco || "";
+    if ("disclaimer" in saved) disclaimerInput.value = saved.disclaimer || "";
+    if ("infoCor" in saved) infoCorInput.value = saved.infoCor || "";
+    if ("nomeArquivo" in saved) nomeArquivoInput.value = saved.nomeArquivo || "";
     if (saved.bgDataUri) {
       bgDataUri = saved.bgDataUri;
       bgThumb.src = bgDataUri;
       bgThumbWrap.classList.remove("hidden");
       bgRemoveBtn.classList.remove("hidden");
+    } else if ("bgDataUri" in saved) {
+      bgDataUri = null;
+      bgThumb.removeAttribute("src");
+      bgThumbWrap.classList.add("hidden");
+      bgRemoveBtn.classList.add("hidden");
     }
     if (saved.bg2DataUri) {
       bg2DataUri = saved.bg2DataUri;
       bg2Thumb.src = bg2DataUri;
       bg2ThumbWrap.classList.remove("hidden");
       bg2RemoveBtn.classList.remove("hidden");
+    } else if ("bg2DataUri" in saved) {
+      bg2DataUri = null;
+      bg2Thumb.removeAttribute("src");
+      bg2ThumbWrap.classList.add("hidden");
+      bg2RemoveBtn.classList.add("hidden");
     }
     if (window.__encarteTelas) mirrorTelas(window.__encarteTelas);
   };

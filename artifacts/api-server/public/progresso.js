@@ -7,22 +7,49 @@
   var etapaAtual = "precarios";
   var restaurando = false;
   var indicador = null;
+  var estadoVersao = null;
+  var polling = false;
+  var atualizacaoPendente = false;
+  var iniciado = false;
+  window.__encarteEstadoVersao = null;
 
-  // ---------- Sidebar: chip do encarte + finalizar + histórico ----------
+  function setEstadoVersao(version) {
+    estadoVersao = version;
+    window.__encarteEstadoVersao = version;
+  }
+
+  // ---------- Sidebar: seletor administrativo + finalizar + histórico ----------
   function injectSidebar() {
     var brand = document.querySelector(".sidebar-brand");
-    if (brand) {
-      var chip = document.createElement("div");
-      chip.className = "ws-chip";
-      chip.innerHTML =
-        '<span class="ws-chip-label">Encarte <strong>' +
-        window.EncarteWS.nome() +
-        "</strong></span>" +
-        '<button type="button" class="ws-chip-trocar">Trocar</button>';
-      chip.querySelector(".ws-chip-trocar").addEventListener("click", function () {
-        window.EncarteWS.trocar();
+    if (brand && window.EncarteWS.perfil === "administrador") {
+      var switcher = document.createElement("div");
+      switcher.className = "ws-admin-switch";
+      switcher.setAttribute("aria-label", "Alternar encarte");
+      switcher.innerHTML =
+        '<span class="ws-admin-label">Encarte</span>' +
+        '<div class="ws-admin-options">' +
+        '<button type="button" data-ws="rs">RS</button>' +
+        '<button type="button" data-ws="ms">MS</button>' +
+        "</div>";
+      switcher.querySelectorAll("button").forEach(function (button) {
+        var selecionado = button.getAttribute("data-ws") === window.EncarteWS.ws;
+        button.classList.toggle("active", selecionado);
+        button.setAttribute("aria-pressed", selecionado ? "true" : "false");
+        button.addEventListener("click", function () {
+          var novo = button.getAttribute("data-ws");
+          if (novo === window.EncarteWS.ws) return;
+          switcher.querySelectorAll("button").forEach(function (item) {
+            item.disabled = true;
+          });
+          window.EncarteWS.selecionar(novo, true).catch(function () {
+            switcher.querySelectorAll("button").forEach(function (item) {
+              item.disabled = false;
+            });
+            toast("Não foi possível trocar de encarte. Tente novamente.");
+          });
+        });
       });
-      brand.insertAdjacentElement("afterend", chip);
+      brand.insertAdjacentElement("afterend", switcher);
     }
 
     var foot = document.querySelector(".sidebar-foot");
@@ -45,7 +72,7 @@
       var aviso = document.createElement("p");
       aviso.className = "fin-aviso";
       aviso.textContent =
-        "Ao finalizar, o preçário e o PDF auditado atuais são guardados como \"Mês anterior\" e a área fica limpa para a nova campanha.";
+        "Ao finalizar, o preçário atual é guardado como \"Mês anterior\" e a área fica limpa para a nova campanha.";
       acoes.appendChild(aviso);
     }
 
@@ -56,12 +83,11 @@
     var resumo = document.getElementById("finResumo");
     if (!resumo) return;
     resumo.innerHTML = '<p class="fin-carregando">Conferindo o que já foi feito…</p>';
-    Promise.all([
-      fetch("/api/estado").then(function (r) { return r.json(); }).catch(function () { return null; }),
-      fetch("/api/auditado/status").then(function (r) { return r.json(); }).catch(function () { return null; }),
-    ]).then(function (res) {
-      var estado = res[0] || {};
-      var aud = res[1] || {};
+    fetch("/api/estado")
+      .then(function (r) { return r.json(); })
+      .catch(function () { return null; })
+      .then(function (res) {
+      var estado = res || {};
       var sv = estado.servidor || null;
       var f = estado.frontend || {};
       var telas = f.telas && Array.isArray(f.telas.telas) ? f.telas.telas.length : 0;
@@ -80,7 +106,6 @@
             (sv && sv.produtos ? " (" + sv.produtos.length + " produtos)" : ""),
           "Preçário ainda não gerado (etapa 1)",
         ) +
-        item(!!aud.atual, "PDF auditado enviado", "PDF auditado ainda não enviado (etapa 1 — opcional)") +
         item(telas > 0, telas + " telas organizadas", "Telas ainda não organizadas (etapa 2)");
       renderHistorico(estado.historico);
     });
@@ -105,9 +130,7 @@
       "</div><div class='ws-hist-links'>";
     if (meta.temPrecario)
       html += '<a class="btn-download" href="/api/historico/download/precario">Baixar preçário</a>';
-    if (meta.temAuditado)
-      html += '<a class="btn-download" href="/api/historico/download/auditado">Baixar auditado</a>';
-    if (!meta.temPrecario && !meta.temAuditado)
+    if (!meta.temPrecario)
       html += '<span class="ws-hist-vazio">Sem arquivos guardados.</span>';
     body.innerHTML = html + "</div>";
   }
@@ -119,20 +142,40 @@
   }
 
   function finalizarMes() {
+    if (estadoVersao === null) {
+      alert("Aguarde o encarte terminar de carregar antes de finalizar.");
+      return;
+    }
     var ok = confirm(
       "Finalizar o mês do Encarte " + window.EncarteWS.nome() + "?\n\n" +
-        "O material atual (preçário e PDF auditado) vira o \"Mês anterior\" e a área fica limpa para a nova campanha.\n\n" +
+        "O preçário atual vira o \"Mês anterior\" e a área fica limpa para a nova campanha.\n\n" +
         "Atenção: o histórico guarda apenas UM mês — o anterior atual será substituído.",
     );
     if (!ok) return;
-    fetch("/api/finalizar", { method: "POST" })
-      .then(function (r) { return r.json(); })
-      .then(function (data) {
-        if (data && data.ok) {
+    fetch("/api/finalizar", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ version: estadoVersao }),
+    })
+      .then(function (r) {
+        return r.json().catch(function () { return {}; }).then(function (data) {
+          return { ok: r.ok, status: r.status, data: data };
+        });
+      })
+      .then(function (result) {
+        if (result.ok && result.data && result.data.ok) {
           alert("Mês finalizado! A página vai recarregar para começar o novo ciclo.");
           window.location.reload();
+        } else if (result.status === 409 || result.status === 428) {
+          receberAtualizacaoRemota();
+          alert(
+            "O encarte mudou em outra sessão. A versão atual foi carregada; confira antes de finalizar novamente.",
+          );
         } else {
-          alert("Erro ao finalizar: " + ((data && data.error) || "desconhecido"));
+          alert(
+            "Erro ao finalizar: " +
+              ((result.data && result.data.error) || "desconhecido"),
+          );
         }
       })
       .catch(function (err) {
@@ -159,6 +202,7 @@
   var dirty = false;
   var retryDelay = 3000;
   var salvandoAgora = false;
+  var salvandoFoto = false;
 
   function markSaved() {
     if (!indicador) return;
@@ -177,13 +221,17 @@
   }
 
   function saveNow(includeFrontend) {
-    if (salvandoAgora) {
+    if (salvandoAgora || salvandoFoto) {
       // Já existe um save em voo (pode ser um save só de etapa, que não
       // reagenda nada ao terminar) — reagenda explicitamente para não perder.
       if (includeFrontend) scheduleSave(500);
       return Promise.resolve();
     }
-    var body = { etapa: etapaAtual };
+    if (estadoVersao === null || restaurando) {
+      if (includeFrontend) scheduleSave(500);
+      return Promise.resolve();
+    }
+    var body = { etapa: etapaAtual, version: estadoVersao };
     if (includeFrontend) {
       body.frontend = collectFrontend();
       dirty = false; // otimista; refeito em caso de falha
@@ -195,18 +243,27 @@
       body: JSON.stringify(body),
     })
       .then(function (r) {
-        salvandoAgora = false;
-        if (r.ok) {
-          retryDelay = 3000;
-          if (includeFrontend && dirty) {
-            // Chegaram mudanças enquanto salvava — salva de novo em seguida.
-            scheduleSave(1000);
-          } else if (includeFrontend) {
-            markSaved();
+        return r.json().catch(function () { return {}; }).then(function (data) {
+          salvandoAgora = false;
+          if (r.ok) {
+            if (typeof data.version === "string") setEstadoVersao(data.version);
+            retryDelay = 3000;
+            if (atualizacaoPendente) {
+              receberAtualizacaoRemota();
+            } else if (includeFrontend && dirty) {
+              // Chegaram mudanças enquanto salvava — salva de novo em seguida.
+              scheduleSave(1000);
+            } else if (includeFrontend) {
+              markSaved();
+            }
+            return;
           }
-          return;
-        }
-        onSaveError(includeFrontend);
+          if (r.status === 409 || r.status === 428) {
+            receberAtualizacaoRemota();
+            return;
+          }
+          onSaveError(includeFrontend);
+        });
       })
       .catch(function () {
         salvandoAgora = false;
@@ -239,19 +296,42 @@
       document.addEventListener(evt, function () { scheduleSave(); });
     },
   );
+  document.addEventListener("encarte:estado-versao", function (ev) {
+    if (ev && typeof ev.detail === "string") setEstadoVersao(ev.detail);
+  });
+  document.addEventListener("encarte:estado-conflito", function () {
+    receberAtualizacaoRemota();
+  });
   // Fotos são o dado mais precioso (e o mais pesado de refazer). Duas camadas:
   // 1) salva SÓ a foto imediatamente (pacote pequeno, sobrevive a quedas);
   // 2) o autosave completo continua como pano de fundo.
   function salvarFoto(key, foto, tentativa) {
+    if (salvandoAgora || salvandoFoto || estadoVersao === null || restaurando) {
+      setTimeout(function () { salvarFoto(key, foto, tentativa); }, 400);
+      return;
+    }
+    salvandoFoto = true;
     fetch("/api/estado/foto", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ key: key, foto: foto }),
+      body: JSON.stringify({ key: key, foto: foto, version: estadoVersao }),
     })
       .then(function (r) {
-        if (!r.ok) throw new Error("HTTP " + r.status);
+        return r.json().catch(function () { return {}; }).then(function (data) {
+          salvandoFoto = false;
+          if (r.ok) {
+            if (typeof data.version === "string") setEstadoVersao(data.version);
+            return;
+          }
+          if (r.status === 409 || r.status === 428) {
+            receberAtualizacaoRemota();
+            return;
+          }
+          throw new Error("HTTP " + r.status);
+        });
       })
       .catch(function () {
+        salvandoFoto = false;
         var n = (tentativa || 0) + 1;
         if (n <= 3) setTimeout(function () { salvarFoto(key, foto, n); }, n * 2000);
         else markSaveFailed();
@@ -288,7 +368,11 @@
       clearTimeout(saveTimer);
       saveTimer = null;
     }
-    var payload = JSON.stringify({ etapa: etapaAtual, frontend: collectFrontend() });
+    var payload = JSON.stringify({
+      etapa: etapaAtual,
+      frontend: collectFrontend(),
+      version: estadoVersao,
+    });
     var url = "/api/estado?ws=" + window.EncarteWS.ws;
     var enviado = false;
     try {
@@ -333,19 +417,55 @@
     }, 4500);
   }
 
-  function restaurar() {
-    fetch("/api/estado")
-      .then(function (r) { return r.json(); })
+  function receberAtualizacaoRemota() {
+    if (salvandoAgora || salvandoFoto) {
+      atualizacaoPendente = true;
+      return;
+    }
+    atualizacaoPendente = false;
+    if (saveTimer) {
+      clearTimeout(saveTimer);
+      saveTimer = null;
+    }
+    // A versão mais recente vence, conforme a regra de colaboração escolhida.
+    dirty = false;
+    restaurar(true);
+  }
+
+  function restaurar(remoto) {
+    if (restaurando) return Promise.resolve();
+    restaurando = true;
+    return fetch("/api/estado", { cache: "no-store" })
+      .then(function (r) {
+        if (!r.ok) throw new Error("Não foi possível carregar o encarte.");
+        return r.json();
+      })
       .then(function (data) {
         renderHistorico(data && data.historico);
         if (!data) return;
+        if (typeof data.version === "string") setEstadoVersao(data.version);
         var f = data.frontend || {};
         var temAlgo = false;
-        restaurando = true;
+
+        // Estado vazio recebido remotamente significa que outra sessão
+        // finalizou o mês. Recarregar é a forma segura de limpar todos os
+        // módulos que mantêm estado interno próprio.
+        if (
+          remoto &&
+          !data.servidor &&
+          Object.keys(f).length === 0
+        ) {
+          window.location.reload();
+          return;
+        }
+
         try {
-          if (f.fotos && typeof f.fotos === "object") window.__encarteFotos = f.fotos;
+          window.__encarteFotos =
+            f.fotos && typeof f.fotos === "object" ? f.fotos : {};
           if (f.catalogo && Array.isArray(f.catalogo.produtos)) {
             window.__encarteCatalogo = f.catalogo;
+          } else {
+            window.__encarteCatalogo = null;
           }
           if (data.servidor && Array.isArray(data.servidor.produtos) && data.servidor.produtos.length > 0) {
             temAlgo = true;
@@ -371,27 +491,67 @@
         }
         // Migração única: fotos grandes salvas antes da compressão existir são
         // comprimidas agora e re-salvas (leves) via evento "encarte:fotos".
-        if (window.EncarteImg) {
+        if (!remoto && window.EncarteImg) {
           setTimeout(function () { window.EncarteImg.comprimirMapaFotos(); }, 2000);
         }
-        if (data.etapa && data.etapa !== "precarios") {
+        if (data.etapa) {
           etapaAtual = data.etapa;
           abrirEtapa(data.etapa);
         }
         if (temAlgo) {
           var nomes = { precarios: "Preçário", telas: "Telas", cards: "Cards", stories: "Stories", finalizar: "Finalizar" };
-          toast(
-            "Encarte " + window.EncarteWS.nome() + ": retomando de onde você parou (" +
-              (nomes[data.etapa] || "Preçários") + ").",
-          );
+          if (remoto) {
+            toast("Encarte " + window.EncarteWS.nome() + " atualizado por outra sessão.");
+          } else {
+            toast(
+              "Encarte " + window.EncarteWS.nome() + ": retomando de onde você parou (" +
+                (nomes[data.etapa] || "Preçários") + ").",
+            );
+          }
         }
       })
-      .catch(function () {});
+      .catch(function () {
+        restaurando = false;
+      });
+  }
+
+  function consultarAtualizacoes() {
+    if (
+      polling ||
+      restaurando ||
+      estadoVersao === null ||
+      document.visibilityState === "hidden"
+    ) {
+      return;
+    }
+    polling = true;
+    fetch("/api/estado/versao", { cache: "no-store" })
+      .then(function (r) {
+        if (!r.ok) throw new Error("Falha ao consultar versão");
+        return r.json();
+      })
+      .then(function (data) {
+        if (
+          data &&
+          typeof data.version === "string" &&
+          data.version !== estadoVersao
+        ) {
+          receberAtualizacaoRemota();
+        }
+      })
+      .catch(function () {})
+      .finally(function () {
+        polling = false;
+      });
   }
 
   function iniciar() {
+    if (iniciado) return;
+    iniciado = true;
     injectSidebar();
-    restaurar();
+    restaurar(false).then(function () {
+      setInterval(consultarAtualizacoes, 3000);
+    });
   }
 
   if (window.EncarteWS.escolhido) {

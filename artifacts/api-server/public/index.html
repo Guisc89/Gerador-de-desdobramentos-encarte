@@ -16,7 +16,7 @@
       <nav class="nav nav-steps" id="tabs">
         <button type="button" class="nav-item active" data-panel="precarios">
           <span class="step-num">1</span>
-          <span class="step-label">Preçário<small>Planilha, PDF e auditado</small></span>
+          <span class="step-label">Preçário<small>Planilha e PDF</small></span>
         </button>
         <button type="button" class="nav-item" data-panel="telas">
           <span class="step-num">2</span>
@@ -87,20 +87,6 @@
 
         <button id="submit" type="submit">Gerar PDF</button>
       </form>
-
-      <section id="auditadoSection" class="auditado-section">
-        <h2>Preçário auditado</h2>
-        <p class="auditado-hint">
-          Envie aqui o preçário em PDF já conferido. Ele passa a ser o arquivo
-          entregue no botão <strong>Baixar PDF</strong>, no lugar do gerado.
-          Guardamos apenas o do mês atual e o do mês anterior.
-        </p>
-        <div class="auditado-upload">
-          <input id="auditadoFile" type="file" accept=".pdf" />
-          <button id="auditadoEnviar" type="button">Enviar PDF auditado</button>
-        </div>
-        <div id="auditadoStatus" class="auditado-status"></div>
-      </section>
 
       <section id="status" class="status hidden">
         <h2>Status</h2>

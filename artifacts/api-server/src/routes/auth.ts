@@ -81,6 +81,8 @@ router.post("/login", (req, res) => {
 
     req.session.authed = true;
     req.session.perfil = perfil;
+    req.session.workspaceConfirmado = perfil === "administrador";
+    delete req.session.workspace;
     req.session.save((saveError) => {
       if (saveError) {
         req.log.error({ err: saveError }, "Falha ao salvar sessão");
@@ -89,6 +91,57 @@ router.post("/login", (req, res) => {
       }
       res.json({ ok: true, redirect: "/api/" });
     });
+  });
+});
+
+router.get("/session", (req, res) => {
+  if (
+    req.session?.authed !== true ||
+    (req.session.perfil !== "operador" &&
+      req.session.perfil !== "administrador")
+  ) {
+    res.status(401).json({ error: "Não autenticado" });
+    return;
+  }
+
+  res.json({
+    ok: true,
+    perfil: req.session.perfil,
+    workspaceConfirmado:
+      req.session.perfil === "administrador" ||
+      req.session.workspaceConfirmado === true,
+    workspace:
+      req.session.workspace === "rs" || req.session.workspace === "ms"
+        ? req.session.workspace
+        : null,
+  });
+});
+
+router.post("/session/workspace", (req, res) => {
+  if (
+    req.session?.authed !== true ||
+    (req.session.perfil !== "operador" &&
+      req.session.perfil !== "administrador")
+  ) {
+    res.status(401).json({ error: "Não autenticado" });
+    return;
+  }
+
+  const workspace = req.body?.workspace;
+  if (workspace !== "rs" && workspace !== "ms") {
+    res.status(400).json({ error: "Encarte inválido." });
+    return;
+  }
+
+  req.session.workspace = workspace;
+  req.session.workspaceConfirmado = true;
+  req.session.save((error) => {
+    if (error) {
+      req.log.error({ err: error }, "Falha ao confirmar encarte da sessão");
+      res.status(500).json({ error: "Não foi possível abrir o encarte." });
+      return;
+    }
+    res.json({ ok: true, workspace });
   });
 });
 

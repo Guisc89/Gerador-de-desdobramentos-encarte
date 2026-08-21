@@ -9,14 +9,15 @@
     get ws() {
       return ws || "rs";
     },
-    escolhido: !!ws,
+    escolhido: false,
+    perfil: null,
     nome: function () {
       return (ws || "rs").toUpperCase();
     },
     trocar: function () {
-      var overlay = buildOverlay(true);
-      document.body.appendChild(overlay);
+      document.body.appendChild(buildOverlay(true));
     },
+    selecionar: selecionar,
   };
 
   function setWs(novo) {
@@ -31,7 +32,9 @@
       var url = typeof input === "string" ? input : input && input.url;
       if (url && url.indexOf("/api/") === 0) {
         init = init || {};
-        var headers = new Headers(init.headers || (typeof input !== "string" && input.headers) || {});
+        var headers = new Headers(
+          init.headers || (typeof input !== "string" && input.headers) || {},
+        );
         headers.set("X-Encarte", window.EncarteWS.ws);
         init.headers = headers;
       }
@@ -57,17 +60,41 @@
     true,
   );
 
+  function selecionar(novo, recarregar) {
+    if (novo !== "rs" && novo !== "ms") return Promise.reject(new Error("Encarte inválido"));
+    var anterior = ws;
+    return fetch("/api/session/workspace", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ workspace: novo }),
+    })
+      .then(function (res) {
+        if (!res.ok) throw new Error("Não foi possível abrir o encarte.");
+        return res.json();
+      })
+      .then(function () {
+        setWs(novo);
+        window.EncarteWS.escolhido = true;
+        if (recarregar && anterior !== novo) {
+          window.location.reload();
+          return;
+        }
+        document.dispatchEvent(new CustomEvent("encarte:ws-escolhido"));
+      });
+  }
+
   function buildOverlay(isTroca) {
     var overlay = document.createElement("div");
     overlay.className = "ws-overlay";
     overlay.innerHTML =
       '<div class="ws-modal">' +
       "<h2>Qual encarte você vai trabalhar?</h2>" +
-      '<p class="ws-hint">Cada encarte guarda seu próprio progresso: planilha, preçário, telas, cards, stories e PDF auditado.</p>' +
+      '<p class="ws-hint">Cada encarte guarda seu próprio progresso: planilha, preçário, telas, cards e stories.</p>' +
       '<div class="ws-options">' +
       '<button type="button" class="ws-opt" data-ws="rs"><strong>Encarte RS</strong><span>Rio Grande do Sul</span></button>' +
       '<button type="button" class="ws-opt" data-ws="ms"><strong>Encarte MS</strong><span>Mato Grosso do Sul</span></button>' +
       "</div>" +
+      '<p class="ws-choice-error" role="alert"></p>' +
       (isTroca
         ? '<button type="button" class="ws-cancel">Cancelar</button>'
         : "") +
@@ -76,19 +103,20 @@
       if (btn.getAttribute("data-ws") === ws) btn.classList.add("ws-opt-atual");
       btn.addEventListener("click", function () {
         var novo = btn.getAttribute("data-ws");
-        var mudou = novo !== ws;
-        setWs(novo);
-        window.EncarteWS.escolhido = true;
-        overlay.remove();
-        // A escolha vale para toda a sessão do navegador: recarregamentos não
-        // perguntam de novo; só uma nova visita (nova aba/sessão) pergunta.
-        try { sessionStorage.setItem("encarteWSPronto", "1"); } catch (_) {}
-        if (mudou) {
-          // Recarrega para que tudo (dados já buscados) aponte pro encarte certo.
-          window.location.reload();
-          return;
-        }
-        document.dispatchEvent(new CustomEvent("encarte:ws-escolhido"));
+        var botoes = overlay.querySelectorAll("button");
+        var erro = overlay.querySelector(".ws-choice-error");
+        botoes.forEach(function (item) { item.disabled = true; });
+        if (erro) erro.textContent = "";
+        selecionar(novo, isTroca)
+          .then(function () {
+            overlay.remove();
+          })
+          .catch(function (error) {
+            botoes.forEach(function (item) { item.disabled = false; });
+            if (erro) erro.textContent = error && error.message
+              ? error.message
+              : "Não foi possível abrir o encarte.";
+          });
       });
     });
     var cancel = overlay.querySelector(".ws-cancel");
@@ -96,19 +124,40 @@
     return overlay;
   }
 
-  // A escolha do encarte é SEMPRE a primeira tela ao entrar no sistema
-  // (exceto logo após trocar de encarte, para não perguntar duas vezes).
-  window.EncarteWS.escolhido = false;
+  // O servidor registra a escolha por sessão. Assim o Operador sempre escolhe
+  // após um novo login, mas um simples recarregamento não pergunta novamente.
   document.addEventListener("DOMContentLoaded", function () {
-    var pronto = false;
-    try {
-      pronto = sessionStorage.getItem("encarteWSPronto") === "1";
-    } catch (_) {}
-    if (pronto && ws) {
-      window.EncarteWS.escolhido = true;
-      document.dispatchEvent(new CustomEvent("encarte:ws-escolhido"));
-    } else {
-      document.body.appendChild(buildOverlay(false));
-    }
+    fetch("/api/session")
+      .then(function (res) {
+        if (!res.ok) throw new Error("Sessão inválida");
+        return res.json();
+      })
+      .then(function (session) {
+        window.EncarteWS.perfil = session.perfil;
+        if (session.perfil === "administrador") {
+          if (session.workspace === "rs" || session.workspace === "ms") {
+            setWs(session.workspace);
+          } else if (!ws) {
+            setWs("rs");
+          }
+          window.EncarteWS.escolhido = true;
+          document.dispatchEvent(new CustomEvent("encarte:ws-escolhido"));
+          return;
+        }
+
+        if (
+          session.workspaceConfirmado &&
+          (session.workspace === "rs" || session.workspace === "ms")
+        ) {
+          setWs(session.workspace);
+          window.EncarteWS.escolhido = true;
+          document.dispatchEvent(new CustomEvent("encarte:ws-escolhido"));
+          return;
+        }
+        document.body.appendChild(buildOverlay(false));
+      })
+      .catch(function () {
+        window.location.href = "/api/login";
+      });
   });
 })();

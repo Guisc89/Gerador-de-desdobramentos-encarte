@@ -701,73 +701,6 @@ button:disabled {
 .tela-preview-col .tela-info { margin: 0 12px 12px; }
 .tela-preview-col .product-remove { font-size: 12px; }
 
-/* ---------- Preçário auditado ---------- */
-.auditado-section {
-  margin-top: 24px;
-  padding: 18px 20px;
-  border: 1px solid #dce3ea;
-  border-radius: 10px;
-  background: #f8fafc;
-}
-.auditado-section h2 {
-  margin: 0 0 6px;
-  font-size: 1.05rem;
-}
-.auditado-hint {
-  margin: 0 0 12px;
-  color: #5b6773;
-  font-size: 0.9rem;
-}
-.auditado-upload {
-  display: flex;
-  gap: 10px;
-  align-items: center;
-  flex-wrap: wrap;
-}
-.auditado-status {
-  margin-top: 12px;
-  display: grid;
-  gap: 8px;
-}
-.auditado-item {
-  display: flex;
-  gap: 10px;
-  align-items: center;
-  flex-wrap: wrap;
-  padding: 8px 12px;
-  border: 1px solid #d7e3d9;
-  border-radius: 8px;
-  background: #eef7f0;
-  font-size: 0.9rem;
-}
-.auditado-item .tag {
-  font-weight: 700;
-  color: #1c7c3c;
-}
-.auditado-item a {
-  color: #145c9e;
-}
-.auditado-item button {
-  background: none;
-  border: none;
-  color: #a33;
-  cursor: pointer;
-  font-size: 0.85rem;
-  text-decoration: underline;
-  padding: 0;
-}
-.auditado-badge {
-  display: inline-block;
-  margin-left: 8px;
-  padding: 2px 8px;
-  border-radius: 999px;
-  background: #1c7c3c;
-  color: #fff;
-  font-size: 0.72rem;
-  font-weight: 700;
-  vertical-align: middle;
-}
-
 /* ---------- Colar imagem (telas) ---------- */
 .foto-input-row {
   display: flex;
@@ -850,9 +783,15 @@ button:disabled {
   text-decoration: underline;
   cursor: pointer;
 }
+.ws-choice-error {
+  min-height: 1.2em;
+  margin: 12px 0 0;
+  color: #b42318;
+  font-size: 0.82rem;
+}
 
-/* chip na sidebar */
-.ws-chip {
+/* seletor RS/MS do administrador, logo abaixo da marca */
+.ws-admin-switch {
   margin: 10px 12px 4px;
   padding: 8px 10px;
   border-radius: 8px;
@@ -864,17 +803,35 @@ button:disabled {
   color: #fff;
   font-size: 0.85rem;
 }
-.ws-chip-trocar {
-  background: none;
-  border: 1px solid rgba(255, 255, 255, 0.4);
+.ws-admin-label {
+  font-weight: 600;
+}
+.ws-admin-options {
+  display: flex;
+  gap: 4px;
+}
+.ws-admin-options button {
+  min-width: 34px;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.45);
   color: #fff;
   border-radius: 6px;
-  padding: 2px 8px;
+  padding: 4px 7px;
   font-size: 0.75rem;
+  font-weight: 700;
   cursor: pointer;
 }
-.ws-chip-trocar:hover {
+.ws-admin-options button:hover:not(:disabled) {
   background: rgba(255, 255, 255, 0.15);
+}
+.ws-admin-options button.active {
+  border-color: #fff;
+  background: #fff;
+  color: #0d665f;
+}
+.ws-admin-options button:disabled {
+  cursor: wait;
+  opacity: 0.65;
 }
 
 /* indicador + finalizar + histórico */

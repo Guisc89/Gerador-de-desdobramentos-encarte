@@ -4,6 +4,8 @@ declare module "express-session" {
   interface SessionData {
     authed?: boolean;
     perfil?: "operador" | "administrador";
+    workspaceConfirmado?: boolean;
+    workspace?: "rs" | "ms";
   }
 }
 

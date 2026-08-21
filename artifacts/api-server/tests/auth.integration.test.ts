@@ -211,6 +211,86 @@ test("administrador entra e acessa RS e MS sem trocar o perfil", async () => {
   }
 });
 
+test("operador escolhe um encarte uma vez por login", async () => {
+  const server = await startServer();
+  try {
+    const authenticated = await login(
+      server.baseUrl,
+      "operador",
+      OPERATOR_PASSWORD,
+    );
+    assert.ok(authenticated.cookie);
+
+    const beforeChoice = await request(server.baseUrl, "/api/session", {
+      cookie: authenticated.cookie,
+    });
+    assert.deepEqual(beforeChoice.body, {
+      ok: true,
+      perfil: "operador",
+      workspaceConfirmado: false,
+      workspace: null,
+    });
+
+    const choice = await request(
+      server.baseUrl,
+      "/api/session/workspace",
+      {
+        method: "POST",
+        cookie: authenticated.cookie,
+        json: { workspace: "ms" },
+      },
+    );
+    assert.deepEqual(choice.body, { ok: true, workspace: "ms" });
+
+    const afterChoice = await request(server.baseUrl, "/api/session", {
+      cookie: authenticated.cookie,
+    });
+    assert.deepEqual(afterChoice.body, {
+      ok: true,
+      perfil: "operador",
+      workspaceConfirmado: true,
+      workspace: "ms",
+    });
+
+    const invalidChoice = await request(
+      server.baseUrl,
+      "/api/session/workspace",
+      {
+        method: "POST",
+        cookie: authenticated.cookie,
+        json: { workspace: "sp" },
+      },
+    );
+    assert.equal(invalidChoice.status, 400);
+  } finally {
+    await server.close();
+  }
+});
+
+test("administrador recebe o perfil usado pelo seletor permanente", async () => {
+  const server = await startServer();
+  try {
+    const authenticated = await login(
+      server.baseUrl,
+      "administrador",
+      TEST_ADMIN_PASSWORD,
+    );
+    assert.ok(authenticated.cookie);
+
+    const sessionInfo = await request(server.baseUrl, "/api/session", {
+      cookie: authenticated.cookie,
+    });
+    assert.deepEqual(sessionInfo.body, {
+      ok: true,
+      perfil: "administrador",
+      workspaceConfirmado: true,
+      workspace: null,
+    });
+  } finally {
+    await server.close();
+  }
+});
+
 test("senhas inválidas e perfis desconhecidos são recusados", async () => {
   const server = await startServer();
   try {
@@ -491,6 +571,12 @@ test("a seleção no navegador mantém RS e MS separados em cada requisição", 
   assert.equal(ms.header, "ms");
   assert.match(rs.source, /data-ws="rs"/);
   assert.match(rs.source, /data-ws="ms"/);
+  assert.match(rs.source, /fetch\("\/api\/session"/);
+  assert.doesNotMatch(
+    rs.source,
+    /encarteWSPronto/,
+    "a escolha não pode depender de sessionStorage antigo",
+  );
 });
 
 test("arquivos com o mesmo nome permanecem separados entre RS e MS", async () => {
