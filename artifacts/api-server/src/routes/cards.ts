@@ -1,8 +1,5 @@
 import { Router, type IRouter } from "express";
 import multer from "multer";
-import path from "node:path";
-import fs from "node:fs/promises";
-import { existsSync } from "node:fs";
 import { parseExcel } from "../services/excelParser";
 import {
   renderCardHtml,
@@ -10,14 +7,10 @@ import {
   type CardProduto,
 } from "../services/cardTemplate";
 import { htmlToPng, htmlToPngBatch, pngsToPdf } from "../services/pdfGenerator";
+import { writeGeneratedFile } from "../services/generatedFiles";
+import { workspaceFromRequest } from "../services/workspace";
 
 const router: IRouter = Router();
-
-const OUTPUT_DIR = path.resolve(process.cwd(), "output");
-if (!existsSync(OUTPUT_DIR)) {
-  // eslint-disable-next-line @typescript-eslint/no-floating-promises
-  fs.mkdir(OUTPUT_DIR, { recursive: true });
-}
 
 // Cards are portrait 3:4 (1080x1440). One PNG page per feed card; the PDF binds
 // all non-empty pages, one card per portrait page.
@@ -210,8 +203,11 @@ router.post("/cards/generate", async (req, res) => {
       (req.body as Record<string, unknown>)?.["nomeArquivo"],
     );
     const filename = `${safeName(nomeArquivo || "card")}.png`;
-    const filepath = path.join(OUTPUT_DIR, filename);
-    await fs.writeFile(filepath, png);
+    const filepath = await writeGeneratedFile(
+      workspaceFromRequest(req),
+      filename,
+      png,
+    );
 
     req.log.info(
       { filepath, sizeBytes: png.length, produtos: state.produtos.length },
@@ -287,11 +283,11 @@ router.post("/cards/generate-all", async (req, res) => {
     });
 
     const arquivos: { filename: string; downloadUrl: string }[] = [];
+    const ws = workspaceFromRequest(req);
     for (let i = 0; i < valid.length; i += 1) {
       const num = String(valid[i].index + 1).padStart(2, "0");
       const filename = `${baseName}_card_${num}.png`;
-      const filepath = path.join(OUTPUT_DIR, filename);
-      await fs.writeFile(filepath, pngs[i]);
+      await writeGeneratedFile(ws, filename, pngs[i]);
       arquivos.push({
         filename,
         downloadUrl: `/api/download/${encodeURIComponent(filename)}`,
@@ -363,8 +359,7 @@ router.post("/cards/generate-pdf", async (req, res) => {
     const pdf = await pngsToPdf(pngs, { width: CARD_WIDTH, height: CARD_HEIGHT });
 
     const filename = `${baseName}_cards.pdf`;
-    const filepath = path.join(OUTPUT_DIR, filename);
-    await fs.writeFile(filepath, pdf);
+    await writeGeneratedFile(workspaceFromRequest(req), filename, pdf);
 
     req.log.info(
       { filename, cards: valid.length, vazias, sizeBytes: pdf.length },

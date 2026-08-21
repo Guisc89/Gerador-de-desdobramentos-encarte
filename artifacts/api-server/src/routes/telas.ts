@@ -1,8 +1,5 @@
 import { Router, type IRouter } from "express";
 import multer from "multer";
-import path from "node:path";
-import fs from "node:fs/promises";
-import { existsSync } from "node:fs";
 import { parseExcel } from "../services/excelParser";
 import {
   renderTelaHtml,
@@ -18,14 +15,17 @@ import {
   storeDelete,
   storeListPrefix,
 } from "../services/objectStore";
+import {
+  generatedObjectPath,
+  writeGeneratedFile,
+} from "../services/generatedFiles";
+import {
+  parseWorkspace,
+  type Workspace,
+  workspaceFromRequest,
+} from "../services/workspace";
 
 const router: IRouter = Router();
-
-const OUTPUT_DIR = path.resolve(process.cwd(), "output");
-if (!existsSync(OUTPUT_DIR)) {
-  // eslint-disable-next-line @typescript-eslint/no-floating-promises
-  fs.mkdir(OUTPUT_DIR, { recursive: true });
-}
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -187,8 +187,11 @@ router.post("/telas/generate", async (req, res) => {
 
     const nomeArquivo = str((req.body as Record<string, unknown>)?.["nomeArquivo"]);
     const filename = `${safeName(nomeArquivo || "tela")}.png`;
-    const filepath = path.join(OUTPUT_DIR, filename);
-    await fs.writeFile(filepath, png);
+    const filepath = await writeGeneratedFile(
+      workspaceFromRequest(req),
+      filename,
+      png,
+    );
 
     req.log.info(
       { filepath, sizeBytes: png.length, produtos: state.produtos.length },
@@ -251,11 +254,11 @@ router.post("/telas/generate-all", async (req, res) => {
     });
 
     const arquivos: { filename: string; downloadUrl: string }[] = [];
+    const ws = workspaceFromRequest(req);
     for (let i = 0; i < valid.length; i += 1) {
       const num = String(valid[i].index + 1).padStart(2, "0");
       const filename = `${baseName}_tela_${num}.png`;
-      const filepath = path.join(OUTPUT_DIR, filename);
-      await fs.writeFile(filepath, pngs[i]);
+      await writeGeneratedFile(ws, filename, pngs[i]);
       arquivos.push({
         filename,
         downloadUrl: `/api/download/${encodeURIComponent(filename)}`,
@@ -311,8 +314,7 @@ router.post("/telas/generate-pdf", async (req, res) => {
     const pdf = await pngsToPdf(pngs);
 
     const filename = `${baseName}_telas.pdf`;
-    const filepath = path.join(OUTPUT_DIR, filename);
-    await fs.writeFile(filepath, pdf);
+    await writeGeneratedFile(workspaceFromRequest(req), filename, pdf);
 
     req.log.info(
       { filename, telas: valid.length, vazias, sizeBytes: pdf.length },
@@ -346,6 +348,7 @@ interface LoteJob {
   criadoEm: number;
   baseName: string;
   modo: "pdf" | "png";
+  ws: Workspace;
   // Estado + fila: as rotas do mesmo job rodam uma por vez (o cliente envia
   // as partes em sequência, mas retentativas/replays podem chegar em paralelo)
   // e depois que o /fim começa nenhuma /parte tardia é aceita.
@@ -356,6 +359,7 @@ interface LoteJobMeta {
   criadoEm: number;
   baseName: string;
   modo: "pdf" | "png";
+  ws: Workspace;
 }
 const loteJobs = new Map<string, LoteJob>();
 const LOTE_TTL_MS = 30 * 60 * 1000;
@@ -437,6 +441,7 @@ async function obterJob(jobId: string): Promise<LoteJob | null> {
     criadoEm: meta.criadoEm,
     baseName: meta.baseName,
     modo: meta.modo === "png" ? "png" : "pdf",
+    ws: parseWorkspace(meta.ws),
     finalizado: false,
     fila: Promise.resolve(),
   };
@@ -453,6 +458,7 @@ router.post("/telas/lote/inicio", async (req, res) => {
       criadoEm: Date.now(),
       baseName: safeName(str(body["nomeArquivo"]) || "tela"),
       modo: str(body["modo"]) === "png" ? "png" : "pdf",
+      ws: workspaceFromRequest(req),
     };
     loteJobs.set(jobId, {
       id: jobId,
@@ -472,7 +478,11 @@ router.post("/telas/lote/parte", async (req, res) => {
   try {
     const body = (req.body ?? {}) as Record<string, unknown>;
     const job = await obterJob(str(body["jobId"]));
-    if (!job || job.finalizado) {
+    if (
+      !job ||
+      job.finalizado ||
+      job.ws !== workspaceFromRequest(req)
+    ) {
       res.status(404).json({ error: "Geração expirada. Tente novamente." });
       return;
     }
@@ -533,6 +543,11 @@ router.post("/telas/lote/parte", async (req, res) => {
 router.post("/telas/lote/fim", async (req, res) => {
   const body = (req.body ?? {}) as Record<string, unknown>;
   const jobId = str(body["jobId"]);
+  const job = await obterJob(jobId);
+  if (!job || job.ws !== workspaceFromRequest(req)) {
+    res.status(404).json({ error: "Geração expirada. Tente novamente." });
+    return;
+  }
   // Idempotência entre máquinas: se este job já foi finalizado (por esta ou
   // outra instância) devolve o mesmo resultado — cobre o caso de a resposta
   // original se perder na rede e o cliente repetir o /fim.
@@ -545,8 +560,7 @@ router.post("/telas/lote/fim", async (req, res) => {
       return;
     }
   }
-  const job = await obterJob(jobId);
-  if (!job || job.finalizado) {
+  if (job.finalizado) {
     res.status(404).json({ error: "Geração expirada. Tente novamente." });
     return;
   }
@@ -584,8 +598,12 @@ router.post("/telas/lote/fim", async (req, res) => {
           const buf = await carregar(index);
           // Persiste onde o download consegue achar de qualquer máquina, e
           // também no disco local (atalho para o dev/mesma máquina).
-          await storeSave(`arquivos/${filename}`, buf, "image/png");
-          await fs.writeFile(path.join(OUTPUT_DIR, filename), buf);
+          await storeSave(
+            generatedObjectPath(job.ws, filename),
+            buf,
+            "image/png",
+          );
+          await writeGeneratedFile(job.ws, filename, buf);
           arquivos.push({
             filename,
             downloadUrl: `/api/download/${encodeURIComponent(filename)}`,
@@ -602,8 +620,12 @@ router.post("/telas/lote/fim", async (req, res) => {
       for (const index of indices) imgs.push(await carregar(index));
       const pdf = await pngsToPdf(imgs);
       const filename = `${job.baseName}_telas.pdf`;
-      await storeSave(`arquivos/${filename}`, pdf, "application/pdf");
-      await fs.writeFile(path.join(OUTPUT_DIR, filename), pdf);
+      await storeSave(
+        generatedObjectPath(job.ws, filename),
+        pdf,
+        "application/pdf",
+      );
+      await writeGeneratedFile(job.ws, filename, pdf);
       req.log.info(
         { filename, telas: indices.length, vazias, sizeBytes: pdf.length },
         "PDF das telas gerado (lote)",

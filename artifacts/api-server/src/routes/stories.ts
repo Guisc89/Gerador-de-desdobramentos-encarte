@@ -1,8 +1,5 @@
 import { Router, type IRouter } from "express";
 import multer from "multer";
-import path from "node:path";
-import fs from "node:fs/promises";
-import { existsSync } from "node:fs";
 import { parseExcel } from "../services/excelParser";
 import {
   renderStoryHtml,
@@ -10,14 +7,10 @@ import {
   type StoryProduto,
 } from "../services/storyTemplate";
 import { htmlToPng, htmlToPngBatch, pngsToPdf } from "../services/pdfGenerator";
+import { writeGeneratedFile } from "../services/generatedFiles";
+import { workspaceFromRequest } from "../services/workspace";
 
 const router: IRouter = Router();
-
-const OUTPUT_DIR = path.resolve(process.cwd(), "output");
-if (!existsSync(OUTPUT_DIR)) {
-  // eslint-disable-next-line @typescript-eslint/no-floating-promises
-  fs.mkdir(OUTPUT_DIR, { recursive: true });
-}
 
 // Stories are portrait 9:16 (1080x1920). One PNG page per story; the PDF binds
 // all non-empty pages, one story per portrait page.
@@ -210,8 +203,11 @@ router.post("/stories/generate", async (req, res) => {
       (req.body as Record<string, unknown>)?.["nomeArquivo"],
     );
     const filename = `${safeName(nomeArquivo || "story")}.png`;
-    const filepath = path.join(OUTPUT_DIR, filename);
-    await fs.writeFile(filepath, png);
+    const filepath = await writeGeneratedFile(
+      workspaceFromRequest(req),
+      filename,
+      png,
+    );
 
     req.log.info(
       { filepath, sizeBytes: png.length, produtos: state.produtos.length },
@@ -287,11 +283,11 @@ router.post("/stories/generate-all", async (req, res) => {
     });
 
     const arquivos: { filename: string; downloadUrl: string }[] = [];
+    const ws = workspaceFromRequest(req);
     for (let i = 0; i < valid.length; i += 1) {
       const num = String(valid[i].index + 1).padStart(2, "0");
       const filename = `${baseName}_story_${num}.png`;
-      const filepath = path.join(OUTPUT_DIR, filename);
-      await fs.writeFile(filepath, pngs[i]);
+      await writeGeneratedFile(ws, filename, pngs[i]);
       arquivos.push({
         filename,
         downloadUrl: `/api/download/${encodeURIComponent(filename)}`,
@@ -366,8 +362,7 @@ router.post("/stories/generate-pdf", async (req, res) => {
     });
 
     const filename = `${baseName}_stories.pdf`;
-    const filepath = path.join(OUTPUT_DIR, filename);
-    await fs.writeFile(filepath, pdf);
+    await writeGeneratedFile(workspaceFromRequest(req), filename, pdf);
 
     req.log.info(
       { filename, stories: valid.length, vazias, sizeBytes: pdf.length },

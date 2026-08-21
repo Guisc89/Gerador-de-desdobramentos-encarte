@@ -1,4 +1,8 @@
 import { Storage } from "@google-cloud/storage";
+export {
+  parseWorkspace,
+  type Workspace,
+} from "./workspace";
 
 // GCS client authenticated via the Replit sidecar (works in dev and in the
 // published deployment). Do not modify the credential setup.
@@ -21,13 +25,6 @@ export const storageClient = new Storage({
   },
   projectId: "",
 });
-
-/** Workspaces (encartes) supported by the app. */
-export type Workspace = "rs" | "ms";
-
-export function parseWorkspace(value: unknown): Workspace {
-  return value === "ms" ? "ms" : "rs";
-}
 
 /** Resolve PRIVATE_OBJECT_DIR into bucket + base prefix. */
 export function privateBase(): { bucket: string; prefix: string } {

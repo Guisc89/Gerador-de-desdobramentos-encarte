@@ -1,7 +1,6 @@
 import { Router, type IRouter } from "express";
 import multer from "multer";
 import path from "node:path";
-import fs from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { parseExcel, type Produto } from "../services/excelParser";
 import {
@@ -11,10 +10,15 @@ import {
   removeAuditado,
 } from "../services/auditadoStorage";
 import {
-  parseWorkspace,
   storeLoad,
   type Workspace,
 } from "../services/objectStore";
+import { workspaceFromRequest } from "../services/workspace";
+import {
+  generatedFilePath,
+  generatedObjectPath,
+  writeGeneratedFile,
+} from "../services/generatedFiles";
 import {
   getEstado,
   mergeEstado,
@@ -31,13 +35,6 @@ import { renderEncarteHtml, type EncarteBg } from "../services/encarteTemplate";
 import { htmlToPdf } from "../services/pdfGenerator";
 
 const router: IRouter = Router();
-
-const OUTPUT_DIR = path.resolve(process.cwd(), "output");
-if (!existsSync(OUTPUT_DIR)) {
-  // synchronous mkdir is fine at startup
-  // eslint-disable-next-line @typescript-eslint/no-floating-promises
-  fs.mkdir(OUTPUT_DIR, { recursive: true });
-}
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -67,13 +64,7 @@ interface MemState {
 
 const mem = new Map<Workspace, MemState>();
 
-function wsOf(req: {
-  headers: Record<string, unknown>;
-  query?: Record<string, unknown>;
-}): Workspace {
-  // Query param takes precedence (iframes and <a> links can't set headers).
-  return parseWorkspace(req.query?.["ws"] ?? req.headers["x-encarte"]);
-}
+const wsOf = workspaceFromRequest;
 
 function memOf(ws: Workspace): MemState {
   let st = mem.get(ws);
@@ -189,8 +180,7 @@ router.post("/upload", upload.single("planilha"), async (req, res) => {
 
     const filename = `${safeName(nomeArquivoRaw)}.pdf`;
     st.filename = filename;
-    const filepath = path.join(OUTPUT_DIR, filename);
-    await fs.writeFile(filepath, pdf);
+    const filepath = await writeGeneratedFile(ws, filename, pdf);
 
     // Persist so the session survives restarts/republish (non-blocking).
     void persistServidor(ws, st, nomeArquivoRaw).catch((err) =>
@@ -277,8 +267,7 @@ router.post("/generate", async (req, res) => {
 
     const filename = `${safeName(nomeArquivoRaw)}.pdf`;
     st.filename = filename;
-    const filepath = path.join(OUTPUT_DIR, filename);
-    await fs.writeFile(filepath, pdf);
+    const filepath = await writeGeneratedFile(ws, filename, pdf);
 
     void persistServidor(ws, st, nomeArquivoRaw).catch((err) =>
       req.log.warn({ err }, "Falha ao persistir estado"),
@@ -337,7 +326,7 @@ router.get("/download/:filename", async (req, res) => {
     }
   }
 
-  const filepath = path.join(OUTPUT_DIR, safe);
+  const filepath = generatedFilePath(ws, safe);
   if (existsSync(filepath)) {
     res.download(filepath, safe);
     return;
@@ -347,7 +336,7 @@ router.get("/download/:filename", async (req, res) => {
   // download podem cair em máquinas diferentes — o disco não é compartilhado.
   // Os arquivos gerados em lote ficam também no bucket, em arquivos/<nome>.
   try {
-    const fromStore = await storeLoad(`arquivos/${safe}`);
+    const fromStore = await storeLoad(generatedObjectPath(ws, safe));
     if (fromStore) {
       const tipos: Record<string, string> = {
         ".pdf": "application/pdf",
