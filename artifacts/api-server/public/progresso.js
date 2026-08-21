@@ -26,7 +26,10 @@
       switcher.className = "ws-admin-switch";
       switcher.setAttribute("aria-label", "Alternar encarte");
       switcher.innerHTML =
-        '<span class="ws-admin-label">Encarte</span>' +
+        '<span class="ws-admin-label">' +
+        '<span class="ws-admin-kicker">Encarte ativo</span>' +
+        "<strong>Trocar região</strong>" +
+        "</span>" +
         '<div class="ws-admin-options">' +
         '<button type="button" data-ws="rs">RS</button>' +
         '<button type="button" data-ws="ms">MS</button>' +

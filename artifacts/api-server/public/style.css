@@ -45,6 +45,12 @@ body {
   display: block;
 }
 .nav { display: flex; flex-direction: column; gap: 4px; }
+.nav-steps {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
 .nav-item {
   display: flex;
   align-items: center;
@@ -790,48 +796,95 @@ button:disabled {
   font-size: 0.82rem;
 }
 
-/* seletor RS/MS do administrador, logo abaixo da marca */
+/* Controle permanente RS/MS do administrador. A navegação rola abaixo dele,
+   para que a troca de encarte não desapareça em nenhuma etapa. */
 .ws-admin-switch {
-  margin: 10px 12px 4px;
-  padding: 8px 10px;
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.12);
+  position: sticky;
+  top: 8px;
+  z-index: 2;
+  flex: 0 0 auto;
+  margin: 0 4px 14px;
+  padding: 10px 10px 10px 12px;
+  border: 1px solid #0f8e86;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #087d76 0%, #045e5a 100%);
+  box-shadow: 0 8px 18px rgba(7, 93, 86, 0.2);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: 10px;
   color: #fff;
-  font-size: 0.85rem;
+  min-height: 58px;
 }
 .ws-admin-label {
-  font-weight: 600;
+  display: grid;
+  gap: 2px;
+  line-height: 1.15;
+}
+.ws-admin-label strong {
+  font-size: 0.84rem;
+  letter-spacing: 0.01em;
+}
+.ws-admin-kicker {
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 .ws-admin-options {
   display: flex;
-  gap: 4px;
+  gap: 5px;
+  padding: 3px;
+  border-radius: 9px;
+  background: rgba(0, 0, 0, 0.16);
 }
 .ws-admin-options button {
-  min-width: 34px;
+  min-width: 38px;
+  min-height: 32px;
   background: transparent;
-  border: 1px solid rgba(255, 255, 255, 0.45);
+  border: 1px solid transparent;
   color: #fff;
-  border-radius: 6px;
-  padding: 4px 7px;
-  font-size: 0.75rem;
-  font-weight: 700;
+  border-radius: 7px;
+  padding: 5px 8px;
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
   cursor: pointer;
+  transition: background 0.16s ease, color 0.16s ease, transform 0.16s ease;
 }
 .ws-admin-options button:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.18);
+  transform: translateY(-1px);
 }
 .ws-admin-options button.active {
   border-color: #fff;
   background: #fff;
-  color: #0d665f;
+  color: #076e68;
+  box-shadow: 0 2px 7px rgba(0, 0, 0, 0.17);
 }
 .ws-admin-options button:disabled {
   cursor: wait;
   opacity: 0.65;
+}
+
+@media (max-width: 760px) {
+  .sidebar {
+    flex-wrap: wrap;
+  }
+  .ws-admin-switch {
+    order: 4;
+    position: relative;
+    top: auto;
+    width: 100%;
+    margin: 2px 0 0;
+  }
+  .nav-steps {
+    order: 5;
+    flex: 1 1 auto;
+    overflow-x: auto;
+    overflow-y: hidden;
+  }
 }
 
 /* indicador + finalizar + histórico */
