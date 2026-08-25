@@ -307,8 +307,9 @@ router.post("/cards/generate-all", async (req, res) => {
   }
 });
 
-// Generate a single multi-page PDF with every (non-empty) card page. Reuses the
-// same high-res PNG rendering, then assembles the PNGs into one portrait 3:4 PDF.
+// Generate a single multi-page PDF with every (non-empty) card page. JPEG keeps
+// the final response below the published app's download limit without changing
+// the rendered dimensions or the saved card state.
 router.post("/cards/generate-pdf", async (req, res) => {
   try {
     const body = (req.body ?? {}) as Record<string, unknown>;
@@ -351,12 +352,17 @@ router.post("/cards/generate-pdf", async (req, res) => {
     }
 
     const htmls = valid.map((s) => renderCardHtml(s));
-    const pngs = await htmlToPngBatch(htmls, {
+    const pages = await htmlToPngBatch(htmls, {
       width: CARD_WIDTH,
       height: CARD_HEIGHT,
       scale: CARD_SCALE,
+      tipo: "jpeg",
+      quality: 82,
     });
-    const pdf = await pngsToPdf(pngs, { width: CARD_WIDTH, height: CARD_HEIGHT });
+    const pdf = await pngsToPdf(pages, {
+      width: CARD_WIDTH,
+      height: CARD_HEIGHT,
+    });
 
     const filename = `${baseName}_cards.pdf`;
     await writeGeneratedFile(workspaceFromRequest(req), filename, pdf);
