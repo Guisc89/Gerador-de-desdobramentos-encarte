@@ -471,6 +471,98 @@
     return problems;
   }
 
+  async function gerarEmLotes(modo, onProgresso) {
+    const estados = await window.EncarteImg.comprimirTelasPayload(
+      stories.map((story, index) => storyState(story, index === 0)),
+    );
+    const items = [];
+    let vazias = 0;
+    estados.forEach((state, index) => {
+      if ((state.produtos || []).some((produto) => (produto.nome || "").trim())) {
+        items.push({ index: index, story: state });
+      } else {
+        vazias += 1;
+      }
+    });
+    if (items.length === 0) {
+      throw new Error("Todos os stories estão sem produtos.");
+    }
+
+    async function post(url, body) {
+      const deadline = Date.now() + 10 * 60 * 1000;
+      let lastError = null;
+      let attempt = 0;
+      while (Date.now() < deadline) {
+        try {
+          const response = await fetch(url, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body),
+          });
+          let data = null;
+          try {
+            data = await response.json();
+          } catch (_) {
+            throw new Error(
+              "O servidor demorou ou respondeu de forma inesperada. Tente novamente.",
+            );
+          }
+          if (response.status === 202 || response.status === 503) {
+            const waitMs =
+              data && Number(data.retryAfterMs) > 0
+                ? Math.min(Number(data.retryAfterMs), 5000)
+                : 2000;
+            await new Promise((resolve) => setTimeout(resolve, waitMs));
+            continue;
+          }
+          if (!response.ok) {
+            const message = data && data.error ? data.error : response.statusText;
+            if (response.status >= 400 && response.status < 500) {
+              throw { fatal: true, message: message };
+            }
+            throw new Error(message);
+          }
+          return data;
+        } catch (error) {
+          if (error && error.fatal) throw new Error(error.message);
+          lastError = error;
+          attempt += 1;
+          await new Promise((resolve) =>
+            setTimeout(resolve, Math.min(1000 * attempt, 5000)),
+          );
+        }
+      }
+      throw new Error(
+        lastError instanceof Error
+          ? "A geração excedeu o tempo de espera: " + lastError.message
+          : "A geração excedeu o tempo de espera. Tente novamente.",
+      );
+    }
+
+    const start = await post("/api/stories/lote/inicio", {
+      nomeArquivo: nomeArquivoInput.value.trim() || "story",
+      modo: modo,
+    });
+    // Uma página por requisição mantém cada chamada bem abaixo do limite do
+    // app publicado, mesmo no primeiro lançamento do Chromium.
+    const PART_SIZE = 1;
+    let completed = 0;
+    if (onProgresso) onProgresso(0, items.length);
+    for (let index = 0; index < items.length; index += PART_SIZE) {
+      const part = items.slice(index, index + PART_SIZE);
+      await post("/api/stories/lote/parte", {
+        jobId: start.jobId,
+        stories: part,
+      });
+      completed += part.length;
+      if (onProgresso) onProgresso(completed, items.length);
+    }
+    return post("/api/stories/lote/fim", {
+      jobId: start.jobId,
+      vazias: vazias,
+    });
+  }
+
   // ---- Download all stories (PNG) ----
   downloadAllBtn.addEventListener("click", async () => {
     const vazias = stories.filter((c) => c.produtos.length === 0).length;
@@ -502,21 +594,10 @@
     allLinks.classList.add("hidden");
     allLinks.innerHTML = "";
     try {
-      const body = {
-        nomeArquivo: nomeArquivoInput.value.trim() || "story",
-        stories: stories.map((c, i) => storyState(c, i === 0)),
-      };
-      const res = await fetch("/api/stories/generate-all", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
+      const data = await gerarEmLotes("png", (completed, total) => {
+        downloadAllBtn.textContent =
+          "Gerando... (" + completed + "/" + total + ")";
       });
-      const data = await res.json();
-      if (!res.ok) {
-        genInfo.textContent = "Erro: " + (data.error || res.statusText);
-        genInfo.classList.remove("hidden");
-        return;
-      }
       genInfo.textContent =
         data.arquivos.length +
         " story(ies) gerados" +
@@ -573,21 +654,10 @@
     allLinks.classList.add("hidden");
     allLinks.innerHTML = "";
     try {
-      const body = {
-        nomeArquivo: nomeArquivoInput.value.trim() || "story",
-        stories: stories.map((c, i) => storyState(c, i === 0)),
-      };
-      const res = await fetch("/api/stories/generate-pdf", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
+      const data = await gerarEmLotes("pdf", (completed, total) => {
+        downloadPdfBtn.textContent =
+          "Gerando PDF... (" + completed + "/" + total + ")";
       });
-      const data = await res.json();
-      if (!res.ok) {
-        genInfo.textContent = "Erro: " + (data.error || res.statusText);
-        genInfo.classList.remove("hidden");
-        return;
-      }
       genInfo.textContent =
         "PDF gerado com " +
         data.total +

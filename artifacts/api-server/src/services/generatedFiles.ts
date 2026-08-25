@@ -18,6 +18,13 @@ export function generatedObjectPath(
   return `arquivos/${workspace}/${path.basename(filename)}`;
 }
 
+export function generatedDownloadUrl(
+  workspace: Workspace,
+  filename: string,
+): string {
+  return `/api/download/${encodeURIComponent(path.basename(filename))}?ws=${workspace}`;
+}
+
 export async function writeGeneratedFile(
   workspace: Workspace,
   filename: string,

@@ -7,6 +7,9 @@ import { logger } from "../lib/logger";
 // cold-start slowly and exceed Puppeteer's default 30s WS-endpoint wait. Endpoints
 // like the telas PDF launch the browser more than once, so give it more headroom.
 const LAUNCH_TIMEOUT_MS = 120_000;
+const IMAGE_LAUNCH_TIMEOUT_MS = 40_000;
+const RENDER_TIMEOUT_MS = 45_000;
+const IMAGE_RENDER_BUDGET_MS = 55_000;
 
 export async function htmlToPdf(html: string): Promise<Buffer> {
   const executablePath = resolveChromiumPath();
@@ -54,7 +57,7 @@ async function launchBrowser() {
   return puppeteer.launch({
     executablePath,
     headless: true,
-    timeout: LAUNCH_TIMEOUT_MS,
+    timeout: IMAGE_LAUNCH_TIMEOUT_MS,
     args: [
       "--no-sandbox",
       "--disable-setuid-sandbox",
@@ -74,7 +77,11 @@ async function renderPng(
   quality = 92,
 ): Promise<Buffer> {
   const page = await browser.newPage();
+  const budgetTimer = setTimeout(() => {
+    void browser.close().catch(() => {});
+  }, IMAGE_RENDER_BUDGET_MS);
   try {
+    page.setDefaultNavigationTimeout(RENDER_TIMEOUT_MS);
     // Defense in depth: block any outbound request. The tela HTML only embeds
     // local/base64 (data:) assets, so anything else would be an SSRF attempt.
     await page.setRequestInterception(true);
@@ -91,7 +98,10 @@ async function renderPng(
       }
     });
     await page.setViewport({ width, height, deviceScaleFactor: scale });
-    await page.setContent(html, { waitUntil: "networkidle0" });
+    await page.setContent(html, {
+      waitUntil: "networkidle0",
+      timeout: RENDER_TIMEOUT_MS,
+    });
     const png = await page.screenshot(
       tipo === "jpeg"
         ? { type: "jpeg", quality, clip: { x: 0, y: 0, width, height } }
@@ -99,6 +109,7 @@ async function renderPng(
     );
     return Buffer.from(png);
   } finally {
+    clearTimeout(budgetTimer);
     await page.close().catch(() => {});
   }
 }
@@ -114,7 +125,15 @@ export async function htmlToPng(
   logger.info({ width, height, scale }, "Launching Puppeteer (PNG)");
   const browser = await launchBrowser();
   try {
-    return await renderPng(browser, html, width, height, scale);
+    return await renderPng(
+      browser,
+      html,
+      width,
+      height,
+      scale,
+      opts.tipo,
+      opts.quality,
+    );
   } finally {
     await browser.close().catch(() => {});
   }
