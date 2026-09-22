@@ -69,7 +69,7 @@ interface HeaderMap {
   espaco?: number;
   fabricante?: number;
   ean?: number;
-  descricao?: number;
+  nome?: number;
   descricaoComplementar?: number;
   preco?: number;
 }
@@ -81,29 +81,54 @@ function findHeader(rows: unknown[][]): HeaderMap | null {
     if (row.every((value) => String(value ?? "").trim() === "")) continue;
     nonEmptyRowsExamined++;
     const headers = row.map(normalizeHeader);
-    const espacoIdx = headers.findIndex((h) => h === "espaco" || h === "espaço");
+    const espacoIdx = headers.findIndex((h) => h === "espaco");
+    const produtoIdx = headers.findIndex(
+      (h) => h === "produto" || h === "produtos",
+    );
     const descIdx = headers.findIndex((h) => h === "descricao");
     const precoIdx = headers.findIndex(
       (h) => h.includes("venda") || h === "preco" || h.includes("preco"),
     );
-    if (descIdx >= 0 && precoIdx >= 0) {
-      const fabIdx = headers.findIndex((h) => h === "fabricante");
+    const nomeIdx = produtoIdx >= 0 ? produtoIdx : descIdx;
+    if (nomeIdx >= 0 && precoIdx >= 0) {
+      const fabIdx = headers.findIndex(
+        (h) => h === "fabricante" || h === "industria",
+      );
       const eanIdx = headers.findIndex((h) => h === "ean");
-      // descricao complementar: next non-empty header right after descricao but before preco,
-      // or just the column right after descricao if blank header
+
+      // An explicitly labelled presentation column is always authoritative.
+      // In the newer layout PRODUTO(S) is the name and Descrição is its
+      // presentation. Legacy layouts continue to use Descrição as the name
+      // and Apresentação (or the first blank intermediary column) as detail.
       let descCompl: number | undefined;
-      for (let c = descIdx + 1; c < precoIdx; c++) {
-        if (headers[c] === "" || headers[c] === "apresentacao") {
-          descCompl = c;
-          break;
+      const apresentacaoIdx = headers.findIndex((h) => h === "apresentacao");
+      if (apresentacaoIdx >= 0) {
+        descCompl = apresentacaoIdx;
+      } else if (produtoIdx >= 0 && descIdx >= 0) {
+        descCompl = descIdx;
+      } else {
+        for (let c = nomeIdx + 1; c < precoIdx; c++) {
+          if (headers[c] === "") {
+            descCompl = c;
+            break;
+          }
         }
+      }
+      if (descCompl === nomeIdx) {
+        descCompl = undefined;
+      }
+      if (
+        descCompl !== undefined &&
+        (descCompl < 0 || descCompl >= row.length)
+      ) {
+        descCompl = undefined;
       }
       return {
         rowIndex: r,
         espaco: espacoIdx >= 0 ? espacoIdx : undefined,
         fabricante: fabIdx >= 0 ? fabIdx : undefined,
         ean: eanIdx >= 0 ? eanIdx : undefined,
-        descricao: descIdx,
+        nome: nomeIdx,
         descricaoComplementar: descCompl,
         preco: precoIdx,
       };
@@ -301,6 +326,39 @@ function cell(row: unknown[], idx: number | undefined): string {
   return String(v).trim();
 }
 
+function isRepeatedProductHeader(row: unknown[], header: HeaderMap): boolean {
+  const nomeHeader = normalizeHeader(cell(row, header.nome));
+  return ["descricao", "produto", "produtos"].includes(nomeHeader);
+}
+
+function hasPriceHeaderToken(row: unknown[], header: HeaderMap): boolean {
+  const precoHeader = normalizeHeader(cell(row, header.preco));
+  return precoHeader.includes("preco") || precoHeader.includes("venda");
+}
+
+function isSectionTitleBeforeRepeatedHeader(
+  rows: unknown[][],
+  rowIndex: number,
+  header: HeaderMap,
+): boolean {
+  const row = rows[rowIndex] ?? [];
+  const onlyNamePopulated = row.every(
+    (value, columnIndex) =>
+      columnIndex === header.nome || String(value ?? "").trim() === "",
+  );
+  if (!onlyNamePopulated) return false;
+
+  for (let next = rowIndex + 1; next < rows.length; next++) {
+    const nextRow = rows[next] ?? [];
+    if (nextRow.every((value) => String(value ?? "").trim() === "")) continue;
+    return (
+      isRepeatedProductHeader(nextRow, header) &&
+      hasPriceHeaderToken(nextRow, header)
+    );
+  }
+  return false;
+}
+
 export interface ParseOptions {
   validadeInicio: string;
   validadeFim: string;
@@ -340,7 +398,20 @@ export function parseExcel(buffer: Buffer, opts: ParseOptions): ParseResult {
     const row = rows[r] ?? [];
     if (!row || row.every((v) => String(v ?? "").trim() === "")) continue;
 
-    const nome = cell(row, header.descricao);
+    const nome = cell(row, header.nome);
+    if (
+      nome &&
+      isSectionTitleBeforeRepeatedHeader(rows, r, header)
+    ) {
+      ignorados++;
+      ocorrencias.push({
+        linha: r + 1,
+        nome,
+        tipo: "ignorado",
+        motivo: "Título de seção",
+      });
+      continue;
+    }
     if (!nome) {
       // skip rows without a product name (subsection headers etc.)
       ignorados++;
@@ -353,7 +424,7 @@ export function parseExcel(buffer: Buffer, opts: ParseOptions): ParseResult {
       continue;
     }
     // skip if the "name" looks like a header repeated
-    if (normalizeHeader(nome) === "descricao") {
+    if (isRepeatedProductHeader(row, header)) {
       ignorados++;
       ocorrencias.push({
         linha: r + 1,
@@ -389,7 +460,7 @@ export function parseExcel(buffer: Buffer, opts: ParseOptions): ParseResult {
     if (!descricao && header.preco !== undefined) {
       // "Consulte Apresentações" may be typed in any column between the
       // Descrição and the price (users place it loosely in the sheet).
-      for (let c = header.descricao! + 1; c < header.preco; c++) {
+      for (let c = header.nome! + 1; c < header.preco; c++) {
         const v = cell(row, c);
         if (v && CONSULTE_REGEX.test(v)) {
           descricao = "Consulte apresentações";

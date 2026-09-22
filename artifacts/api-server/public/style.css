@@ -271,6 +271,27 @@ button:disabled {
   margin: 0 0 12px 0;
 }
 
+#log .log-details {
+  white-space: normal;
+  margin: 6px 0;
+}
+
+#log .log-details summary {
+  cursor: pointer;
+  padding: 5px 0;
+  color: #a9ede5;
+}
+
+#log .log-details summary:focus-visible {
+  outline: 2px solid #a9ede5;
+  outline-offset: 2px;
+}
+
+#log .log-details > div {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
 .actions {
   display: flex;
   gap: 8px;

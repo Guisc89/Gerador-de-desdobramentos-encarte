@@ -29,7 +29,7 @@
   }
 
   function log(line) {
-    logEl.textContent += line + "\n";
+    logEl.appendChild(document.createTextNode(line + "\n"));
     logEl.scrollTop = logEl.scrollHeight;
   }
 
@@ -49,13 +49,32 @@
     if (stats.paginas !== undefined) log("Páginas geradas: " + stats.paginas);
     if (Array.isArray(stats.ocorrencias) && stats.ocorrencias.length) {
       log("Confira estas linhas na aba indicada:");
-      stats.ocorrencias.forEach((item) => {
+      const missingDescriptions = [];
+      function occurrenceText(item) {
         const label = item.tipo === "erro" ? "Erro" :
           item.tipo === "agrupado" ? "Agrupada" : "Ignorada";
         const name = item.nome ? " — " + item.nome.replace(/\s+/g, " ") : "";
         const destination = item.linhaDestino ? " (junto à linha " + item.linhaDestino + ")" : "";
-        log("  Linha " + item.linha + name + ": " + label + " — " + item.motivo + destination);
+        return "  Linha " + item.linha + name + ": " + label + " — " + item.motivo + destination;
+      }
+      stats.ocorrencias.forEach((item) => {
+        if (item.tipo === "ignorado" && item.motivo === "Descrição ausente") {
+          missingDescriptions.push(item);
+        } else {
+          log(occurrenceText(item));
+        }
       });
+      if (missingDescriptions.length) {
+        const details = document.createElement("details");
+        details.className = "log-details";
+        const summary = document.createElement("summary");
+        summary.textContent = "Descrição ausente: " + missingDescriptions.length + " linhas — clique para ver";
+        details.appendChild(summary);
+        const content = document.createElement("div");
+        content.textContent = missingDescriptions.map(occurrenceText).join("\n");
+        details.appendChild(content);
+        logEl.appendChild(details);
+      }
     }
   }
 
