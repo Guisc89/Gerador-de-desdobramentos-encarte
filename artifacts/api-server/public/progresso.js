@@ -75,7 +75,7 @@
       var aviso = document.createElement("p");
       aviso.className = "fin-aviso";
       aviso.textContent =
-        "Ao finalizar, o preçário atual é guardado como \"Mês anterior\" e a área fica limpa para a nova campanha.";
+        "Ao finalizar, o preçário e a composição de Telas, Cards e Stories ficam guardados no \"Mês anterior\", com download em PDF. A área fica limpa para a nova campanha.";
       acoes.appendChild(aviso);
     }
 
@@ -133,9 +133,71 @@
       "</div><div class='ws-hist-links'>";
     if (meta.temPrecario)
       html += '<a class="btn-download" href="/api/historico/download/precario">Baixar preçário</a>';
-    if (!meta.temPrecario)
+    var nomes = { telas: "Telas", cards: "Cards", stories: "Stories" };
+    var materiais = Array.isArray(meta.materiais) ? meta.materiais.filter(function (tipo) {
+      return Object.prototype.hasOwnProperty.call(nomes, tipo);
+    }) : [];
+    materiais.forEach(function (tipo) {
+      html += '<button type="button" class="btn-download" data-historico-pdf="' +
+        tipo + '">Baixar ' + nomes[tipo] + ' (PDF)</button>';
+    });
+    if (!meta.temPrecario && !materiais.length)
       html += '<span class="ws-hist-vazio">Sem arquivos guardados.</span>';
     body.innerHTML = html + "</div>";
+    var status = document.createElement("p");
+    status.setAttribute("role", "status");
+    status.setAttribute("aria-live", "polite");
+    body.appendChild(status);
+    var ws = window.EncarteWS.ws;
+    body.querySelectorAll("[data-historico-pdf]").forEach(function (button) {
+      button.addEventListener("click", function () {
+        baixarHistoricoPdf(button, status, ws, meta.archiveId, nomes);
+      });
+    });
+  }
+
+  async function baixarHistoricoPdf(button, status, ws, archiveId, nomes) {
+    var tipo = button.getAttribute("data-historico-pdf");
+    var original = button.textContent;
+    button.disabled = true;
+    button.textContent = "Preparando " + nomes[tipo] + "…";
+    status.textContent = "Preparando o PDF do mês anterior. Aguarde nesta página.";
+    var endpoint = "/api/historico/pdf/" + tipo + "?ws=" + encodeURIComponent(ws) +
+      "&archiveId=" + encodeURIComponent(archiveId || "");
+    var deadline = Date.now() + 15 * 60 * 1000;
+    var firstRequest = true;
+    try {
+      while (Date.now() < deadline) {
+        var response = await fetch(endpoint + (firstRequest ? "&retry=1" : ""), { method: "POST" });
+        firstRequest = false;
+        var data = await response.json().catch(function () {
+          throw new Error("Não foi possível consultar o PDF. Tente novamente.");
+        });
+        if (!response.ok) throw new Error(data.error || "Não foi possível gerar o PDF.");
+        if (response.status === 202) {
+          await new Promise(function (resolve) {
+            setTimeout(resolve, Math.min(Math.max(Number(data.retryAfterMs) || 2000, 1000), 5000));
+          });
+          continue;
+        }
+        if (!data.downloadUrl) throw new Error("O servidor não informou o arquivo para download.");
+        var link = document.createElement("a");
+        link.href = data.downloadUrl;
+        link.className = "btn-download";
+        link.textContent = "Baixar PDF de " + nomes[tipo];
+        link.download = "";
+        status.textContent = "PDF pronto. Se o download não começar, clique aqui: ";
+        status.appendChild(link);
+        link.click();
+        return;
+      }
+      throw new Error("O PDF ainda não ficou pronto. Tente novamente em alguns instantes.");
+    } catch (error) {
+      status.textContent = error && error.message ? error.message : "Erro ao preparar PDF.";
+    } finally {
+      button.disabled = false;
+      button.textContent = original;
+    }
   }
 
   function escapeHtml(s) {
@@ -144,18 +206,33 @@
     });
   }
 
-  function finalizarMes() {
+  async function finalizarMes() {
     if (estadoVersao === null) {
       alert("Aguarde o encarte terminar de carregar antes de finalizar.");
       return;
     }
     var ok = confirm(
       "Finalizar o mês do Encarte " + window.EncarteWS.nome() + "?\n\n" +
-        "O preçário atual vira o \"Mês anterior\" e a área fica limpa para a nova campanha.\n\n" +
+        "O preçário e a composição de Telas, Cards e Stories ficam no \"Mês anterior\" para baixar em PDF. A área fica limpa para a nova campanha.\n\n" +
         "Atenção: o histórico guarda apenas UM mês — o anterior atual será substituído.",
     );
     if (!ok) return;
-    fetch("/api/finalizar", {
+    var button = document.querySelector(".ws-finalizar");
+    if (button && button.disabled) return;
+    if (button) button.disabled = true;
+    // Archive the latest complete composition, not an older autosave snapshot.
+    var waitUntil = Date.now() + 15000;
+    while ((salvandoAgora || salvandoFoto || restaurando) && Date.now() < waitUntil) {
+      await new Promise(function (resolve) { setTimeout(resolve, 200); });
+    }
+    if (saveTimer) { clearTimeout(saveTimer); saveTimer = null; }
+    var saved = await saveNow(true);
+    if (!saved || dirty || salvandoFoto || atualizacaoPendente || restaurando) {
+      if (button) button.disabled = false;
+      alert("Aguarde o progresso ser salvo e confira as alterações antes de finalizar. Nenhum material foi apagado.");
+      return;
+    }
+    return fetch("/api/finalizar", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ version: estadoVersao }),
@@ -183,6 +260,9 @@
       })
       .catch(function (err) {
         alert("Erro ao finalizar: " + (err && err.message ? err.message : err));
+      })
+      .finally(function () {
+        if (button) button.disabled = false;
       });
   }
 
@@ -228,11 +308,11 @@
       // Já existe um save em voo (pode ser um save só de etapa, que não
       // reagenda nada ao terminar) — reagenda explicitamente para não perder.
       if (includeFrontend) scheduleSave(500);
-      return Promise.resolve();
+      return Promise.resolve(false);
     }
     if (estadoVersao === null || restaurando) {
       if (includeFrontend) scheduleSave(500);
-      return Promise.resolve();
+      return Promise.resolve(false);
     }
     var body = { etapa: etapaAtual, version: estadoVersao };
     if (includeFrontend) {
@@ -259,11 +339,11 @@
             } else if (includeFrontend) {
               markSaved();
             }
-            return;
+            return true;
           }
           if (r.status === 409 || r.status === 428) {
             receberAtualizacaoRemota();
-            return;
+            return false;
           }
           onSaveError(includeFrontend);
         });

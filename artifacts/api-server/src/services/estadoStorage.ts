@@ -17,6 +17,11 @@ import {
   storeDeleteConditional,
   storeExists,
 } from "./objectStore";
+import {
+  materiaisDisponiveisNoSnapshot,
+  snapshotPointerFromPrecario,
+  type HistoricoMaterialTipo,
+} from "./historicoSnapshot";
 
 // Per-workspace (RS / MS) persisted state so the user can resume where they
 // stopped, even after a server restart or a republish (production filesystem
@@ -51,11 +56,16 @@ export interface HistoricoMeta {
   mes: string;
   finalizadoEm: string;
   temPrecario: boolean;
+  /** Present on archives created by the snapshot-based historical flow. */
+  archiveId?: string;
+  /** Materials that can be faithfully rebuilt from this archive's snapshot. */
+  materiais: HistoricoMaterialTipo[];
 }
 
 interface HistoricoStored extends HistoricoMeta {
   fence?: string;
   precarioObject?: string;
+  snapshotObject?: string;
 }
 
 interface PendingFinalization {
@@ -63,6 +73,7 @@ interface PendingFinalization {
   expectedVersion: string;
   expectedGeneration: string;
   archiveEstado: string;
+  snapshotObject: string;
   archivePrecario?: string;
   sourcePrecarioObject?: string;
   sourcePrecarioGeneration?: string;
@@ -444,6 +455,7 @@ async function completePendingFinalization(
       await storeLoadJson<HistoricoStored>(histPath(ws, "meta.json"));
     const alreadyPublished =
       published?.precarioObject === pending.archivePrecario &&
+      published?.snapshotObject === pending.snapshotObject &&
       published?.finalizadoEm === pending.meta.finalizadoEm;
     if (!alreadyPublished) {
       await Promise.all([
@@ -482,6 +494,7 @@ async function completePendingFinalization(
     ...pending.meta,
     fence,
     precarioObject: pending.archivePrecario,
+    snapshotObject: pending.snapshotObject,
   };
   const publication = await writeFencedJson(
     histPath(ws, "meta.json"),
@@ -571,12 +584,15 @@ async function finalizarMesInterno(
     mes,
     finalizadoEm: new Date().toISOString(),
     temPrecario,
+    archiveId: loaded.version.revision,
+    materiais: materiaisDisponiveisNoSnapshot(estado),
   };
   const pending: PendingFinalization = {
     fence,
     expectedVersion,
     expectedGeneration: loaded.version.generation,
     archiveEstado,
+    snapshotObject: archiveEstado,
     archivePrecario: temPrecario ? archivePrecario : undefined,
     sourcePrecarioObject: precarioObject,
     sourcePrecarioGeneration:
@@ -611,10 +627,66 @@ export async function getHistorico(ws: Workspace): Promise<HistoricoMeta | null>
   const stored =
     await storeLoadJson<HistoricoStored>(histPath(ws, "meta.json"));
   if (!stored) return null;
+  const archive = await resolveHistoricoArchive(ws, stored);
   return {
     mes: stored.mes,
     finalizadoEm: stored.finalizadoEm,
     temPrecario: stored.temPrecario,
+    archiveId: archive?.archiveId,
+    materiais: archive?.materiais || [],
+  };
+}
+
+export interface HistoricoArchive {
+  archiveId: string;
+  snapshotObject: string;
+  materiais: HistoricoMaterialTipo[];
+}
+
+/**
+ * Resolves only the currently-published immutable archive. Callers must supply
+ * the id captured from HistoricoMeta, so a rotation can never silently switch a
+ * generation request to the new campaign.
+ */
+export async function getHistoricoArchive(
+  ws: Workspace,
+  archiveId: string,
+): Promise<HistoricoArchive | null> {
+  const stored =
+    await storeLoadJson<HistoricoStored>(histPath(ws, "meta.json"));
+  if (!stored) return null;
+  const archive = await resolveHistoricoArchive(ws, stored);
+  return archive?.archiveId === archiveId ? archive : null;
+}
+
+async function resolveHistoricoArchive(
+  ws: Workspace,
+  stored: HistoricoStored,
+): Promise<HistoricoArchive | null> {
+  let archiveId = stored.archiveId;
+  let snapshotObject = stored.snapshotObject;
+
+  // Metadata written immediately before snapshot pointers were introduced
+  // still points at an immutable rotation preçário. Derive the sibling state
+  // object only from that immutable path; never consult estado.json/live state.
+  if (!archiveId || !snapshotObject) {
+    const derived = snapshotPointerFromPrecario(ws, stored.precarioObject);
+    if (derived) {
+      archiveId = derived.archiveId;
+      snapshotObject = derived.snapshotObject;
+    }
+  }
+  if (!archiveId || !snapshotObject) return null;
+  const snapshot = await storeLoadJson<EstadoEncarte>(snapshotObject);
+  if (!snapshot) return null;
+  return {
+    archiveId,
+    snapshotObject,
+    // Recompute from the immutable source for old metadata. New metadata keeps
+    // its fenced availability, while still requiring the snapshot to exist.
+    materiais: Array.isArray(stored.materiais)
+      ? stored.materiais
+      : materiaisDisponiveisNoSnapshot(snapshot),
   };
 }
 
