@@ -268,10 +268,22 @@ button:disabled {
   flex-wrap: wrap;
   margin-top: 8px;
 }
-/* Matching width for the main Preçário action buttons */
-.actions #regenerateBtn,
-.actions .btn-download {
-  min-width: 180px;
+.editor-header .actions {
+  margin-top: 0;
+  align-items: center;
+}
+.editor-header .actions > button,
+.editor-header .actions > .btn-download {
+  box-sizing: border-box;
+  flex: 0 0 190px;
+  width: 190px;
+  height: 52px;
+  margin: 0;
+  padding: 0 12px;
+}
+.editor-header .actions > :focus-visible {
+  outline: 3px solid #014f4e;
+  outline-offset: 3px;
 }
 
 .hidden { display: none; }
@@ -425,35 +437,53 @@ button:disabled {
   display: inline-flex;
   border: 1px solid #01aba8;
   border-radius: 10px;
-  overflow: hidden;
-  background: #fff;
-}
-
-.bg-toggle .bg-opt {
-  margin: 0;
-  padding: 10px 14px;
   background: #fff;
   color: #014f4e;
-  border: none;
-  border-radius: 0;
+  justify-content: space-between;
+  gap: 8px;
+}
+.bg-switch-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  text-align: left;
   font-size: 13px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: background 0.15s ease, color 0.15s ease;
 }
-
-.bg-toggle .bg-opt + .bg-opt {
-  border-left: 1px solid #01aba8;
+.bg-switch-copy small {
+  font-size: 11px;
+  font-weight: 400;
 }
-
-.bg-toggle .bg-opt:hover {
+.bg-toggle:hover {
   background: #e6fafa;
   transform: none;
 }
-
-.bg-toggle .bg-opt.active {
+.bg-switch-track {
+  width: 38px;
+  height: 22px;
+  flex-shrink: 0;
+  border-radius: 999px;
+  background: #74827c;
+  position: relative;
+}
+.bg-switch-track::after {
+  content: "";
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #fff;
+  transition: transform 0.15s ease;
+}
+.bg-toggle[aria-checked="true"] {
+  background: #e6fafa;
+}
+.bg-toggle[aria-checked="true"] .bg-switch-track {
   background: #01aba8;
-  color: #fff;
+}
+.bg-toggle[aria-checked="true"] .bg-switch-track::after {
+  transform: translateX(16px);
 }
 
 .editor-hint {

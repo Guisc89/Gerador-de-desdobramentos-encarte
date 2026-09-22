@@ -20,7 +20,13 @@
   let dirty = false;
 
   const bgToggle = document.getElementById("bgToggle");
-  const bgButtons = bgToggle ? Array.from(bgToggle.querySelectorAll(".bg-opt")) : [];
+  const bgToggleState = document.getElementById("bgToggleState");
+
+  function syncBgToggle() {
+    if (bgToggle) bgToggle.setAttribute("aria-checked", String(currentBg === "color"));
+    if (bgToggleState) bgToggleState.textContent =
+      currentBg === "color" ? "Ligado · colorido" : "Desligado · branco";
+  }
 
   function log(line) {
     logEl.textContent += line + "\n";
@@ -71,9 +77,7 @@
     currentMes = sv.mes || "";
     currentNome = sv.nomeArquivo || "encarte";
     currentBg = sv.bg === "color" ? "color" : "white";
-    bgButtons.forEach((b) => {
-      b.classList.toggle("active", b.dataset.bg === currentBg);
-    });
+    syncBgToggle();
     const mesInput = document.getElementById("mes");
     const nomeInput = document.getElementById("nomeArquivo");
     if (mesInput) mesInput.value = currentMes;
@@ -92,16 +96,14 @@
     if (next !== "white" && next !== "color") return;
     if (currentBg === next) return;
     currentBg = next;
-    bgButtons.forEach((b) => {
-      b.classList.toggle("active", b.dataset.bg === next);
-    });
+    syncBgToggle();
     setDirty(true);
     loadEditablePreview();
   }
 
-  bgButtons.forEach((b) => {
-    b.addEventListener("click", () => setBg(b.dataset.bg));
-  });
+  if (bgToggle) {
+    bgToggle.addEventListener("click", () => setBg(currentBg === "color" ? "white" : "color"));
+  }
 
   // Receive edits from the inline editable preview
   window.addEventListener("message", (ev) => {

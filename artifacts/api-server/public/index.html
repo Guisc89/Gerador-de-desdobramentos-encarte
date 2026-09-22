@@ -97,10 +97,10 @@
         <div class="editor-header">
           <h2>Edite o encarte e baixe o PDF</h2>
           <div class="actions">
-            <div id="bgToggle" class="bg-toggle" role="group" aria-label="Fundo do encarte">
-              <button type="button" class="bg-opt active" data-bg="white">Fundo branco</button>
-              <button type="button" class="bg-opt" data-bg="color">Fundo colorido</button>
-            </div>
+            <button id="bgToggle" class="bg-toggle" type="button" role="switch" aria-checked="false" aria-label="Fundo colorido">
+              <span class="bg-switch-copy"><span>Fundo colorido</span><small id="bgToggleState">Desligado · branco</small></span>
+              <span class="bg-switch-track" aria-hidden="true"></span>
+            </button>
             <button id="regenerateBtn" type="button">Salvar e atualizar PDF</button>
             <a id="downloadLink" class="btn-download" href="#" download>Baixar PDF</a>
           </div>
