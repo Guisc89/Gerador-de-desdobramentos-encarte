@@ -20,10 +20,9 @@
   const nomeArquivoInput = document.getElementById("storyNomeArquivo");
   const validadeInicioInput = document.getElementById("storyValidadeInicio");
   const validadeFimInput = document.getElementById("storyValidadeFim");
-  const enderecoInput = document.getElementById("storyEndereco");
-  const disclaimerInput = document.getElementById("storyDisclaimer");
   const infoCorInput = document.getElementById("storyInfoCor");
   let infoCorEspelhada = ""; // última cor herdada das Telas
+  let legalText;
 
   // Background
   const bgInput = document.getElementById("storyBgInput");
@@ -138,15 +137,14 @@
       return;
     }
 
-    // Fill global info from the telas, only where the story field is still
-    // empty (so a story-specific value the user typed isn't clobbered).
+    // Dates retain the existing per-format behavior. Legal copy always follows
+    // Telas, including an explicitly empty value.
     if (snapshot.mes && !mesInput.value.trim()) mesInput.value = snapshot.mes;
     if (snapshot.validadeInicio && !validadeInicioInput.value.trim())
       validadeInicioInput.value = snapshot.validadeInicio;
     if (snapshot.validadeFim && !validadeFimInput.value.trim())
       validadeFimInput.value = snapshot.validadeFim;
-    if (snapshot.endereco && !enderecoInput.value.trim())
-      enderecoInput.value = snapshot.endereco;
+    legalText = snapshot.disclaimer;
     // Cor HEX: acompanha as Telas enquanto o usuário não digitar uma cor
     // própria nesta aba (valor vazio ou igual ao último espelhado = segue).
     var corAtual = infoCorInput.value.trim();
@@ -203,8 +201,7 @@
       mes: mesInput.value.trim(),
       validadeInicio: validadeInicioInput.value.trim(),
       validadeFim: validadeFimInput.value.trim(),
-      endereco: enderecoInput.value.trim(),
-      disclaimer: disclaimerInput.value.trim(),
+      disclaimer: legalText,
       infoCor: infoCorInput.value.trim(),
       background: isCapa ? bgDataUri : bg2DataUri || bgDataUri,
       isCapa: !!isCapa,
@@ -390,7 +387,7 @@
   nextBtn.addEventListener("click", () => goTo(current + 1));
 
   // ---- Global info inputs ----
-  [mesInput, validadeInicioInput, validadeFimInput, enderecoInput, disclaimerInput, infoCorInput].forEach(
+  [mesInput, validadeInicioInput, validadeFimInput, infoCorInput].forEach(
     (inp) => {
       inp.addEventListener("input", schedulePreview);
     },
@@ -682,8 +679,6 @@
     return {
       bgDataUri: bgDataUri,
       bg2DataUri: bg2DataUri,
-      endereco: enderecoInput.value,
-      disclaimer: disclaimerInput.value,
       infoCor: infoCorInput.value,
       nomeArquivo: nomeArquivoInput.value,
     };
@@ -691,8 +686,6 @@
 
   window.__storiesRestaurar = function (saved) {
     if (!saved) return;
-    if ("endereco" in saved) enderecoInput.value = saved.endereco || "";
-    if ("disclaimer" in saved) disclaimerInput.value = saved.disclaimer || "";
     if ("infoCor" in saved) infoCorInput.value = saved.infoCor || "";
     if ("nomeArquivo" in saved) nomeArquivoInput.value = saved.nomeArquivo || "";
     if (saved.bgDataUri) {
@@ -720,7 +713,7 @@
     if (window.__encarteTelas) mirrorTelas(window.__encarteTelas);
   };
 
-  // Avisa o progresso automático quando fundo/endereço mudam nesta aba.
+  // Avisa o progresso automático quando os extras desta aba mudam.
   [bgInput, bgRemoveBtn, bg2Input, bg2RemoveBtn].forEach(function (el) {
     el.addEventListener("click", function () {
       setTimeout(function () {
@@ -735,7 +728,7 @@
       }, 300);
     });
   });
-  [enderecoInput, disclaimerInput, infoCorInput].forEach(function (el) {
+  [infoCorInput].forEach(function (el) {
     el.addEventListener("input", function () {
       document.dispatchEvent(new CustomEvent("encarte:extras"));
     });

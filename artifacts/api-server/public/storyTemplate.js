@@ -1,31 +1,31 @@
-"use strict";var StoryTemplate=(()=>{var l=Object.defineProperty;var b=Object.getOwnPropertyDescriptor;var x=Object.getOwnPropertyNames;var k=Object.prototype.hasOwnProperty;var $=(e,t)=>{for(var i in t)l(e,i,{get:t[i],enumerable:!0})},z=(e,t,i,r)=>{if(t&&typeof t=="object"||typeof t=="function")for(let o of x(t))!k.call(e,o)&&o!==i&&l(e,o,{get:()=>t[o],enumerable:!(r=b(t,o))||r.enumerable});return e};var q=e=>z(l({},"__esModule",{value:!0}),e);var j={};$(j,{renderStoryHtml:()=>S});var u="Os pre\xE7os e produtos anunciados s\xE3o v\xE1lidos exclusivamente para esta loja.";function v(e){let t=String(e??"").trim();return/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(t)?t:""}function s(e){return String(e??"").replace(/[&<>"']/g,t=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"})[t])}function w(e){let t=(e.precoCentavos||"00").padStart(2,"0").slice(0,2),i=e.foto?`<img src="${s(e.foto)}" alt="" />`:'<span class="card-photo-empty">Sem foto</span>',r=e.descricao?`<div class="card-desc">${s(e.descricao)}</div>`:"";return`
+"use strict";var StoryTemplate=(()=>{var v=Object.defineProperty;var $=Object.getOwnPropertyDescriptor;var z=Object.getOwnPropertyNames;var C=Object.prototype.hasOwnProperty;var q=(t,e)=>{for(var i in e)v(t,i,{get:e[i],enumerable:!0})},S=(t,e,i,l)=>{if(e&&typeof e=="object"||typeof e=="function")for(let r of z(e))!C.call(t,r)&&r!==i&&v(t,r,{get:()=>e[r],enumerable:!(l=$(e,r))||l.enumerable});return t};var A=t=>S(v({},"__esModule",{value:!0}),t);var P={};q(P,{renderStoryHtml:()=>T});var h="Os pre\xE7os e produtos anunciados s\xE3o v\xE1lidos exclusivamente para esta loja.";function j(t,e){return e<=1?e:t<=28?1:t<=170?Math.min(3,e):t<=260?Math.min(4,e):Math.min(5,e)}function I(t,e){let i=Math.max(1,Math.min(e,t.length));if(i===1)return[t.join(" ")];let l=t.map(a=>a.length),r=[0];l.forEach(a=>r.push(r[r.length-1]+a));let f=(r[r.length-1]+t.length-i)/i,c=Array.from({length:i+1},()=>Array(t.length+1).fill(Number.POSITIVE_INFINITY)),n=Array.from({length:i+1},()=>Array(t.length+1).fill(-1));c[0][0]=0;for(let a=1;a<=i;a+=1)for(let o=a;o<=t.length;o+=1)for(let d=a-1;d<o;d+=1){let k=r[o]-r[d]+(o-d-1),y=c[a-1][d]+(k-f)**2;y<c[a][o]&&(c[a][o]=y,n[a][o]=d)}let s=[],g=t.length;for(let a=i;a>0;a-=1){let o=n[a][g];s.unshift(t.slice(o,g).join(" ")),g=o}return s}function w(t){let e=String(t??"").replace(/\r\n?/g,`
+`);if(!e.trim())return[];let i=e.split(`
+`).map(n=>n.trim().replace(/\s+/g," ")).filter(Boolean).map(n=>n.split(" ")),l=i.reduce((n,s)=>n+s.length,0),r=i.reduce((n,s)=>n+s.join(" ").length,0),u=Math.max(i.length,j(r,l)),f=i.map(()=>1),c=u-i.length;for(;c>0;){let n=-1,s=-1;if(i.forEach((g,a)=>{if(f[a]>=g.length)return;let o=g.join(" ").length/f[a];o>s&&(n=a,s=o)}),n<0)break;f[n]+=1,c-=1}return i.flatMap((n,s)=>I(n,f[s]))}function b(t){let e=String(t??"").trim();return/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(e)?e:""}function p(t){return String(t??"").replace(/[&<>"']/g,e=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"})[e])}function x(t){let e=(t.precoCentavos||"00").padStart(2,"0").slice(0,2),i=t.foto?`<img src="${p(t.foto)}" alt="" />`:'<span class="card-photo-empty">Sem foto</span>',l=t.descricao?`<div class="card-desc">${p(t.descricao)}</div>`:"";return`
     <div class="card">
       <div class="card-photo">${i}</div>
       <div class="card-info">
-        <div class="card-nome">${s(e.nome)}</div>
-        ${r}
+        <div class="card-nome">${p(t.nome)}</div>
+        ${l}
         <div class="card-price">
-          <span class="rs">R$</span><span class="int">${s(e.precoInteiro||"0")}</span><span class="cent-group"><span class="cent">,${s(t)}</span><span class="cada">cada</span></span>
+          <span class="rs">R$</span><span class="int">${p(t.precoInteiro||"0")}</span><span class="cent-group"><span class="cent">,${p(e)}</span><span class="cada">cada</span></span>
         </div>
       </div>
-    </div>`}function a(e){return String(e??"").replace(/[&<>"']/g,t=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"})[t])}var C=u;function S(e){let t=Array.isArray(e.produtos)?e.produtos:[],i=t.length,r=!!e.isCapa,o=e.background?`style="background-image:url('${a(e.background)}')"`:"",h=e.background?"story-bg":"story-bg story-bg-default",g=e.endereco?a(e.endereco):"Insira aqui seu endere\xE7o",f=e.disclaimer&&e.disclaimer.trim()?a(e.disclaimer.trim()):a(C),p=v(e.infoCor),y=p?`.si-mesval, .si-endereco, .si-disclaimer, .sf-endereco, .sf-disclaimer { color: ${p}; }`:"",m=n=>`<div class="story-slot">${w(n)}</div>`,d;if(r){let n=[e.mes?a(e.mes):"",e.validadeInicio||e.validadeFim?`Validade: ${a(e.validadeInicio)} a ${a(e.validadeFim)}`:""].filter(Boolean).join(" | "),c=i>0?t.map(m).join(`
-`):'<div class="story-empty">Adicione produtos para montar o story.</div>';d=`
+    </div>`}function m(t){return String(t??"").replace(/[&<>"']/g,e=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"})[e])}function T(t){let e=Array.isArray(t.produtos)?t.produtos:[],i=e.length,l=!!t.isCapa,r=t.background?`style="background-image:url('${m(t.background)}')"`:"",u=t.background?"story-bg":"story-bg story-bg-default",f=t.disclaimer===void 0?h:t.disclaimer,c=w(f).map(m).join("<br />"),n=b(t.infoCor),s=n?`.si-mesval, .si-disclaimer, .sf-disclaimer { color: ${n}; }`:"",g=o=>`<div class="story-slot">${x(o)}</div>`,a;if(l){let o=[t.mes?m(t.mes):"",t.validadeInicio||t.validadeFim?`Validade: ${m(t.validadeInicio)} a ${m(t.validadeFim)}`:""].filter(Boolean).join(" | "),d=i>0?e.map(g).join(`
+`):'<div class="story-empty">Adicione produtos para montar o story.</div>';a=`
       <div class="story-topinfo">
-        ${n?`<div class="si-mesval">${n}</div>`:""}
-        <div class="si-disclaimer">${f}</div>
-        <div class="si-endereco">${g}</div>
+        ${o?`<div class="si-mesval">${o}</div>`:""}
+        ${c?`<div class="si-disclaimer">${c}</div>`:""}
       </div>
       <div class="story-stack" data-count="${i}">
-        ${c}
-      </div>`}else{let n=i>=3?"layout-3":"layout-2",c=i>0?t.map(m).join(`
-`):'<div class="story-empty story-empty-center">Adicione produtos para montar o story.</div>';d=`
-      <div class="story-body ${n}" data-count="${i}">
-        ${c}
+        ${d}
+      </div>`}else{let o=i>=3?"layout-3":"layout-2",d=i>0?e.map(g).join(`
+`):'<div class="story-empty story-empty-center">Adicione produtos para montar o story.</div>';a=`
+      <div class="story-body ${o}" data-count="${i}">
+        ${d}
       </div>
       <div class="story-footer">
         <div class="sf-rule"></div>
-        <div class="sf-disclaimer">${f}</div>
-        <div class="sf-endereco">${g}</div>
+        ${c?`<div class="sf-disclaimer">${c}</div>`:""}
       </div>`}return`<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -60,7 +60,7 @@
   .story-overlay { position: absolute; inset: 0; z-index: 1; }
 
   /* ---- Capa (page 1) ---- */
-  /* Dynamic month/validade + address block, below the logo area of the
+  /* Dynamic month/validade + legal copy, below the logo area of the
      background art (logo + lettering live in the background). */
   .story-topinfo {
     position: absolute;
@@ -73,16 +73,10 @@
   .si-mesval { font-size: 3.1vw; font-weight: 900; }
   .si-disclaimer {
     margin-top: 0.6vw;
-    font-size: 1.65vw;
+    font-size: 1.95vw;
     font-weight: 400;
     color: #3d4a3a;
-  }
-  .si-endereco {
-    margin-top: 0.7vw;
-    font-size: 2.2vw;
-    font-weight: 800;
-    text-transform: uppercase;
-    letter-spacing: 0.02em;
+    line-height: 1.3;
   }
   /* Product cards stacked in the upper-middle (capa disposition of the
      reference art \u2014 lettering fills the lower half of the background). */
@@ -111,7 +105,7 @@
   .story-body.layout-2 .story-slot { width: 86%; }
   .story-body.layout-3 .story-slot { width: 84%; }
 
-  /* Bottom footer (disclaimer + address), matching the non-capa reference art */
+  /* Bottom legal footer */
   .story-footer {
     position: absolute;
     left: 6%;
@@ -127,13 +121,13 @@
     margin: 0 auto 1.5vw;
     border-radius: 1vw;
   }
-  .sf-disclaimer { font-size: 1.7vw; font-weight: 400; color: #3d4a3a; }
-  .sf-endereco {
-    margin-top: 1vw;
-    font-size: 2.2vw;
-    font-weight: 800;
-    text-transform: uppercase;
-    letter-spacing: 0.02em;
+  .sf-disclaimer {
+    max-width: 78%;
+    margin: 0 auto;
+    font-size: 2vw;
+    line-height: 1.3;
+    font-weight: 400;
+    color: #3d4a3a;
   }
 
   /* ---- Shared product card ---- */
@@ -230,15 +224,15 @@
     width: 82%;
     margin: auto;
   }
-  ${y}
+  ${s}
 </style>
 </head>
 <body>
   <div class="story-canvas">
-    <div class="${h}" ${o}></div>
+    <div class="${u}" ${r}></div>
     <div class="story-overlay">
-      ${d}
+      ${a}
     </div>
   </div>
 </body>
-</html>`}return q(j);})();
+</html>`}return A(P);})();

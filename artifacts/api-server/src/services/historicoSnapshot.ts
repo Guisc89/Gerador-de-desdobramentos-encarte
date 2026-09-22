@@ -128,20 +128,19 @@ export function materiaisDisponiveisNoSnapshot(
   return result;
 }
 
-function inheritedText(extra: Obj, telas: Obj, key: string): string {
-  return Object.prototype.hasOwnProperty.call(extra, key)
-    ? text(extra[key])
-    : text(telas[key]);
-}
-
 function commonState(extra: Obj, telas: Obj) {
   return {
     mes: text(telas["mes"]),
     validadeInicio: text(telas["validadeInicio"]),
     validadeFim: text(telas["validadeFim"]),
-    endereco: inheritedText(extra, telas, "endereco"),
-    disclaimer: inheritedText(extra, telas, "disclaimer"),
-    infoCor: inheritedText(extra, telas, "infoCor"),
+    // Telas is the archived source of truth for legal copy. Never consult
+    // current state or stale per-format disclaimer extras.
+    ...(Object.prototype.hasOwnProperty.call(telas, "disclaimer")
+      ? { disclaimer: text(telas["disclaimer"]) }
+      : {}),
+    infoCor: Object.prototype.hasOwnProperty.call(extra, "infoCor")
+      ? text(extra["infoCor"])
+      : text(telas["infoCor"]),
   };
 }
 

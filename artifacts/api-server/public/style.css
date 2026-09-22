@@ -182,17 +182,26 @@ label {
 }
 
 input[type="text"],
-input[type="file"] {
+input[type="file"],
+textarea {
   width: 100%;
   max-width: 100%;
   padding: 10px 12px;
   border: 1px solid #ddd;
   border-radius: 8px;
   font-size: 14px;
+  font-family: inherit;
   background: #fafafa;
 }
 
-input[type="text"]:focus {
+textarea {
+  min-height: 92px;
+  line-height: 1.4;
+  resize: vertical;
+}
+
+input[type="text"]:focus,
+textarea:focus {
   outline: none;
   border-color: #01aba8;
   background: #fff;

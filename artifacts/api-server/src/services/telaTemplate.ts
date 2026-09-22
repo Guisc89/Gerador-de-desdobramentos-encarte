@@ -1,3 +1,8 @@
+import {
+  DISCLAIMER_PADRAO,
+  formatLegalTextLines,
+} from "./legalText";
+
 export interface TelaProduto {
   nome: string;
   descricao: string;
@@ -10,7 +15,6 @@ export interface TelaState {
   mes: string;
   validadeInicio: string;
   validadeFim: string;
-  endereco: string;
   disclaimer?: string;
   infoCor?: string;
   background?: string | null;
@@ -18,8 +22,7 @@ export interface TelaState {
   produtos: TelaProduto[];
 }
 
-export const DISCLAIMER_PADRAO =
-  "Os preços e produtos anunciados são válidos exclusivamente para esta loja.";
+export { DISCLAIMER_PADRAO } from "./legalText";
 
 // Aceita apenas cores HEX válidas (#RGB ou #RRGGBB) para injetar no CSS.
 export function corHexValida(value: unknown): string {
@@ -89,23 +92,22 @@ export function renderTelaHtml(state: TelaState): string {
       ? `Validade: ${esc(state.validadeInicio)} a ${esc(state.validadeFim)}`
       : "";
 
-  const disclaimer =
-    state.disclaimer && state.disclaimer.trim()
-      ? esc(state.disclaimer.trim())
-      : esc(DISCLAIMER_PADRAO);
+  const legalText = state.disclaimer === undefined
+    ? DISCLAIMER_PADRAO
+    : state.disclaimer;
+  const disclaimer = formatLegalTextLines(legalText)
+    .map(esc)
+    .join("<br />");
   const infoCor = corHexValida(state.infoCor);
   const infoCorCss = infoCor
-    ? `.tela-info-mes, .tela-info-validade, .tela-info-endereco, .tela-info-disclaimer { color: ${infoCor}; }`
+    ? `.tela-info-mes, .tela-info-validade, .tela-info-disclaimer { color: ${infoCor}; }`
     : "";
 
   const infoBlock = `
       <div class="tela-info">
         ${state.mes ? `<div class="tela-info-mes">${esc(state.mes)}</div>` : ""}
         ${validade ? `<div class="tela-info-validade">${validade}</div>` : ""}
-        <div class="tela-info-endereco">${
-          state.endereco ? esc(state.endereco) : "Insira aqui seu endereço"
-        }</div>
-        <div class="tela-info-disclaimer">${disclaimer}</div>
+        ${disclaimer ? `<div class="tela-info-disclaimer">${disclaimer}</div>` : ""}
       </div>`;
 
   const cards =
@@ -210,19 +212,13 @@ export function renderTelaHtml(state: TelaState): string {
     font-size: 0.8vw;
     font-weight: 700;
   }
-  .tela-info-endereco {
-    margin-top: 0.15vw;
-    font-size: 0.8vw;
-    font-weight: 700;
-    letter-spacing: 0.03em;
-    text-transform: uppercase;
-  }
   .tela-info-disclaimer {
-    margin-top: 0.2vw;
-    font-size: 0.62vw;
+    margin-top: 0.35vw;
+    font-size: 0.78vw;
     font-weight: 400;
     color: #3d4a3a;
-    max-width: 40vw;
+    line-height: 1.3;
+    max-width: 32vw;
   }
   .card {
     background: #ffffff;

@@ -16,7 +16,6 @@
   const nomeArquivoInput = document.getElementById("telaNomeArquivo");
   const validadeInicioInput = document.getElementById("telaValidadeInicio");
   const validadeFimInput = document.getElementById("telaValidadeFim");
-  const enderecoInput = document.getElementById("telaEndereco");
   const disclaimerInput = document.getElementById("telaDisclaimer");
   const infoCorInput = document.getElementById("telaInfoCor");
 
@@ -209,8 +208,7 @@
       mes: mesInput.value.trim(),
       validadeInicio: validadeInicioInput.value.trim(),
       validadeFim: validadeFimInput.value.trim(),
-      endereco: enderecoInput.value.trim(),
-      disclaimer: disclaimerInput.value.trim(),
+      disclaimer: disclaimerInput.value,
       infoCor: infoCorInput.value.trim(),
       background: isCapa ? bgDataUri : bg2DataUri || bgDataUri,
       isCapa: !!isCapa,
@@ -238,7 +236,7 @@
       mes: mesInput.value.trim(),
       validadeInicio: validadeInicioInput.value.trim(),
       validadeFim: validadeFimInput.value.trim(),
-      endereco: enderecoInput.value.trim(),
+      disclaimer: disclaimerInput.value,
       infoCor: infoCorInput.value.trim(),
       telas: telas.map((t) => ({
         id: t.id,
@@ -809,7 +807,7 @@
   });
 
   // ---- Global info inputs ----
-  [mesInput, validadeInicioInput, validadeFimInput, enderecoInput, disclaimerInput, infoCorInput].forEach((inp) => {
+  [mesInput, validadeInicioInput, validadeFimInput, disclaimerInput, infoCorInput].forEach((inp) => {
     inp.addEventListener("input", schedulePreview);
   });
 
@@ -1034,7 +1032,6 @@
       nomeArquivo: nomeArquivoInput.value,
       validadeInicio: validadeInicioInput.value,
       validadeFim: validadeFimInput.value,
-      endereco: enderecoInput.value,
       disclaimer: disclaimerInput.value,
       infoCor: infoCorInput.value,
       bgDataUri: bgDataUri,
@@ -1064,7 +1061,6 @@
     if ("nomeArquivo" in saved) nomeArquivoInput.value = saved.nomeArquivo || "";
     if ("validadeInicio" in saved) validadeInicioInput.value = saved.validadeInicio || "";
     if ("validadeFim" in saved) validadeFimInput.value = saved.validadeFim || "";
-    if ("endereco" in saved) enderecoInput.value = saved.endereco || "";
     if ("disclaimer" in saved) disclaimerInput.value = saved.disclaimer || "";
     if ("infoCor" in saved) infoCorInput.value = saved.infoCor || "";
     if (saved.bgDataUri) {

@@ -1,27 +1,25 @@
 import {
   renderProductCard,
   corHexValida,
-  DISCLAIMER_PADRAO,
   type TelaProduto,
 } from "./telaTemplate";
+import { DISCLAIMER_PADRAO, formatLegalTextLines } from "./legalText";
 
 // A "Story" is a 1080x1920 (portrait 9:16) post. The decorative art (logo,
 // title phrase, lettering, hero photo) comes from a campaign BACKGROUND image
-// the user uploads; the app only overlays the dynamic parts on top: month +
-// validade, address, and the product cards.
+// the user uploads; the app overlays month, validity, legal copy and cards.
 //
 // Page 1 (capa, isCapa=true): exactly 2 products stacked, upper-middle area,
-// with the month/validade + disclaimer + address block above them (the campaign
+// with the month/validade + legal copy block above them (the campaign
 // lettering lives in the lower half of the background). Page 2+ (isCapa=false):
 // 2 to 3 products stacked and vertically centered, plus a bottom footer with
-// the disclaimer + address, matching the reference arts.
+// the legal copy.
 export interface StoryProduto extends TelaProduto {}
 
 export interface StoryState {
   mes: string;
   validadeInicio: string;
   validadeFim: string;
-  endereco: string;
   disclaimer?: string;
   infoCor?: string;
   background?: string | null;
@@ -43,8 +41,6 @@ function esc(value: unknown): string {
   );
 }
 
-const DISCLAIMER = DISCLAIMER_PADRAO;
-
 export function renderStoryHtml(state: StoryState): string {
   const produtos = Array.isArray(state.produtos) ? state.produtos : [];
   const count = produtos.length;
@@ -55,14 +51,15 @@ export function renderStoryHtml(state: StoryState): string {
     : "";
   const bgClass = state.background ? "story-bg" : "story-bg story-bg-default";
 
-  const endereco = state.endereco ? esc(state.endereco) : "Insira aqui seu endereço";
-  const disclaimer =
-    state.disclaimer && state.disclaimer.trim()
-      ? esc(state.disclaimer.trim())
-      : esc(DISCLAIMER);
+  const legalText = state.disclaimer === undefined
+    ? DISCLAIMER_PADRAO
+    : state.disclaimer;
+  const disclaimer = formatLegalTextLines(legalText)
+    .map(esc)
+    .join("<br />");
   const infoCor = corHexValida(state.infoCor);
   const infoCorCss = infoCor
-    ? `.si-mesval, .si-endereco, .si-disclaimer, .sf-endereco, .sf-disclaimer { color: ${infoCor}; }`
+    ? `.si-mesval, .si-disclaimer, .sf-disclaimer { color: ${infoCor}; }`
     : "";
 
   const slots = (p: StoryProduto): string =>
@@ -70,7 +67,7 @@ export function renderStoryHtml(state: StoryState): string {
 
   let overlay: string;
   if (isCapa) {
-    // Capa: month/validade + disclaimer + address block on top, then the 2
+    // Capa: month/validade + legal copy on top, then the 2
     // product cards stacked in the upper-middle (lettering in the background
     // fills the lower half).
     const mesVal = [
@@ -90,8 +87,7 @@ export function renderStoryHtml(state: StoryState): string {
     overlay = `
       <div class="story-topinfo">
         ${mesVal ? `<div class="si-mesval">${mesVal}</div>` : ""}
-        <div class="si-disclaimer">${disclaimer}</div>
-        <div class="si-endereco">${endereco}</div>
+        ${disclaimer ? `<div class="si-disclaimer">${disclaimer}</div>` : ""}
       </div>
       <div class="story-stack" data-count="${count}">
         ${cards}
@@ -110,8 +106,7 @@ export function renderStoryHtml(state: StoryState): string {
       </div>
       <div class="story-footer">
         <div class="sf-rule"></div>
-        <div class="sf-disclaimer">${disclaimer}</div>
-        <div class="sf-endereco">${endereco}</div>
+        ${disclaimer ? `<div class="sf-disclaimer">${disclaimer}</div>` : ""}
       </div>`;
   }
 
@@ -149,7 +144,7 @@ export function renderStoryHtml(state: StoryState): string {
   .story-overlay { position: absolute; inset: 0; z-index: 1; }
 
   /* ---- Capa (page 1) ---- */
-  /* Dynamic month/validade + address block, below the logo area of the
+  /* Dynamic month/validade + legal copy, below the logo area of the
      background art (logo + lettering live in the background). */
   .story-topinfo {
     position: absolute;
@@ -162,16 +157,10 @@ export function renderStoryHtml(state: StoryState): string {
   .si-mesval { font-size: 3.1vw; font-weight: 900; }
   .si-disclaimer {
     margin-top: 0.6vw;
-    font-size: 1.65vw;
+    font-size: 1.95vw;
     font-weight: 400;
     color: #3d4a3a;
-  }
-  .si-endereco {
-    margin-top: 0.7vw;
-    font-size: 2.2vw;
-    font-weight: 800;
-    text-transform: uppercase;
-    letter-spacing: 0.02em;
+    line-height: 1.3;
   }
   /* Product cards stacked in the upper-middle (capa disposition of the
      reference art — lettering fills the lower half of the background). */
@@ -200,7 +189,7 @@ export function renderStoryHtml(state: StoryState): string {
   .story-body.layout-2 .story-slot { width: 86%; }
   .story-body.layout-3 .story-slot { width: 84%; }
 
-  /* Bottom footer (disclaimer + address), matching the non-capa reference art */
+  /* Bottom legal footer */
   .story-footer {
     position: absolute;
     left: 6%;
@@ -216,13 +205,13 @@ export function renderStoryHtml(state: StoryState): string {
     margin: 0 auto 1.5vw;
     border-radius: 1vw;
   }
-  .sf-disclaimer { font-size: 1.7vw; font-weight: 400; color: #3d4a3a; }
-  .sf-endereco {
-    margin-top: 1vw;
-    font-size: 2.2vw;
-    font-weight: 800;
-    text-transform: uppercase;
-    letter-spacing: 0.02em;
+  .sf-disclaimer {
+    max-width: 78%;
+    margin: 0 auto;
+    font-size: 2vw;
+    line-height: 1.3;
+    font-weight: 400;
+    color: #3d4a3a;
   }
 
   /* ---- Shared product card ---- */

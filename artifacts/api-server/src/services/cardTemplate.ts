@@ -1,14 +1,13 @@
 import {
   renderProductCard,
   corHexValida,
-  DISCLAIMER_PADRAO,
   type TelaProduto,
 } from "./telaTemplate";
+import { DISCLAIMER_PADRAO, formatLegalTextLines } from "./legalText";
 
 // A "Card" is a 1080x1440 (portrait 3:4) feed post. The decorative art (title
 // phrase, lettering, hero photo, logo) comes from a campaign BACKGROUND image
-// the user uploads; the app only overlays the dynamic parts on top: month +
-// validade, address, and the product cards.
+// the user uploads; the app only overlays month, validity, legal copy and cards.
 //
 // Page 1 (capa, isCapa=true): exactly 2 products laid out lower-right, matching
 // the capa reference art. Page 2+ (isCapa=false): 2 to 4 products, vertically
@@ -16,14 +15,13 @@ import {
 //   - 2 products: stacked, centered
 //   - 3 products: stacked, centered
 //   - 4 products: staggered zig-zag (1 left, 2 right, 3 left, 4 right)
-// Non-capa pages also carry a bottom footer with the disclaimer + address.
+// Non-capa pages also carry a bottom footer with the legal copy.
 export interface CardProduto extends TelaProduto {}
 
 export interface CardState {
   mes: string;
   validadeInicio: string;
   validadeFim: string;
-  endereco: string;
   disclaimer?: string;
   infoCor?: string;
   background?: string | null;
@@ -45,8 +43,6 @@ function esc(value: unknown): string {
   );
 }
 
-const DISCLAIMER = DISCLAIMER_PADRAO;
-
 export function renderCardHtml(state: CardState): string {
   const produtos = Array.isArray(state.produtos) ? state.produtos : [];
   const count = produtos.length;
@@ -57,14 +53,15 @@ export function renderCardHtml(state: CardState): string {
     : "";
   const bgClass = state.background ? "card-bg" : "card-bg card-bg-default";
 
-  const endereco = state.endereco ? esc(state.endereco) : "Insira aqui seu endereço";
-  const disclaimer =
-    state.disclaimer && state.disclaimer.trim()
-      ? esc(state.disclaimer.trim())
-      : esc(DISCLAIMER);
+  const legalText = state.disclaimer === undefined
+    ? DISCLAIMER_PADRAO
+    : state.disclaimer;
+  const disclaimer = formatLegalTextLines(legalText)
+    .map(esc)
+    .join("<br />");
   const infoCor = corHexValida(state.infoCor);
   const infoCorCss = infoCor
-    ? `.ci-mesval, .ci-endereco, .ci-disclaimer, .cf-endereco, .cf-disclaimer { color: ${infoCor}; }`
+    ? `.ci-mesval, .ci-disclaimer, .cf-disclaimer { color: ${infoCor}; }`
     : "";
 
   const slots = (p: CardProduto): string =>
@@ -90,8 +87,7 @@ export function renderCardHtml(state: CardState): string {
     overlay = `
       <div class="card-topinfo">
         ${mesVal ? `<div class="ci-mesval">${mesVal}</div>` : ""}
-        <div class="ci-disclaimer">${disclaimer}</div>
-        <div class="ci-endereco">${endereco}</div>
+        ${disclaimer ? `<div class="ci-disclaimer">${disclaimer}</div>` : ""}
       </div>
       <div class="card-stack" data-count="${count}">
         ${cards}
@@ -111,8 +107,7 @@ export function renderCardHtml(state: CardState): string {
       </div>
       <div class="card-footer">
         <div class="cf-rule"></div>
-        <div class="cf-disclaimer">${disclaimer}</div>
-        <div class="cf-endereco">${endereco}</div>
+        ${disclaimer ? `<div class="cf-disclaimer">${disclaimer}</div>` : ""}
       </div>`;
   }
 
@@ -150,7 +145,7 @@ export function renderCardHtml(state: CardState): string {
   .card-overlay { position: absolute; inset: 0; z-index: 1; }
 
   /* ---- Capa (page 1) ---- */
-  /* Dynamic month/validade + address, top-left (logo lives in the background) */
+  /* Dynamic month/validade + legal copy, top-left */
   .card-topinfo {
     position: absolute;
     top: 14.5%;
@@ -162,16 +157,10 @@ export function renderCardHtml(state: CardState): string {
   .ci-mesval { font-size: 2.6vw; font-weight: 900; }
   .ci-disclaimer {
     margin-top: 0.5vw;
-    font-size: 1.35vw;
+    font-size: 1.65vw;
     font-weight: 400;
     color: #3d4a3a;
-  }
-  .ci-endereco {
-    margin-top: 0.6vw;
-    font-size: 1.9vw;
-    font-weight: 800;
-    text-transform: uppercase;
-    letter-spacing: 0.02em;
+    line-height: 1.3;
   }
   /* Product cards stacked, lower-right (capa disposition of the reference) */
   .card-stack {
@@ -204,7 +193,7 @@ export function renderCardHtml(state: CardState): string {
   .card-body.layout-4 .card-slot:nth-child(odd) { align-self: flex-start; }
   .card-body.layout-4 .card-slot:nth-child(even) { align-self: flex-end; }
 
-  /* Bottom footer (disclaimer + address), matching the non-capa reference art */
+  /* Bottom legal footer */
   .card-footer {
     position: absolute;
     left: 6%;
@@ -220,13 +209,13 @@ export function renderCardHtml(state: CardState): string {
     margin: 0 auto 1.4vw;
     border-radius: 1vw;
   }
-  .cf-disclaimer { font-size: 1.5vw; font-weight: 400; color: #3d4a3a; }
-  .cf-endereco {
-    margin-top: 1vw;
-    font-size: 2vw;
-    font-weight: 800;
-    text-transform: uppercase;
-    letter-spacing: 0.02em;
+  .cf-disclaimer {
+    max-width: 76%;
+    margin: 0 auto;
+    font-size: 1.75vw;
+    line-height: 1.3;
+    font-weight: 400;
+    color: #3d4a3a;
   }
 
   /* ---- Shared product card ---- */

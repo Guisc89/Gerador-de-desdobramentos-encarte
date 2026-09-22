@@ -12,6 +12,54 @@ import {
   type HistoricoRouteDeps,
 } from "../src/routes/historico";
 import { historicoArtifactPath } from "../src/services/historicoMateriais";
+import {
+  DISCLAIMER_PADRAO,
+  formatLegalTextLines,
+} from "../src/services/legalText";
+import { renderTelaHtml } from "../src/services/telaTemplate";
+import { renderCardHtml } from "../src/services/cardTemplate";
+import { renderStoryHtml } from "../src/services/storyTemplate";
+
+test("legal copy balances without truncating words or explicit breaks", () => {
+  const normal = formatLegalTextLines(DISCLAIMER_PADRAO);
+  assert.equal(normal.length, 3);
+  assert.equal(normal.join(" "), DISCLAIMER_PADRAO);
+
+  const long = Array.from(
+    { length: 42 },
+    (_, index) => `palavra${index + 1}`,
+  ).join(" ");
+  const longLines = formatLegalTextLines(long);
+  assert.equal(longLines.length, 5);
+  assert.equal(longLines.join(" "), long);
+
+  assert.deepEqual(formatLegalTextLines("Texto curto"), ["Texto curto"]);
+  const explicit = formatLegalTextLines("Primeiro bloco\nSegundo bloco");
+  assert.equal(explicit.length, 2);
+  assert.deepEqual(explicit, ["Primeiro bloco", "Segundo bloco"]);
+  assert.deepEqual(formatLegalTextLines("   \n "), []);
+});
+
+test("all current templates render shared legal copy and never an address", () => {
+  const base = {
+    mes: "Maio",
+    validadeInicio: "01.05",
+    validadeFim: "31.05",
+    disclaimer: "Linha legal completa para todas as peças",
+    produtos: [],
+  };
+  [renderTelaHtml(base), renderCardHtml(base), renderStoryHtml(base)].forEach(
+    (html) => {
+      assert.match(html, /Linha legal/);
+      assert.doesNotMatch(html, /Insira aqui seu endereço|endereco/i);
+    },
+  );
+  [renderTelaHtml({ ...base, disclaimer: "" }),
+    renderCardHtml({ ...base, disclaimer: "" }),
+    renderStoryHtml({ ...base, disclaimer: "" })].forEach((html) => {
+    assert.doesNotMatch(html, /Os preços e produtos anunciados/);
+  });
+});
 
 test("snapshot preserves explicit empty extras and archived composition", () => {
   const image = "data:image/png;base64,AA==";
@@ -34,7 +82,7 @@ test("snapshot preserves explicit empty extras and archived composition", () => 
           ] },
         ],
       },
-      cardsExtras: { endereco: "", disclaimer: "", infoCor: "" },
+      cardsExtras: { endereco: "", disclaimer: "Aviso obsoleto", infoCor: "" },
       storiesExtras: {},
     },
   };
@@ -46,13 +94,19 @@ test("snapshot preserves explicit empty extras and archived composition", () => 
   ]);
   const states = estadosMateriaisDoSnapshot(estado);
   assert.ok(states);
-  assert.equal(states.cards[0]?.endereco, "");
-  assert.equal(states.cards[0]?.disclaimer, "");
+  assert.equal(states.cards[0]?.disclaimer, "Aviso das telas");
   assert.equal(states.cards[0]?.infoCor, "");
-  assert.equal(states.stories[0]?.endereco, "Endereço das telas");
+  assert.equal(states.stories[0]?.disclaimer, "Aviso das telas");
   assert.deepEqual(states.stories.map((story) => story.produtos.length), [2, 2]);
   assert.equal(states.telas[0]?.produtos[0]?.foto, image);
   assert.equal(states.telas[0]?.produtos[0]?.precoCentavos, "05");
+
+  estado.frontend.telas.disclaimer = "";
+  const emptyLegalStates = estadosMateriaisDoSnapshot(estado);
+  assert.ok(emptyLegalStates);
+  assert.equal(emptyLegalStates.telas[0]?.disclaimer, "");
+  assert.equal(emptyLegalStates.cards[0]?.disclaimer, "");
+  assert.equal(emptyLegalStates.stories[0]?.disclaimer, "");
 });
 
 test("legacy pointer derives only from immutable archive in same workspace", () => {
