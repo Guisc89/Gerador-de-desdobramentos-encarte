@@ -1112,6 +1112,14 @@ body {
 .fin-acoes .ws-finalizar:hover { filter: brightness(1.1); background: linear-gradient(135deg, #0f5f56 0%, #093f39 100%); }
 .fin-aviso { margin: 12px 0 0; font-size: 0.85rem; color: #74827c; }
 .ws-hist-links { display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap; }
+.ws-hist-links > .btn-download {
+  box-sizing: border-box;
+  flex: 0 0 160px;
+  width: 160px;
+  height: 41px;
+  margin: 0;
+  padding: 0 10px;
+}
 .fin-historico .ws-hist-meta { color: #14424c; opacity: 1; }
 .fin-historico .ws-hist-vazio { color: #9aa59f; }
 
