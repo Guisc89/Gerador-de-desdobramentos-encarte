@@ -20,12 +20,35 @@ export interface ParseResult {
   total: number;
   validos: number;
   invalidos: number;
+  agrupados: number;
+  ignorados: number;
+  ocorrencias: Array<{
+    linha: number;
+    nome: string;
+    tipo: "erro" | "ignorado" | "agrupado";
+    motivo: string;
+    linhaDestino?: number;
+  }>;
   abaUtilizada: string;
   abasEncontradas: string[];
   pendentes: string[];
 }
 
 const PREFERRED_SHEET_REGEX = /^encarte/i;
+
+export function importStats(parsed: ParseResult) {
+  return {
+    abaUtilizada: parsed.abaUtilizada,
+    abasEncontradas: parsed.abasEncontradas,
+    totalLidos: parsed.total,
+    validos: parsed.validos,
+    invalidos: parsed.invalidos,
+    agrupados: parsed.agrupados,
+    ignorados: parsed.ignorados,
+    ocorrencias: parsed.ocorrencias,
+    pendentes: parsed.pendentes,
+  };
+}
 
 function pickSheet(wb: XLSX.WorkBook): string {
   // Prefer a sheet whose name starts with "ENCARTE"
@@ -52,8 +75,11 @@ interface HeaderMap {
 }
 
 function findHeader(rows: unknown[][]): HeaderMap | null {
-  for (let r = 0; r < Math.min(rows.length, 30); r++) {
+  let nonEmptyRowsExamined = 0;
+  for (let r = 0; r < rows.length && nonEmptyRowsExamined < 30; r++) {
     const row = rows[r] ?? [];
+    if (row.every((value) => String(value ?? "").trim() === "")) continue;
+    nonEmptyRowsExamined++;
     const headers = row.map(normalizeHeader);
     const espacoIdx = headers.findIndex((h) => h === "espaco" || h === "espaço");
     const descIdx = headers.findIndex((h) => h === "descricao");
@@ -110,6 +136,26 @@ export function splitApresentacao(
 }
 
 const CONSULTE_REGEX = /^consulte\s+apresenta/i;
+const SOURCE_ROWS = Symbol("excelSourceRows");
+const SOURCE_NAMES = Symbol("excelSourceNames");
+type TrackedProduto = Produto & {
+  [SOURCE_ROWS]?: number[];
+  [SOURCE_NAMES]?: Map<number, string>;
+};
+
+function absorbSources(target: Produto, source: Produto): void {
+  const targetTracked = target as TrackedProduto;
+  const sourceTracked = source as TrackedProduto;
+  targetTracked[SOURCE_ROWS] = [
+    ...(targetTracked[SOURCE_ROWS] ?? []),
+    ...(sourceTracked[SOURCE_ROWS] ?? []),
+  ];
+  const names = new Map(targetTracked[SOURCE_NAMES] ?? []);
+  for (const [line, name] of sourceTracked[SOURCE_NAMES] ?? []) {
+    names.set(line, name);
+  }
+  targetTracked[SOURCE_NAMES] = names;
+}
 
 // When column E says "Consulte apresentações", variants of the same product
 // (same base name and price, differing only by flavor/variant suffix) collapse
@@ -136,6 +182,7 @@ export function dedupeConsulteApresentacoes(produtos: Produto[]): Produto[] {
   }
 
   const emitted = new Set<string>();
+  const retainedByKey = new Map<string, Produto>();
   const result: Produto[] = [];
   for (const p of produtos) {
     const hasVariant = VARIANT_SEP.test(p.nome);
@@ -147,9 +194,19 @@ export function dedupeConsulteApresentacoes(produtos: Produto[]): Produto[] {
       result.push(p);
       continue;
     }
-    if (emitted.has(key)) continue;
+    if (emitted.has(key)) {
+      const retained = retainedByKey.get(key);
+      if (retained) absorbSources(retained, p);
+      continue;
+    }
     emitted.add(key);
-    result.push({ ...p, nome: baseNome, descricao: "Consulte apresentações" });
+    const retained = {
+      ...p,
+      nome: baseNome,
+      descricao: "Consulte apresentações",
+    };
+    retainedByKey.set(key, retained);
+    result.push(retained);
   }
   return mergeRunsByPrefix(result);
 }
@@ -219,11 +276,15 @@ function mergeRunsByPrefix(produtos: Produto[]): Produto[] {
       j++;
     }
     if (j - i >= 2) {
-      result.push({
+      const retained = {
         ...start,
         nome: prefix.join(" "),
         descricao: "Consulte apresentações",
-      });
+      };
+      for (let k = i + 1; k < j; k++) {
+        absorbSources(retained, produtos[k]!);
+      }
+      result.push(retained);
       i = j;
     } else {
       result.push(start);
@@ -257,7 +318,8 @@ export function parseExcel(buffer: Buffer, opts: ParseOptions): ParseResult {
   const rows = XLSX.utils.sheet_to_json<unknown[]>(ws, {
     header: 1,
     defval: "",
-    blankrows: false,
+    range: 0,
+    blankrows: true,
   });
 
   const header = findHeader(rows);
@@ -269,8 +331,10 @@ export function parseExcel(buffer: Buffer, opts: ParseOptions): ParseResult {
 
   const produtos: Produto[] = [];
   const pendentes: string[] = [];
+  const ocorrencias: ParseResult["ocorrencias"] = [];
   let total = 0;
   let invalidos = 0;
+  let ignorados = 0;
 
   for (let r = header.rowIndex + 1; r < rows.length; r++) {
     const row = rows[r] ?? [];
@@ -279,10 +343,26 @@ export function parseExcel(buffer: Buffer, opts: ParseOptions): ParseResult {
     const nome = cell(row, header.descricao);
     if (!nome) {
       // skip rows without a product name (subsection headers etc.)
+      ignorados++;
+      ocorrencias.push({
+        linha: r + 1,
+        nome: "",
+        tipo: "ignorado",
+        motivo: "Descrição ausente",
+      });
       continue;
     }
     // skip if the "name" looks like a header repeated
-    if (normalizeHeader(nome) === "descricao") continue;
+    if (normalizeHeader(nome) === "descricao") {
+      ignorados++;
+      ocorrencias.push({
+        linha: r + 1,
+        nome,
+        tipo: "ignorado",
+        motivo: "Cabeçalho repetido",
+      });
+      continue;
+    }
 
     total++;
 
@@ -291,6 +371,16 @@ export function parseExcel(buffer: Buffer, opts: ParseOptions): ParseResult {
     if (!price) {
       invalidos++;
       pendentes.push(nome);
+      const precoAusente =
+        precoRaw === null ||
+        precoRaw === undefined ||
+        String(precoRaw).trim() === "";
+      ocorrencias.push({
+        linha: r + 1,
+        nome,
+        tipo: "erro",
+        motivo: precoAusente ? "Preço ausente" : "Preço inválido",
+      });
       continue;
     }
 
@@ -318,7 +408,7 @@ export function parseExcel(buffer: Buffer, opts: ParseOptions): ParseResult {
       }
     }
 
-    produtos.push({
+    const produto: TrackedProduto = {
       espaco: cell(row, header.espaco),
       fabricante: cell(row, header.fabricante),
       ean: cell(row, header.ean),
@@ -329,16 +419,39 @@ export function parseExcel(buffer: Buffer, opts: ParseOptions): ParseResult {
       precoCentavos: price.precoCentavos,
       validadeInicio: opts.validadeInicio,
       validadeFim: opts.validadeFim,
-    });
+      [SOURCE_ROWS]: [r + 1],
+      [SOURCE_NAMES]: new Map([[r + 1, nome]]),
+    };
+    produtos.push(produto);
   }
 
   const dedupados = dedupeConsulteApresentacoes(produtos);
+  for (const produto of dedupados) {
+    const tracked = produto as TrackedProduto;
+    const sourceRows = tracked[SOURCE_ROWS] ?? [];
+    const linhaDestino = sourceRows[0];
+    if (linhaDestino === undefined) continue;
+    for (const linha of sourceRows.slice(1)) {
+      ocorrencias.push({
+        linha,
+        nome: tracked[SOURCE_NAMES]?.get(linha) ?? produto.nome,
+        tipo: "agrupado",
+        motivo: "Agrupado com produto equivalente",
+        linhaDestino,
+      });
+    }
+  }
+  ocorrencias.sort((a, b) => a.linha - b.linha);
+  const agrupados = produtos.length - dedupados.length;
 
   return {
     produtos: dedupados,
     total,
     validos: dedupados.length,
     invalidos,
+    agrupados,
+    ignorados,
+    ocorrencias,
     abaUtilizada: sheetName,
     abasEncontradas,
     pendentes,

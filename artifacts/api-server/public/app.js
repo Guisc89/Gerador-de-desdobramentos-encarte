@@ -38,6 +38,27 @@
     logEl.textContent = "";
   }
 
+  function logImportStats(stats) {
+    if (!stats) return;
+    log("Aba utilizada: " + stats.abaUtilizada);
+    log("Linhas de produtos lidas: " + stats.totalLidos);
+    log("Produtos prontos para o encarte: " + stats.validos);
+    log("Linhas com erro: " + stats.invalidos);
+    log("Linhas agrupadas em outro produto: " + stats.agrupados);
+    log("Outras linhas ignoradas: " + stats.ignorados + " (fora da contagem de produtos lidos)");
+    if (stats.paginas !== undefined) log("Páginas geradas: " + stats.paginas);
+    if (Array.isArray(stats.ocorrencias) && stats.ocorrencias.length) {
+      log("Confira estas linhas na aba indicada:");
+      stats.ocorrencias.forEach((item) => {
+        const label = item.tipo === "erro" ? "Erro" :
+          item.tipo === "agrupado" ? "Agrupada" : "Ignorada";
+        const name = item.nome ? " — " + item.nome.replace(/\s+/g, " ") : "";
+        const destination = item.linhaDestino ? " (junto à linha " + item.linhaDestino + ")" : "";
+        log("  Linha " + item.linha + name + ": " + label + " — " + item.motivo + destination);
+      });
+    }
+  }
+
   function updateCount() {
     previewCount.textContent = `· ${produtos.length} produtos · ${Math.ceil(produtos.length / 14)} páginas`;
   }
@@ -166,6 +187,7 @@
           document.dispatchEvent(new CustomEvent("encarte:estado-conflito"));
         }
         log("Erro: " + (data && data.error ? data.error : res.statusText));
+        logImportStats(data && data.stats);
         return;
       }
       if (typeof data.version === "string") {
@@ -175,17 +197,7 @@
       }
 
       log("Planilha processada com sucesso.");
-      if (data.stats) {
-        log("Aba utilizada: " + data.stats.abaUtilizada);
-        log("Produtos lidos: " + data.stats.totalLidos);
-        log("Produtos válidos: " + data.stats.validos);
-        log("Produtos com erro: " + data.stats.invalidos);
-        log("Páginas geradas: " + data.stats.paginas);
-        if (data.stats.pendentes && data.stats.pendentes.length > 0) {
-          log("Pendentes (preço ausente):");
-          data.stats.pendentes.forEach((p) => log("  - " + p));
-        }
-      }
+      logImportStats(data.stats);
       log("PDF pronto: " + data.filename);
       log("Edite os produtos diretamente na prévia abaixo.");
 

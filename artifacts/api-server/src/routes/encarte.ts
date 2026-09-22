@@ -2,7 +2,7 @@ import { Router, type IRouter } from "express";
 import multer from "multer";
 import path from "node:path";
 import { existsSync } from "node:fs";
-import { parseExcel, type Produto } from "../services/excelParser";
+import { parseExcel, importStats, type Produto } from "../services/excelParser";
 import {
   storeLoad,
   type Workspace,
@@ -205,7 +205,7 @@ router.post("/upload", upload.single("planilha"), async (req, res) => {
     if (parsed.validos === 0) {
       res
         .status(400)
-        .json({ error: "Nenhum produto válido encontrado na planilha." });
+        .json({ error: "Nenhum produto válido encontrado na planilha.", stats: importStats(parsed) });
       return;
     }
 
@@ -261,12 +261,7 @@ router.post("/upload", upload.single("planilha"), async (req, res) => {
       previewUrl: `/api/preview`,
       produtos: parsed.produtos,
       stats: {
-        abaUtilizada: parsed.abaUtilizada,
-        abasEncontradas: parsed.abasEncontradas,
-        totalLidos: parsed.total,
-        validos: parsed.validos,
-        invalidos: parsed.invalidos,
-        pendentes: parsed.pendentes,
+        ...importStats(parsed),
         paginas: Math.ceil(parsed.validos / 14),
       },
     });

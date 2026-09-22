@@ -1,7 +1,7 @@
 import { Router, type IRouter } from "express";
 import multer from "multer";
 import { randomUUID } from "node:crypto";
-import { parseExcel } from "../services/excelParser";
+import { parseExcel, importStats } from "../services/excelParser";
 import {
   renderStoryHtml,
   type StoryState,
@@ -386,7 +386,7 @@ router.post("/stories/parse", upload.single("planilha"), async (req, res) => {
     if (parsed.validos === 0) {
       res
         .status(400)
-        .json({ error: "Nenhum produto válido encontrado na planilha." });
+        .json({ error: "Nenhum produto válido encontrado na planilha.", stats: importStats(parsed) });
       return;
     }
 
@@ -399,10 +399,7 @@ router.post("/stories/parse", upload.single("planilha"), async (req, res) => {
         precoCentavos: p.precoCentavos,
       })),
       stats: {
-        abaUtilizada: parsed.abaUtilizada,
-        validos: parsed.validos,
-        invalidos: parsed.invalidos,
-        pendentes: parsed.pendentes,
+        ...importStats(parsed),
       },
     });
   } catch (err: unknown) {
