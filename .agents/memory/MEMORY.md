@@ -6,3 +6,4 @@
 - [Limites do app publicado](limites-app-publicado.md) — ~32MB/120s por requisição em produção; estourou → HTML "Unexpected token '<'"; imagens sempre via EncarteImg (WebP) e trabalho longo em lotes.
 - [Acesso administrativo](admin-access-roles.md) — os dois perfis compartilham as ferramentas e os encartes RS/MS; o perfil não restringe o fluxo existente.
 - [Finalização colaborativa](finalizacao-colaborativa.md) — rotação mensal entre instâncias precisa ser recuperável e fenced; lease sozinho não protege o histórico.
+- [Texto legal e produtos](texto-legal-layout.md) — encaixe horizontal do rodapé tem prioridade sobre a antiga exigência de 3–5 linhas.

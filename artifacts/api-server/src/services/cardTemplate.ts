@@ -3,7 +3,11 @@ import {
   corHexValida,
   type TelaProduto,
 } from "./telaTemplate";
-import { DISCLAIMER_PADRAO, formatLegalTextLines } from "./legalText";
+import {
+  DISCLAIMER_PADRAO,
+  formatLegalTextLines,
+  LEGAL_FIT_SCRIPT,
+} from "./legalText";
 
 // A "Card" is a 1080x1440 (portrait 3:4) feed post. The decorative art (title
 // phrase, lettering, hero photo, logo) comes from a campaign BACKGROUND image
@@ -61,7 +65,7 @@ export function renderCardHtml(state: CardState): string {
     .join("<br />");
   const infoCor = corHexValida(state.infoCor);
   const infoCorCss = infoCor
-    ? `.ci-mesval, .ci-disclaimer, .cf-disclaimer { color: ${infoCor}; }`
+    ? `.ci-mesval, .cf-disclaimer { color: ${infoCor}; }`
     : "";
 
   const slots = (p: CardProduto): string =>
@@ -87,7 +91,6 @@ export function renderCardHtml(state: CardState): string {
     overlay = `
       <div class="card-topinfo">
         ${mesVal ? `<div class="ci-mesval">${mesVal}</div>` : ""}
-        ${disclaimer ? `<div class="ci-disclaimer">${disclaimer}</div>` : ""}
       </div>
       <div class="card-stack" data-count="${count}">
         ${cards}
@@ -107,7 +110,9 @@ export function renderCardHtml(state: CardState): string {
       </div>
       <div class="card-footer">
         <div class="cf-rule"></div>
-        ${disclaimer ? `<div class="cf-disclaimer">${disclaimer}</div>` : ""}
+        <div class="cf-legal-box">
+          ${disclaimer ? `<div class="cf-disclaimer" data-fit-legal data-min-font="1">${disclaimer}</div>` : ""}
+        </div>
       </div>`;
   }
 
@@ -145,7 +150,7 @@ export function renderCardHtml(state: CardState): string {
   .card-overlay { position: absolute; inset: 0; z-index: 1; }
 
   /* ---- Capa (page 1) ---- */
-  /* Dynamic month/validade + legal copy, top-left */
+  /* Dynamic month/validade only: legal copy is forbidden on capa. */
   .card-topinfo {
     position: absolute;
     top: 14.5%;
@@ -155,13 +160,6 @@ export function renderCardHtml(state: CardState): string {
     line-height: 1.28;
   }
   .ci-mesval { font-size: 2.6vw; font-weight: 900; }
-  .ci-disclaimer {
-    margin-top: 0.5vw;
-    font-size: 1.65vw;
-    font-weight: 400;
-    color: #3d4a3a;
-    line-height: 1.3;
-  }
   /* Product cards stacked, lower-right (capa disposition of the reference) */
   .card-stack {
     position: absolute;
@@ -176,13 +174,16 @@ export function renderCardHtml(state: CardState): string {
   /* ---- Non-capa (page 2+) ---- */
   .card-body {
     position: absolute;
-    inset: 0;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 16%;
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
     gap: 3vw;
-    padding: 13% 5% 13% 5%;
+    padding: 13% 5% 5% 5%;
   }
   /* 2 & 3 products: full, centered stack */
   .card-body.layout-2 .card-slot { width: 78%; }
@@ -199,6 +200,7 @@ export function renderCardHtml(state: CardState): string {
     left: 6%;
     right: 6%;
     bottom: 4.5%;
+    height: 9.5%;
     text-align: center;
     color: #0f5f56;
   }
@@ -209,13 +211,22 @@ export function renderCardHtml(state: CardState): string {
     margin: 0 auto 1.4vw;
     border-radius: 1vw;
   }
+  .cf-legal-box {
+    width: 100%;
+    height: calc(100% - 1.68vw);
+    overflow: hidden;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+  }
   .cf-disclaimer {
-    max-width: 76%;
+    width: 100%;
     margin: 0 auto;
     font-size: 1.75vw;
     line-height: 1.3;
     font-weight: 400;
     color: #3d4a3a;
+    overflow-wrap: anywhere;
   }
 
   /* ---- Shared product card ---- */
@@ -327,5 +338,6 @@ export function renderCardHtml(state: CardState): string {
     </div>
   </div>
 </body>
+${isCapa ? "" : LEGAL_FIT_SCRIPT}
 </html>`;
 }

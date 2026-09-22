@@ -9,6 +9,7 @@
     "start": "node --enable-source-maps ./dist/index.mjs",
     "test": "node ./tests/run-auth-tests.mjs",
     "test:historico": "node ./tests/run-historico-tests.mjs",
+    "test:legal-layout": "node ./tests/run-legal-layout-tests.mjs",
     "test:telas-queue": "node --test ./tests/telas-queue.test.cjs",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },

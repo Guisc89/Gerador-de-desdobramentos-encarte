@@ -11,6 +11,18 @@ const IMAGE_LAUNCH_TIMEOUT_MS = 40_000;
 const RENDER_TIMEOUT_MS = 45_000;
 const IMAGE_RENDER_BUDGET_MS = 55_000;
 
+async function waitForStableLayout(page: import("puppeteer").Page): Promise<void> {
+  await page.evaluate(`(async () => {
+    if (window.__legalFitReady) await window.__legalFitReady;
+    await Promise.all(Array.from(document.images)
+      .filter((image) => !image.complete)
+      .map((image) => new Promise((resolve) => {
+        image.addEventListener("load", resolve, { once: true });
+        image.addEventListener("error", resolve, { once: true });
+      })));
+  })()`);
+}
+
 export async function htmlToPdf(html: string): Promise<Buffer> {
   const executablePath = resolveChromiumPath();
   logger.info({ executablePath }, "Launching Puppeteer");
@@ -30,6 +42,7 @@ export async function htmlToPdf(html: string): Promise<Buffer> {
   try {
     const page = await browser.newPage();
     await page.setContent(html, { waitUntil: "networkidle0" });
+    await waitForStableLayout(page);
     const pdf = await page.pdf({
       format: "A4",
       printBackground: true,
@@ -102,6 +115,7 @@ async function renderPng(
       waitUntil: "networkidle0",
       timeout: RENDER_TIMEOUT_MS,
     });
+    await waitForStableLayout(page);
     const png = await page.screenshot(
       tipo === "jpeg"
         ? { type: "jpeg", quality, clip: { x: 0, y: 0, width, height } }

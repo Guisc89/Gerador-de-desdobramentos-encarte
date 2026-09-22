@@ -1,6 +1,7 @@
 import {
   DISCLAIMER_PADRAO,
   formatLegalTextLines,
+  LEGAL_FIT_SCRIPT,
 } from "./legalText";
 
 export interface TelaProduto {
@@ -105,9 +106,13 @@ export function renderTelaHtml(state: TelaState): string {
 
   const infoBlock = `
       <div class="tela-info">
-        ${state.mes ? `<div class="tela-info-mes">${esc(state.mes)}</div>` : ""}
-        ${validade ? `<div class="tela-info-validade">${validade}</div>` : ""}
-        ${disclaimer ? `<div class="tela-info-disclaimer">${disclaimer}</div>` : ""}
+        <div class="tela-info-dates">
+          ${state.mes ? `<div class="tela-info-mes">${esc(state.mes)}</div>` : ""}
+          ${validade ? `<div class="tela-info-validade">${validade}</div>` : ""}
+        </div>
+        <div class="tela-info-legal">
+          ${disclaimer ? `<div class="tela-info-disclaimer" data-fit-legal data-min-font="1">${disclaimer}</div>` : ""}
+        </div>
       </div>`;
 
   const cards =
@@ -148,16 +153,16 @@ export function renderTelaHtml(state: TelaState): string {
   .tela-content {
     position: relative;
     z-index: 1;
-    display: flex;
-    flex-direction: column;
     width: 100%;
     height: 100%;
     padding: 3.2vw;
-    gap: 1.4vw;
   }
   .tela-cards {
-    flex: 1 1 auto;
-    min-height: 0;
+    position: absolute;
+    top: 3.2vw;
+    left: 3.2vw;
+    right: 3.2vw;
+    bottom: 9.2vw;
     display: grid;
     gap: 1.6vw;
     align-content: center;
@@ -195,11 +200,32 @@ export function renderTelaHtml(state: TelaState): string {
     justify-content: center;
   }
   .tela-info {
-    flex: 0 0 auto;
-    align-self: flex-end;
-    text-align: right;
+    position: absolute;
+    left: 3.2vw;
+    right: 3.2vw;
+    bottom: 2.2vw;
+    height: 5.8vw;
+    display: grid;
+    grid-template-rows: max-content minmax(0, 1fr);
+    gap: 0.25vw;
+    align-items: end;
     line-height: 1.25;
     color: #0f5f56;
+  }
+  .tela-info-dates {
+    display: flex;
+    align-items: baseline;
+    gap: 1vw;
+    text-align: left;
+    white-space: nowrap;
+  }
+  .tela-info-legal {
+    min-width: 0;
+    height: 100%;
+    display: flex;
+    align-items: flex-end;
+    justify-content: flex-end;
+    overflow: hidden;
   }
   .tela-info-mes {
     font-size: 1vw;
@@ -213,12 +239,13 @@ export function renderTelaHtml(state: TelaState): string {
     font-weight: 700;
   }
   .tela-info-disclaimer {
-    margin-top: 0.35vw;
+    width: 100%;
     font-size: 0.78vw;
     font-weight: 400;
     color: #3d4a3a;
     line-height: 1.3;
-    max-width: 32vw;
+    text-align: right;
+    overflow-wrap: anywhere;
   }
   .card {
     background: #ffffff;
@@ -319,5 +346,6 @@ export function renderTelaHtml(state: TelaState): string {
     </div>
   </div>
 </body>
+${LEGAL_FIT_SCRIPT}
 </html>`;
 }

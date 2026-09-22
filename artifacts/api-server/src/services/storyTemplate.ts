@@ -3,7 +3,11 @@ import {
   corHexValida,
   type TelaProduto,
 } from "./telaTemplate";
-import { DISCLAIMER_PADRAO, formatLegalTextLines } from "./legalText";
+import {
+  DISCLAIMER_PADRAO,
+  formatLegalTextLines,
+  LEGAL_FIT_SCRIPT,
+} from "./legalText";
 
 // A "Story" is a 1080x1920 (portrait 9:16) post. The decorative art (logo,
 // title phrase, lettering, hero photo) comes from a campaign BACKGROUND image
@@ -59,7 +63,7 @@ export function renderStoryHtml(state: StoryState): string {
     .join("<br />");
   const infoCor = corHexValida(state.infoCor);
   const infoCorCss = infoCor
-    ? `.si-mesval, .si-disclaimer, .sf-disclaimer { color: ${infoCor}; }`
+    ? `.si-mesval, .sf-disclaimer { color: ${infoCor}; }`
     : "";
 
   const slots = (p: StoryProduto): string =>
@@ -87,7 +91,6 @@ export function renderStoryHtml(state: StoryState): string {
     overlay = `
       <div class="story-topinfo">
         ${mesVal ? `<div class="si-mesval">${mesVal}</div>` : ""}
-        ${disclaimer ? `<div class="si-disclaimer">${disclaimer}</div>` : ""}
       </div>
       <div class="story-stack" data-count="${count}">
         ${cards}
@@ -106,7 +109,9 @@ export function renderStoryHtml(state: StoryState): string {
       </div>
       <div class="story-footer">
         <div class="sf-rule"></div>
-        ${disclaimer ? `<div class="sf-disclaimer">${disclaimer}</div>` : ""}
+        <div class="sf-legal-box">
+          ${disclaimer ? `<div class="sf-disclaimer" data-fit-legal data-min-font="1">${disclaimer}</div>` : ""}
+        </div>
       </div>`;
   }
 
@@ -144,7 +149,7 @@ export function renderStoryHtml(state: StoryState): string {
   .story-overlay { position: absolute; inset: 0; z-index: 1; }
 
   /* ---- Capa (page 1) ---- */
-  /* Dynamic month/validade + legal copy, below the logo area of the
+  /* Dynamic month/validade only, below the logo area of the
      background art (logo + lettering live in the background). */
   .story-topinfo {
     position: absolute;
@@ -155,13 +160,6 @@ export function renderStoryHtml(state: StoryState): string {
     line-height: 1.28;
   }
   .si-mesval { font-size: 3.1vw; font-weight: 900; }
-  .si-disclaimer {
-    margin-top: 0.6vw;
-    font-size: 1.95vw;
-    font-weight: 400;
-    color: #3d4a3a;
-    line-height: 1.3;
-  }
   /* Product cards stacked in the upper-middle (capa disposition of the
      reference art — lettering fills the lower half of the background). */
   .story-stack {
@@ -177,13 +175,16 @@ export function renderStoryHtml(state: StoryState): string {
   /* ---- Non-capa (page 2+) ---- */
   .story-body {
     position: absolute;
-    inset: 0;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 14%;
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
     gap: 4vw;
-    padding: 13% 6% 12% 6%;
+    padding: 13% 6% 4% 6%;
   }
   /* 2 & 3 products: full, centered stack (reference dispositions) */
   .story-body.layout-2 .story-slot { width: 86%; }
@@ -195,6 +196,7 @@ export function renderStoryHtml(state: StoryState): string {
     left: 6%;
     right: 6%;
     bottom: 3.6%;
+    height: 8.5%;
     text-align: center;
     color: #0f5f56;
   }
@@ -205,13 +207,22 @@ export function renderStoryHtml(state: StoryState): string {
     margin: 0 auto 1.5vw;
     border-radius: 1vw;
   }
+  .sf-legal-box {
+    width: 100%;
+    height: calc(100% - 1.8vw);
+    overflow: hidden;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+  }
   .sf-disclaimer {
-    max-width: 78%;
+    width: 100%;
     margin: 0 auto;
     font-size: 2vw;
     line-height: 1.3;
     font-weight: 400;
     color: #3d4a3a;
+    overflow-wrap: anywhere;
   }
 
   /* ---- Shared product card ---- */
@@ -319,5 +330,6 @@ export function renderStoryHtml(state: StoryState): string {
     </div>
   </div>
 </body>
+${isCapa ? "" : LEGAL_FIT_SCRIPT}
 </html>`;
 }

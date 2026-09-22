@@ -20,9 +20,9 @@ import { renderTelaHtml } from "../src/services/telaTemplate";
 import { renderCardHtml } from "../src/services/cardTemplate";
 import { renderStoryHtml } from "../src/services/storyTemplate";
 
-test("legal copy balances without truncating words or explicit breaks", () => {
+test("legal copy leaves wrapping to full-width footers and preserves explicit breaks", () => {
   const normal = formatLegalTextLines(DISCLAIMER_PADRAO);
-  assert.equal(normal.length, 3);
+  assert.equal(normal.length, 1);
   assert.equal(normal.join(" "), DISCLAIMER_PADRAO);
 
   const long = Array.from(
@@ -30,7 +30,7 @@ test("legal copy balances without truncating words or explicit breaks", () => {
     (_, index) => `palavra${index + 1}`,
   ).join(" ");
   const longLines = formatLegalTextLines(long);
-  assert.equal(longLines.length, 5);
+  assert.equal(longLines.length, 1);
   assert.equal(longLines.join(" "), long);
 
   assert.deepEqual(formatLegalTextLines("Texto curto"), ["Texto curto"]);

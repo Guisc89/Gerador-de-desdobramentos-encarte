@@ -1,31 +1,64 @@
-"use strict";var StoryTemplate=(()=>{var v=Object.defineProperty;var $=Object.getOwnPropertyDescriptor;var z=Object.getOwnPropertyNames;var C=Object.prototype.hasOwnProperty;var q=(t,e)=>{for(var i in e)v(t,i,{get:e[i],enumerable:!0})},S=(t,e,i,l)=>{if(e&&typeof e=="object"||typeof e=="function")for(let r of z(e))!C.call(t,r)&&r!==i&&v(t,r,{get:()=>e[r],enumerable:!(l=$(e,r))||l.enumerable});return t};var A=t=>S(v({},"__esModule",{value:!0}),t);var P={};q(P,{renderStoryHtml:()=>T});var h="Os pre\xE7os e produtos anunciados s\xE3o v\xE1lidos exclusivamente para esta loja.";function j(t,e){return e<=1?e:t<=28?1:t<=170?Math.min(3,e):t<=260?Math.min(4,e):Math.min(5,e)}function I(t,e){let i=Math.max(1,Math.min(e,t.length));if(i===1)return[t.join(" ")];let l=t.map(a=>a.length),r=[0];l.forEach(a=>r.push(r[r.length-1]+a));let f=(r[r.length-1]+t.length-i)/i,c=Array.from({length:i+1},()=>Array(t.length+1).fill(Number.POSITIVE_INFINITY)),n=Array.from({length:i+1},()=>Array(t.length+1).fill(-1));c[0][0]=0;for(let a=1;a<=i;a+=1)for(let o=a;o<=t.length;o+=1)for(let d=a-1;d<o;d+=1){let k=r[o]-r[d]+(o-d-1),y=c[a-1][d]+(k-f)**2;y<c[a][o]&&(c[a][o]=y,n[a][o]=d)}let s=[],g=t.length;for(let a=i;a>0;a-=1){let o=n[a][g];s.unshift(t.slice(o,g).join(" ")),g=o}return s}function w(t){let e=String(t??"").replace(/\r\n?/g,`
-`);if(!e.trim())return[];let i=e.split(`
-`).map(n=>n.trim().replace(/\s+/g," ")).filter(Boolean).map(n=>n.split(" ")),l=i.reduce((n,s)=>n+s.length,0),r=i.reduce((n,s)=>n+s.join(" ").length,0),u=Math.max(i.length,j(r,l)),f=i.map(()=>1),c=u-i.length;for(;c>0;){let n=-1,s=-1;if(i.forEach((g,a)=>{if(f[a]>=g.length)return;let o=g.join(" ").length/f[a];o>s&&(n=a,s=o)}),n<0)break;f[n]+=1,c-=1}return i.flatMap((n,s)=>I(n,f[s]))}function b(t){let e=String(t??"").trim();return/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(e)?e:""}function p(t){return String(t??"").replace(/[&<>"']/g,e=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"})[e])}function x(t){let e=(t.precoCentavos||"00").padStart(2,"0").slice(0,2),i=t.foto?`<img src="${p(t.foto)}" alt="" />`:'<span class="card-photo-empty">Sem foto</span>',l=t.descricao?`<div class="card-desc">${p(t.descricao)}</div>`:"";return`
+"use strict";var StoryTemplate=(()=>{var g=Object.defineProperty;var k=Object.getOwnPropertyDescriptor;var $=Object.getOwnPropertyNames;var z=Object.prototype.hasOwnProperty;var C=(e,t)=>{for(var i in t)g(e,i,{get:t[i],enumerable:!0})},S=(e,t,i,o)=>{if(t&&typeof t=="object"||typeof t=="function")for(let a of $(t))!z.call(e,a)&&a!==i&&g(e,a,{get:()=>t[a],enumerable:!(o=k(t,a))||o.enumerable});return e};var q=e=>S(g({},"__esModule",{value:!0}),e);var j={};C(j,{renderStoryHtml:()=>A});var d="Os pre\xE7os e produtos anunciados s\xE3o v\xE1lidos exclusivamente para esta loja.";function f(e){let t=String(e??"").replace(/\r\n?/g,`
+`);return t.trim()?t.split(`
+`).map(i=>i.trim().replace(/\s+/g," ")).filter(Boolean):[]}var p=`
+<script>
+(() => {
+  const fit = (element) => {
+    const box = element.parentElement;
+    if (!box) return;
+    const maximum = Number(element.dataset.maxFont ||
+      parseFloat(getComputedStyle(element).fontSize) || 16);
+    const minimum = Number(element.dataset.minFont || 1);
+    let low = minimum;
+    let high = maximum;
+    const fits = (size) => {
+      element.style.fontSize = size + "px";
+      return element.scrollHeight <= box.clientHeight + 0.5 &&
+        element.scrollWidth <= box.clientWidth + 0.5;
+    };
+    if (fits(maximum)) return;
+    for (let index = 0; index < 14; index += 1) {
+      const middle = (low + high) / 2;
+      if (fits(middle)) low = middle;
+      else high = middle;
+    }
+    element.style.fontSize = low + "px";
+  };
+  const run = () => document.querySelectorAll("[data-fit-legal]").forEach(fit);
+  window.__legalFitReady = (document.fonts ? document.fonts.ready : Promise.resolve())
+    .then(() => new Promise((resolve) => requestAnimationFrame(() => {
+      run();
+      resolve();
+    })));
+  window.addEventListener("resize", run);
+})();
+<\/script>`;function h(e){let t=String(e??"").trim();return/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(t)?t:""}function r(e){return String(e??"").replace(/[&<>"']/g,t=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"})[t])}function w(e){let t=(e.precoCentavos||"00").padStart(2,"0").slice(0,2),i=e.foto?`<img src="${r(e.foto)}" alt="" />`:'<span class="card-photo-empty">Sem foto</span>',o=e.descricao?`<div class="card-desc">${r(e.descricao)}</div>`:"";return`
     <div class="card">
       <div class="card-photo">${i}</div>
       <div class="card-info">
-        <div class="card-nome">${p(t.nome)}</div>
-        ${l}
+        <div class="card-nome">${r(e.nome)}</div>
+        ${o}
         <div class="card-price">
-          <span class="rs">R$</span><span class="int">${p(t.precoInteiro||"0")}</span><span class="cent-group"><span class="cent">,${p(e)}</span><span class="cada">cada</span></span>
+          <span class="rs">R$</span><span class="int">${r(e.precoInteiro||"0")}</span><span class="cent-group"><span class="cent">,${r(t)}</span><span class="cada">cada</span></span>
         </div>
       </div>
-    </div>`}function m(t){return String(t??"").replace(/[&<>"']/g,e=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"})[e])}function T(t){let e=Array.isArray(t.produtos)?t.produtos:[],i=e.length,l=!!t.isCapa,r=t.background?`style="background-image:url('${m(t.background)}')"`:"",u=t.background?"story-bg":"story-bg story-bg-default",f=t.disclaimer===void 0?h:t.disclaimer,c=w(f).map(m).join("<br />"),n=b(t.infoCor),s=n?`.si-mesval, .si-disclaimer, .sf-disclaimer { color: ${n}; }`:"",g=o=>`<div class="story-slot">${x(o)}</div>`,a;if(l){let o=[t.mes?m(t.mes):"",t.validadeInicio||t.validadeFim?`Validade: ${m(t.validadeInicio)} a ${m(t.validadeFim)}`:""].filter(Boolean).join(" | "),d=i>0?e.map(g).join(`
-`):'<div class="story-empty">Adicione produtos para montar o story.</div>';a=`
+    </div>`}function s(e){return String(e??"").replace(/[&<>"']/g,t=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"})[t])}function A(e){let t=Array.isArray(e.produtos)?e.produtos:[],i=t.length,o=!!e.isCapa,a=e.background?`style="background-image:url('${s(e.background)}')"`:"",y=e.background?"story-bg":"story-bg story-bg-default",b=e.disclaimer===void 0?d:e.disclaimer,m=f(b).map(s).join("<br />"),u=h(e.infoCor),x=u?`.si-mesval, .sf-disclaimer { color: ${u}; }`:"",v=n=>`<div class="story-slot">${w(n)}</div>`,l;if(o){let n=[e.mes?s(e.mes):"",e.validadeInicio||e.validadeFim?`Validade: ${s(e.validadeInicio)} a ${s(e.validadeFim)}`:""].filter(Boolean).join(" | "),c=i>0?t.map(v).join(`
+`):'<div class="story-empty">Adicione produtos para montar o story.</div>';l=`
       <div class="story-topinfo">
-        ${o?`<div class="si-mesval">${o}</div>`:""}
-        ${c?`<div class="si-disclaimer">${c}</div>`:""}
+        ${n?`<div class="si-mesval">${n}</div>`:""}
       </div>
       <div class="story-stack" data-count="${i}">
-        ${d}
-      </div>`}else{let o=i>=3?"layout-3":"layout-2",d=i>0?e.map(g).join(`
-`):'<div class="story-empty story-empty-center">Adicione produtos para montar o story.</div>';a=`
-      <div class="story-body ${o}" data-count="${i}">
-        ${d}
+        ${c}
+      </div>`}else{let n=i>=3?"layout-3":"layout-2",c=i>0?t.map(v).join(`
+`):'<div class="story-empty story-empty-center">Adicione produtos para montar o story.</div>';l=`
+      <div class="story-body ${n}" data-count="${i}">
+        ${c}
       </div>
       <div class="story-footer">
         <div class="sf-rule"></div>
-        ${c?`<div class="sf-disclaimer">${c}</div>`:""}
+        <div class="sf-legal-box">
+          ${m?`<div class="sf-disclaimer" data-fit-legal data-min-font="1">${m}</div>`:""}
+        </div>
       </div>`}return`<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -60,7 +93,7 @@
   .story-overlay { position: absolute; inset: 0; z-index: 1; }
 
   /* ---- Capa (page 1) ---- */
-  /* Dynamic month/validade + legal copy, below the logo area of the
+  /* Dynamic month/validade only, below the logo area of the
      background art (logo + lettering live in the background). */
   .story-topinfo {
     position: absolute;
@@ -71,13 +104,6 @@
     line-height: 1.28;
   }
   .si-mesval { font-size: 3.1vw; font-weight: 900; }
-  .si-disclaimer {
-    margin-top: 0.6vw;
-    font-size: 1.95vw;
-    font-weight: 400;
-    color: #3d4a3a;
-    line-height: 1.3;
-  }
   /* Product cards stacked in the upper-middle (capa disposition of the
      reference art \u2014 lettering fills the lower half of the background). */
   .story-stack {
@@ -93,13 +119,16 @@
   /* ---- Non-capa (page 2+) ---- */
   .story-body {
     position: absolute;
-    inset: 0;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 14%;
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
     gap: 4vw;
-    padding: 13% 6% 12% 6%;
+    padding: 13% 6% 4% 6%;
   }
   /* 2 & 3 products: full, centered stack (reference dispositions) */
   .story-body.layout-2 .story-slot { width: 86%; }
@@ -111,6 +140,7 @@
     left: 6%;
     right: 6%;
     bottom: 3.6%;
+    height: 8.5%;
     text-align: center;
     color: #0f5f56;
   }
@@ -121,13 +151,22 @@
     margin: 0 auto 1.5vw;
     border-radius: 1vw;
   }
+  .sf-legal-box {
+    width: 100%;
+    height: calc(100% - 1.8vw);
+    overflow: hidden;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+  }
   .sf-disclaimer {
-    max-width: 78%;
+    width: 100%;
     margin: 0 auto;
     font-size: 2vw;
     line-height: 1.3;
     font-weight: 400;
     color: #3d4a3a;
+    overflow-wrap: anywhere;
   }
 
   /* ---- Shared product card ---- */
@@ -224,15 +263,16 @@
     width: 82%;
     margin: auto;
   }
-  ${s}
+  ${x}
 </style>
 </head>
 <body>
   <div class="story-canvas">
-    <div class="${u}" ${r}></div>
+    <div class="${y}" ${a}></div>
     <div class="story-overlay">
-      ${a}
+      ${l}
     </div>
   </div>
 </body>
-</html>`}return A(P);})();
+${o?"":p}
+</html>`}return q(j);})();
