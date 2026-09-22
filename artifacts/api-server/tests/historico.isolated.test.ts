@@ -161,6 +161,10 @@ test("versioned snapshot maps per-tela legal to cards and stories once", () => {
     ["", "Legal dois", "", "Legal quatro"],
   );
   assert.equal(states.stories[0]?.disclaimer, "");
+  assert.deepEqual(
+    states.stories.map((page) => page.disclaimer),
+    ["", "Legal dois", "", "Legal quatro", ""],
+  );
   assert.equal(
     states.stories.filter((page) => page.disclaimer === "Legal dois").length,
     1,

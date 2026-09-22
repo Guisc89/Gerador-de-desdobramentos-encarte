@@ -158,11 +158,9 @@
 
     // Flatten every product from the telas, in order.
     const todos = [];
-    snapshot.telas.forEach((t, sourceIndex) => {
+    snapshot.telas.forEach((t) => {
       (t.produtos || []).forEach((p) => {
         const item = newItem(p);
-        item.sourceTelaId = t.id;
-        item.sourceTelaIndex = sourceIndex;
         todos.push(item);
       });
     });
@@ -185,16 +183,10 @@
     stories = [newStory(capa)].concat(
       chunkRest(resto).map((grupo) => newStory(grupo)),
     );
-    // A tela's legal text appears once, on the last non-capa story containing
-    // one of its products. Multiple source texts that converge are preserved
-    // once each. Source telas represented only on the capa intentionally have
-    // no legal destination because Cards/Stories capas never show legal copy.
-    const sourceGroups = stories.map((story) =>
-      story.produtos.map((produto) => produto.sourceTelaIndex),
-    );
+    // Legal copy follows page order, independently of product regrouping.
     const storyLegals = window.TelasQueue.legaisStories(
       snapshot.telas,
-      sourceGroups,
+      stories.length,
     );
     stories.forEach((story, index) => {
       story.disclaimer = storyLegals[index] || "";

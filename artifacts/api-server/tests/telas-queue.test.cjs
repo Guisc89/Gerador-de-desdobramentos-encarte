@@ -126,7 +126,7 @@ test("cards são 1:1 por tela e nunca colocam legal na capa", () => {
   );
 });
 
-test("stories usam o último correspondente, sem repetição nem legal na capa", () => {
+test("stories seguem a posição da tela, mantendo vazios e extras sem texto", () => {
   const result = Queue.legaisStories(
     [
       { disclaimer: "capa" },
@@ -135,9 +135,11 @@ test("stories usam o último correspondente, sem repetição nem legal na capa",
       { disclaimer: "B" },
       { disclaimer: "A" },
     ],
-    [[0], [1, 2], [1, 3, 4]],
+    7,
   );
-  assert.deepEqual(result, ["", "", "A\nB"]);
+  assert.deepEqual(result, ["", "A", "", "B", "A", "", ""]);
+  assert.deepEqual(Queue.legaisStories([{ disclaimer: "capa" }], 1), [""]);
+  assert.deepEqual(Queue.legaisStories([], 0), []);
 });
 
 test("falha atomicamente quando posição exigida torna cauda impossível", () => {

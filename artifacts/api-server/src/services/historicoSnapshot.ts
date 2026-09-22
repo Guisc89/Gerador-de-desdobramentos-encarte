@@ -120,26 +120,6 @@ function storyGroups(pages: TelaProduto[][]): TelaProduto[][] {
   return result;
 }
 
-function storyGroupSources(pages: TelaProduto[][]): number[][] {
-  const entries = pages.flatMap((page, sourceIndex) =>
-    page.map(() => sourceIndex)
-  );
-  if (entries.length === 0) return [];
-  const result = [entries.slice(0, 2)];
-  const rest = entries.slice(2);
-  if (rest.length === 0) return result;
-  const count = Math.max(1, Math.ceil(rest.length / 3));
-  const base = Math.floor(rest.length / count);
-  const extra = rest.length % count;
-  let cursor = 0;
-  for (let index = 0; index < count; index += 1) {
-    const size = base + (index < extra ? 1 : 0);
-    result.push(rest.slice(cursor, cursor + size));
-    cursor += size;
-  }
-  return result;
-}
-
 function storiesValid(groups: TelaProduto[][]): boolean {
   return groups.length > 0 &&
     groups.every((p, index) =>
@@ -192,26 +172,6 @@ export function estadosMateriaisDoSnapshot(estado: EstadoEncarte): {
     : undefined;
   const legalForPage = (index: number) =>
     snapshot.perPageLegal ? snapshot.pageDisclaimers[index] || "" : legacyLegal;
-  const storySources = storyGroupSources(snapshot.pages);
-  const storyLegalLists = storySources.map(() => [] as string[]);
-  if (snapshot.perPageLegal) {
-    snapshot.pageDisclaimers.forEach((legal, sourceIndex) => {
-      if (!legal) return;
-      let destination = -1;
-      storySources.forEach((sources, storyIndex) => {
-        if (storyIndex > 0 && sources.includes(sourceIndex)) {
-          destination = storyIndex;
-        }
-      });
-      if (destination < 0) return;
-      const existing = storyLegalLists[destination]!;
-      if (!existing.includes(legal)) existing.push(legal);
-    });
-  } else if (legacyLegal !== undefined) {
-    storyLegalLists.forEach((list, index) => {
-      if (index > 0 && legacyLegal) list.push(legacyLegal);
-    });
-  }
   return {
     telas: snapshot.pages.map((produtos, index) => ({
       ...commonState(snapshot.telas, snapshot.telas, legalForPage(index)),
@@ -233,7 +193,7 @@ export function estadosMateriaisDoSnapshot(estado: EstadoEncarte): {
       ...commonState(
         snapshot.stories,
         snapshot.telas,
-        storyLegalLists[index]?.join("\n") || "",
+        index === 0 ? "" : legalForPage(index) || "",
       ),
       background: background(snapshot.stories, index),
       isCapa: index === 0,

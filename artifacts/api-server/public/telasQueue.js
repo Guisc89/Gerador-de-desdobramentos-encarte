@@ -179,29 +179,10 @@
     });
   }
 
-  function legaisStories(telas, storySources) {
-    var sourcesByStory = Array.isArray(storySources) ? storySources : [];
-    var lists = sourcesByStory.map(function () {
-      return [];
-    });
-    (Array.isArray(telas) ? telas : []).forEach(function (tela, sourceIndex) {
-      var legal = (tela && tela.disclaimer) || "";
-      if (!legal.trim()) return;
-      var destination = -1;
-      sourcesByStory.forEach(function (sources, storyIndex) {
-        if (
-          storyIndex > 0 &&
-          Array.isArray(sources) &&
-          sources.indexOf(sourceIndex) !== -1
-        ) destination = storyIndex;
-      });
-      if (destination < 0) return;
-      if (lists[destination].indexOf(legal) === -1) {
-        lists[destination].push(legal);
-      }
-    });
-    return lists.map(function (list) {
-      return list.join("\n");
+  function legaisStories(telas, storyCount) {
+    var pages = Array.isArray(telas) ? telas : [];
+    return Array.from({ length: storyCount }, function (_, index) {
+      return index === 0 ? "" : (pages[index] && pages[index].disclaimer) || "";
     });
   }
 
