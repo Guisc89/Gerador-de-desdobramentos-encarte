@@ -4,7 +4,6 @@ import {
   type TelaProduto,
 } from "./telaTemplate";
 import {
-  DISCLAIMER_PADRAO,
   formatLegalTextLines,
   LEGAL_FIT_SCRIPT,
 } from "./legalText";
@@ -55,10 +54,7 @@ export function renderStoryHtml(state: StoryState): string {
     : "";
   const bgClass = state.background ? "story-bg" : "story-bg story-bg-default";
 
-  const legalText = state.disclaimer === undefined
-    ? DISCLAIMER_PADRAO
-    : state.disclaimer;
-  const disclaimer = formatLegalTextLines(legalText)
+  const disclaimer = formatLegalTextLines(state.disclaimer)
     .map(esc)
     .join("<br />");
   const infoCor = corHexValida(state.infoCor);

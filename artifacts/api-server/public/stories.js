@@ -22,7 +22,6 @@
   const validadeFimInput = document.getElementById("storyValidadeFim");
   const infoCorInput = document.getElementById("storyInfoCor");
   let infoCorEspelhada = ""; // última cor herdada das Telas
-  let legalText;
 
   // Background
   const bgInput = document.getElementById("storyBgInput");
@@ -75,7 +74,12 @@
   }
 
   function newStory(produtos) {
-    return { id: nextId++, produtos: produtos || [] };
+    return {
+      id: nextId++,
+      disclaimer: "",
+      legalTexts: [],
+      produtos: produtos || [],
+    };
   }
 
   function fileToDataUri(file) {
@@ -137,14 +141,13 @@
       return;
     }
 
-    // Dates retain the existing per-format behavior. Legal copy always follows
-    // Telas, including an explicitly empty value.
+    // Dates retain the existing per-format behavior. Legal copy is assigned
+    // below from each source tela to one corresponding non-capa story.
     if (snapshot.mes && !mesInput.value.trim()) mesInput.value = snapshot.mes;
     if (snapshot.validadeInicio && !validadeInicioInput.value.trim())
       validadeInicioInput.value = snapshot.validadeInicio;
     if (snapshot.validadeFim && !validadeFimInput.value.trim())
       validadeFimInput.value = snapshot.validadeFim;
-    legalText = snapshot.disclaimer;
     // Cor HEX: acompanha as Telas enquanto o usuário não digitar uma cor
     // própria nesta aba (valor vazio ou igual ao último espelhado = segue).
     var corAtual = infoCorInput.value.trim();
@@ -155,9 +158,12 @@
 
     // Flatten every product from the telas, in order.
     const todos = [];
-    snapshot.telas.forEach((t) => {
+    snapshot.telas.forEach((t, sourceIndex) => {
       (t.produtos || []).forEach((p) => {
-        todos.push(newItem(p));
+        const item = newItem(p);
+        item.sourceTelaId = t.id;
+        item.sourceTelaIndex = sourceIndex;
+        todos.push(item);
       });
     });
     if (todos.length === 0) {
@@ -179,6 +185,20 @@
     stories = [newStory(capa)].concat(
       chunkRest(resto).map((grupo) => newStory(grupo)),
     );
+    // A tela's legal text appears once, on the last non-capa story containing
+    // one of its products. Multiple source texts that converge are preserved
+    // once each. Source telas represented only on the capa intentionally have
+    // no legal destination because Cards/Stories capas never show legal copy.
+    const sourceGroups = stories.map((story) =>
+      story.produtos.map((produto) => produto.sourceTelaIndex),
+    );
+    const storyLegals = window.TelasQueue.legaisStories(
+      snapshot.telas,
+      sourceGroups,
+    );
+    stories.forEach((story, index) => {
+      story.disclaimer = storyLegals[index] || "";
+    });
     if (current >= stories.length) current = stories.length - 1;
     if (current < 0) current = 0;
 
@@ -201,7 +221,7 @@
       mes: mesInput.value.trim(),
       validadeInicio: validadeInicioInput.value.trim(),
       validadeFim: validadeFimInput.value.trim(),
-      disclaimer: legalText,
+      disclaimer: isCapa ? "" : story.disclaimer || "",
       infoCor: infoCorInput.value.trim(),
       background: isCapa ? bgDataUri : bg2DataUri || bgDataUri,
       isCapa: !!isCapa,

@@ -164,7 +164,7 @@
               </div>
             </div>
             <details class="cfg-adv">
-              <summary>Validade e texto legal</summary>
+              <summary>Validade</summary>
               <div class="row">
                 <div class="field">
                   <label for="telaValidadeInicio">Validade inicial</label>
@@ -174,10 +174,6 @@
                   <label for="telaValidadeFim">Validade final</label>
                   <input id="telaValidadeFim" type="text" placeholder="XX.04.26" />
                 </div>
-              </div>
-              <div class="field">
-                <label for="telaDisclaimer">Texto legal</label>
-                <textarea id="telaDisclaimer" rows="4">Os preços e produtos anunciados são válidos exclusivamente para esta loja.</textarea>
               </div>
               <div class="field">
                 <label for="telaInfoCor">Cor da fonte da validade e texto legal (HEX, opcional)</label>
@@ -211,6 +207,18 @@
                 </div>
               </div>
             </details>
+          </div>
+
+          <div class="block">
+            <div class="field">
+              <label for="telaDisclaimer">Texto legal desta tela (opcional)</label>
+              <textarea id="telaDisclaimer" rows="4"></textarea>
+              <p class="tela-hint">Aparece somente nesta tela e, quando aplicável, em uma peça correspondente de Cards/Stories. Não se repete nas demais; capas de Cards/Stories nunca exibem texto legal.</p>
+              <div id="telaLegacyLegal" class="hidden">
+                <p class="tela-hint">Encontramos um texto legal antigo, salvo antes da configuração por tela. Ele foi preservado, mas não foi colocado automaticamente.</p>
+                <button id="telaUsarLegacy" type="button" class="btn-ghost">Usar texto anterior nesta tela</button>
+              </div>
+            </div>
           </div>
 
           <div class="block">
@@ -331,7 +339,7 @@
 
           <div class="block">
             <h3>Campanha</h3>
-            <p class="tela-hint">Mês, validade e texto legal vêm das <strong>Telas</strong>.</p>
+            <p class="tela-hint">Mês e validade vêm das <strong>Telas</strong>. Cada card corresponde a uma tela e recebe somente o texto legal dela; a capa nunca exibe texto legal.</p>
             <div class="field">
               <label for="cardNomeArquivo">Nome do arquivo</label>
               <input id="cardNomeArquivo" type="text" placeholder="card_abril" />
@@ -446,7 +454,7 @@
 
           <div class="block">
             <h3>Campanha</h3>
-            <p class="tela-hint">Mês, validade e texto legal vêm das <strong>Telas</strong>.</p>
+            <p class="tela-hint">Mês e validade vêm das <strong>Telas</strong>. O texto de cada tela aparece uma única vez: no último story não-capa que contém produtos daquela tela. Se textos convergirem, ambos aparecem uma vez; a capa nunca exibe texto legal.</p>
             <div class="field">
               <label for="storyNomeArquivo">Nome do arquivo</label>
               <input id="storyNomeArquivo" type="text" placeholder="story_abril" />

@@ -84,6 +84,62 @@ test("mantém referência e todos os campos do item", () => {
   assert.deepEqual(result.telas[2].produtos[0].detalhes, original.detalhes);
 });
 
+test("movimentação preserva metadados legais das telas", () => {
+  const before = layout([2, 4, 4]);
+  before[1].disclaimer = "Legal da tela 2";
+  before[2].disclaimer = "";
+  const result = Queue.mover(before, 1, "p3", 2, 1);
+  expectValid(result, before);
+  assert.equal(result.telas[1].disclaimer, "Legal da tela 2");
+  assert.equal(result.telas[2].disclaimer, "");
+});
+
+test("novo esquema restaura vazios explícitos e legado somente como opção", () => {
+  const modern = Queue.restaurarLegais({
+    schemaVersion: 2,
+    legacyDisclaimer: "Texto anterior",
+    disclaimer: "não usar",
+    telas: [{ disclaimer: "A" }, { disclaimer: "B" }, { disclaimer: "" }],
+  });
+  assert.deepEqual(modern, {
+    legacyDisclaimer: "Texto anterior",
+    disclaimers: ["A", "B", ""],
+  });
+  const legacy = Queue.restaurarLegais({
+    disclaimer: "Texto global antigo",
+    telas: [{}, {}],
+  });
+  assert.deepEqual(legacy, {
+    legacyDisclaimer: "Texto global antigo",
+    disclaimers: ["", ""],
+  });
+});
+
+test("cards são 1:1 por tela e nunca colocam legal na capa", () => {
+  assert.deepEqual(
+    Queue.legaisCards([
+      { disclaimer: "capa" },
+      { disclaimer: "dois" },
+      { disclaimer: "" },
+    ]),
+    ["", "dois", ""],
+  );
+});
+
+test("stories usam o último correspondente, sem repetição nem legal na capa", () => {
+  const result = Queue.legaisStories(
+    [
+      { disclaimer: "capa" },
+      { disclaimer: "A" },
+      { disclaimer: "" },
+      { disclaimer: "B" },
+      { disclaimer: "A" },
+    ],
+    [[0], [1, 2], [1, 3, 4]],
+  );
+  assert.deepEqual(result, ["", "", "A\nB"]);
+});
+
 test("falha atomicamente quando posição exigida torna cauda impossível", () => {
   const before = layout([2, 3, 3]);
   const snapshot = JSON.stringify(before);

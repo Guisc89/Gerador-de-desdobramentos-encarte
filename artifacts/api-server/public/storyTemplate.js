@@ -1,6 +1,6 @@
-"use strict";var StoryTemplate=(()=>{var g=Object.defineProperty;var k=Object.getOwnPropertyDescriptor;var $=Object.getOwnPropertyNames;var z=Object.prototype.hasOwnProperty;var C=(e,t)=>{for(var i in t)g(e,i,{get:t[i],enumerable:!0})},S=(e,t,i,o)=>{if(t&&typeof t=="object"||typeof t=="function")for(let a of $(t))!z.call(e,a)&&a!==i&&g(e,a,{get:()=>t[a],enumerable:!(o=k(t,a))||o.enumerable});return e};var q=e=>S(g({},"__esModule",{value:!0}),e);var j={};C(j,{renderStoryHtml:()=>A});var d="Os pre\xE7os e produtos anunciados s\xE3o v\xE1lidos exclusivamente para esta loja.";function f(e){let t=String(e??"").replace(/\r\n?/g,`
+"use strict";var StoryTemplate=(()=>{var c=Object.defineProperty;var b=Object.getOwnPropertyDescriptor;var x=Object.getOwnPropertyNames;var k=Object.prototype.hasOwnProperty;var $=(e,t)=>{for(var i in t)c(e,i,{get:t[i],enumerable:!0})},z=(e,t,i,o)=>{if(t&&typeof t=="object"||typeof t=="function")for(let a of x(t))!k.call(e,a)&&a!==i&&c(e,a,{get:()=>t[a],enumerable:!(o=b(t,a))||o.enumerable});return e};var C=e=>z(c({},"__esModule",{value:!0}),e);var S={};$(S,{renderStoryHtml:()=>q});function g(e){let t=String(e??"").replace(/\r\n?/g,`
 `);return t.trim()?t.split(`
-`).map(i=>i.trim().replace(/\s+/g," ")).filter(Boolean):[]}var p=`
+`).map(i=>i.trim().replace(/\s+/g," ")).filter(Boolean):[]}var f=`
 <script>
 (() => {
   const fit = (element) => {
@@ -32,7 +32,7 @@
     })));
   window.addEventListener("resize", run);
 })();
-<\/script>`;function h(e){let t=String(e??"").trim();return/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(t)?t:""}function r(e){return String(e??"").replace(/[&<>"']/g,t=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"})[t])}function w(e){let t=(e.precoCentavos||"00").padStart(2,"0").slice(0,2),i=e.foto?`<img src="${r(e.foto)}" alt="" />`:'<span class="card-photo-empty">Sem foto</span>',o=e.descricao?`<div class="card-desc">${r(e.descricao)}</div>`:"";return`
+<\/script>`;function h(e){let t=String(e??"").trim();return/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(t)?t:""}function r(e){return String(e??"").replace(/[&<>"']/g,t=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"})[t])}function v(e){let t=(e.precoCentavos||"00").padStart(2,"0").slice(0,2),i=e.foto?`<img src="${r(e.foto)}" alt="" />`:'<span class="card-photo-empty">Sem foto</span>',o=e.descricao?`<div class="card-desc">${r(e.descricao)}</div>`:"";return`
     <div class="card">
       <div class="card-photo">${i}</div>
       <div class="card-info">
@@ -42,22 +42,22 @@
           <span class="rs">R$</span><span class="int">${r(e.precoInteiro||"0")}</span><span class="cent-group"><span class="cent">,${r(t)}</span><span class="cada">cada</span></span>
         </div>
       </div>
-    </div>`}function s(e){return String(e??"").replace(/[&<>"']/g,t=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"})[t])}function A(e){let t=Array.isArray(e.produtos)?e.produtos:[],i=t.length,o=!!e.isCapa,a=e.background?`style="background-image:url('${s(e.background)}')"`:"",y=e.background?"story-bg":"story-bg story-bg-default",b=e.disclaimer===void 0?d:e.disclaimer,m=f(b).map(s).join("<br />"),u=h(e.infoCor),x=u?`.si-mesval, .sf-disclaimer { color: ${u}; }`:"",v=n=>`<div class="story-slot">${w(n)}</div>`,l;if(o){let n=[e.mes?s(e.mes):"",e.validadeInicio||e.validadeFim?`Validade: ${s(e.validadeInicio)} a ${s(e.validadeFim)}`:""].filter(Boolean).join(" | "),c=i>0?t.map(v).join(`
-`):'<div class="story-empty">Adicione produtos para montar o story.</div>';l=`
+    </div>`}function s(e){return String(e??"").replace(/[&<>"']/g,t=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"})[t])}function q(e){let t=Array.isArray(e.produtos)?e.produtos:[],i=t.length,o=!!e.isCapa,a=e.background?`style="background-image:url('${s(e.background)}')"`:"",w=e.background?"story-bg":"story-bg story-bg-default",p=g(e.disclaimer).map(s).join("<br />"),m=h(e.infoCor),y=m?`.si-mesval, .sf-disclaimer { color: ${m}; }`:"",u=n=>`<div class="story-slot">${v(n)}</div>`,d;if(o){let n=[e.mes?s(e.mes):"",e.validadeInicio||e.validadeFim?`Validade: ${s(e.validadeInicio)} a ${s(e.validadeFim)}`:""].filter(Boolean).join(" | "),l=i>0?t.map(u).join(`
+`):'<div class="story-empty">Adicione produtos para montar o story.</div>';d=`
       <div class="story-topinfo">
         ${n?`<div class="si-mesval">${n}</div>`:""}
       </div>
       <div class="story-stack" data-count="${i}">
-        ${c}
-      </div>`}else{let n=i>=3?"layout-3":"layout-2",c=i>0?t.map(v).join(`
-`):'<div class="story-empty story-empty-center">Adicione produtos para montar o story.</div>';l=`
+        ${l}
+      </div>`}else{let n=i>=3?"layout-3":"layout-2",l=i>0?t.map(u).join(`
+`):'<div class="story-empty story-empty-center">Adicione produtos para montar o story.</div>';d=`
       <div class="story-body ${n}" data-count="${i}">
-        ${c}
+        ${l}
       </div>
       <div class="story-footer">
         <div class="sf-rule"></div>
         <div class="sf-legal-box">
-          ${m?`<div class="sf-disclaimer" data-fit-legal data-min-font="1">${m}</div>`:""}
+          ${p?`<div class="sf-disclaimer" data-fit-legal data-min-font="1">${p}</div>`:""}
         </div>
       </div>`}return`<!DOCTYPE html>
 <html lang="pt-BR">
@@ -263,16 +263,16 @@
     width: 82%;
     margin: auto;
   }
-  ${x}
+  ${y}
 </style>
 </head>
 <body>
   <div class="story-canvas">
-    <div class="${y}" ${a}></div>
+    <div class="${w}" ${a}></div>
     <div class="story-overlay">
-      ${l}
+      ${d}
     </div>
   </div>
 </body>
-${o?"":p}
-</html>`}return q(j);})();
+${o?"":f}
+</html>`}return C(S);})();

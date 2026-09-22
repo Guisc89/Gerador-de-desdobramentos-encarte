@@ -19,7 +19,6 @@
   const validadeFimInput = document.getElementById("cardValidadeFim");
   const infoCorInput = document.getElementById("cardInfoCor");
   let infoCorEspelhada = ""; // última cor herdada das Telas
-  let legalText;
 
   // Background
   const bgInput = document.getElementById("cardBgInput");
@@ -112,14 +111,13 @@
       return;
     }
 
-    // Dates retain the existing per-format behavior. Legal copy always follows
-    // Telas, including an explicitly empty value.
+    // Dates retain the existing per-format behavior. Legal copy is per source
+    // tela and is carried by the mirrored page, never by campaign state.
     if (snapshot.mes && !mesInput.value.trim()) mesInput.value = snapshot.mes;
     if (snapshot.validadeInicio && !validadeInicioInput.value.trim())
       validadeInicioInput.value = snapshot.validadeInicio;
     if (snapshot.validadeFim && !validadeFimInput.value.trim())
       validadeFimInput.value = snapshot.validadeFim;
-    legalText = snapshot.disclaimer;
     // Cor HEX: acompanha as Telas enquanto o usuário não digitar uma cor
     // própria nesta aba (valor vazio ou igual ao último espelhado = segue).
     var corAtual = infoCorInput.value.trim();
@@ -128,9 +126,13 @@
     }
     infoCorEspelhada = (snapshot.infoCor || "").trim();
 
-    cards = snapshot.telas.map((t) =>
-      newCard((t.produtos || []).map((p) => newItem(p))),
-    );
+    const cardLegals = window.TelasQueue.legaisCards(snapshot.telas);
+    cards = snapshot.telas.map((t, index) => {
+      const card = newCard((t.produtos || []).map((p) => newItem(p)));
+      card.disclaimer = cardLegals[index];
+      card.sourceTelaId = t.id;
+      return card;
+    });
     if (current >= cards.length) current = cards.length - 1;
     if (current < 0) current = 0;
 
@@ -152,7 +154,7 @@
       mes: mesInput.value.trim(),
       validadeInicio: validadeInicioInput.value.trim(),
       validadeFim: validadeFimInput.value.trim(),
-      disclaimer: legalText,
+      disclaimer: isCapa ? "" : card.disclaimer || "",
       infoCor: infoCorInput.value.trim(),
       background: isCapa ? bgDataUri : bg2DataUri || bgDataUri,
       isCapa: !!isCapa,

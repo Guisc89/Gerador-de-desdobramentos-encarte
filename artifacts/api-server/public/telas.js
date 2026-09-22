@@ -17,6 +17,8 @@
   const validadeInicioInput = document.getElementById("telaValidadeInicio");
   const validadeFimInput = document.getElementById("telaValidadeFim");
   const disclaimerInput = document.getElementById("telaDisclaimer");
+  const legacyLegalWrap = document.getElementById("telaLegacyLegal");
+  const usarLegacyBtn = document.getElementById("telaUsarLegacy");
   const infoCorInput = document.getElementById("telaInfoCor");
 
   // Background
@@ -71,6 +73,7 @@
   let debounceTimer = null;
   let previewSeq = 0;
   let movePendente = null;
+  let legacyDisclaimer = "";
 
   const MAX_TELAS = 60;
 
@@ -86,7 +89,7 @@
   }
 
   function newTela(produtos) {
-    return { id: nextId++, produtos: produtos || [] };
+    return { id: nextId++, disclaimer: "", produtos: produtos || [] };
   }
 
   function fileToDataUri(file) {
@@ -208,7 +211,7 @@
       mes: mesInput.value.trim(),
       validadeInicio: validadeInicioInput.value.trim(),
       validadeFim: validadeFimInput.value.trim(),
-      disclaimer: disclaimerInput.value,
+      disclaimer: tela.disclaimer || "",
       infoCor: infoCorInput.value.trim(),
       background: isCapa ? bgDataUri : bg2DataUri || bgDataUri,
       isCapa: !!isCapa,
@@ -236,10 +239,12 @@
       mes: mesInput.value.trim(),
       validadeInicio: validadeInicioInput.value.trim(),
       validadeFim: validadeFimInput.value.trim(),
-      disclaimer: disclaimerInput.value,
+      schemaVersion: 2,
+      legacyDisclaimer: legacyDisclaimer,
       infoCor: infoCorInput.value.trim(),
       telas: telas.map((t) => ({
         id: t.id,
+        disclaimer: t.disclaimer || "",
         produtos: t.produtos.map((it) => ({
           id: it.id,
           nome: it.nome,
@@ -570,6 +575,9 @@
   });
 
   function renderAll() {
+    const tela = currentTela();
+    disclaimerInput.value = tela ? tela.disclaimer || "" : "";
+    if (legacyLegalWrap) legacyLegalWrap.classList.toggle("hidden", !legacyDisclaimer);
     renderCarousel();
     renderItems();
     pushPreview();
@@ -807,8 +815,20 @@
   });
 
   // ---- Global info inputs ----
-  [mesInput, validadeInicioInput, validadeFimInput, disclaimerInput, infoCorInput].forEach((inp) => {
+  [mesInput, validadeInicioInput, validadeFimInput, infoCorInput].forEach((inp) => {
     inp.addEventListener("input", schedulePreview);
+  });
+  disclaimerInput.addEventListener("input", function () {
+    const tela = currentTela();
+    if (tela) tela.disclaimer = disclaimerInput.value;
+    schedulePreview();
+  });
+  if (usarLegacyBtn) usarLegacyBtn.addEventListener("click", function () {
+    const tela = currentTela();
+    if (!tela || !legacyDisclaimer) return;
+    tela.disclaimer = legacyDisclaimer;
+    disclaimerInput.value = legacyDisclaimer;
+    schedulePreview();
   });
 
   // ---- Download current tela ----
@@ -1032,13 +1052,15 @@
       nomeArquivo: nomeArquivoInput.value,
       validadeInicio: validadeInicioInput.value,
       validadeFim: validadeFimInput.value,
-      disclaimer: disclaimerInput.value,
+      schemaVersion: 2,
+      legacyDisclaimer: legacyDisclaimer,
       infoCor: infoCorInput.value,
       bgDataUri: bgDataUri,
       bg2DataUri: bg2DataUri,
       current: current,
       telas: telas.map((t) => ({
         id: t.id,
+        disclaimer: t.disclaimer || "",
         produtos: t.produtos.map((it) => ({
           id: it.id,
           nome: it.nome,
@@ -1061,7 +1083,11 @@
     if ("nomeArquivo" in saved) nomeArquivoInput.value = saved.nomeArquivo || "";
     if ("validadeInicio" in saved) validadeInicioInput.value = saved.validadeInicio || "";
     if ("validadeFim" in saved) validadeFimInput.value = saved.validadeFim || "";
-    if ("disclaimer" in saved) disclaimerInput.value = saved.disclaimer || "";
+    // Legacy global copy is retained separately and is never assigned to a
+    // tela without an explicit click. Version 2 snapshots store even empty
+    // per-tela values, so intentional blanks cannot be repopulated.
+    const restoredLegal = window.TelasQueue.restaurarLegais(saved);
+    legacyDisclaimer = restoredLegal.legacyDisclaimer;
     if ("infoCor" in saved) infoCorInput.value = saved.infoCor || "";
     if (saved.bgDataUri) {
       bgDataUri = saved.bgDataUri;
@@ -1101,7 +1127,7 @@
       publishTelas();
       return;
     }
-    telas = saved.telas.map((t) => {
+    telas = saved.telas.map((t, telaIndex) => {
       const tela = newTela((t.produtos || []).map((p) => {
         const it = newItem(null);
         if (p.id !== undefined && p.id !== null) it.id = p.id;
@@ -1113,6 +1139,7 @@
         return it;
       }));
       if (t.id !== undefined && t.id !== null) tela.id = t.id;
+      tela.disclaimer = restoredLegal.disclaimers[telaIndex] || "";
       return tela;
     });
     const numericIds = telas.flatMap((t) => [t.id].concat(t.produtos.map((p) => p.id)))

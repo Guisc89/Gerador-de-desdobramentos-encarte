@@ -1,6 +1,3 @@
-export const DISCLAIMER_PADRAO =
-  "Os preços e produtos anunciados são válidos exclusivamente para esta loja.";
-
 /**
  * Normalizes legal copy without inventing layout line breaks. Wrapping belongs
  * to the footer's actual rendered width; only breaks entered by the user remain

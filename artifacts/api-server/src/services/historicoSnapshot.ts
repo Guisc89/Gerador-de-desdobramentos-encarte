@@ -61,6 +61,8 @@ interface Snapshot {
   cards: Obj;
   stories: Obj;
   pages: TelaProduto[][];
+  pageDisclaimers: string[];
+  perPageLegal: boolean;
 }
 
 function readSnapshot(estado: EstadoEncarte): Snapshot | null {
@@ -75,11 +77,20 @@ function readSnapshot(estado: EstadoEncarte): Snapshot | null {
       .map((item) => product(item, fotos))
       .filter((item): item is TelaProduto => item !== null);
   });
+  const perPageLegal =
+    Number(telas["schemaVersion"]) >= 2 ||
+    rawPages.some((page) =>
+      Object.prototype.hasOwnProperty.call(object(page), "disclaimer")
+    );
   return {
     telas,
     cards: object(frontend["cardsExtras"]),
     stories: object(frontend["storiesExtras"]),
     pages,
+    pageDisclaimers: rawPages.map((page) =>
+      text(object(page)["disclaimer"])
+    ),
+    perPageLegal,
   };
 }
 
@@ -96,6 +107,26 @@ function storyGroups(pages: TelaProduto[][]): TelaProduto[][] {
   if (all.length === 0) return [];
   const result = [all.slice(0, 2)];
   const rest = all.slice(2);
+  if (rest.length === 0) return result;
+  const count = Math.max(1, Math.ceil(rest.length / 3));
+  const base = Math.floor(rest.length / count);
+  const extra = rest.length % count;
+  let cursor = 0;
+  for (let index = 0; index < count; index += 1) {
+    const size = base + (index < extra ? 1 : 0);
+    result.push(rest.slice(cursor, cursor + size));
+    cursor += size;
+  }
+  return result;
+}
+
+function storyGroupSources(pages: TelaProduto[][]): number[][] {
+  const entries = pages.flatMap((page, sourceIndex) =>
+    page.map(() => sourceIndex)
+  );
+  if (entries.length === 0) return [];
+  const result = [entries.slice(0, 2)];
+  const rest = entries.slice(2);
   if (rest.length === 0) return result;
   const count = Math.max(1, Math.ceil(rest.length / 3));
   const base = Math.floor(rest.length / count);
@@ -128,16 +159,12 @@ export function materiaisDisponiveisNoSnapshot(
   return result;
 }
 
-function commonState(extra: Obj, telas: Obj) {
+function commonState(extra: Obj, telas: Obj, disclaimer?: string) {
   return {
     mes: text(telas["mes"]),
     validadeInicio: text(telas["validadeInicio"]),
     validadeFim: text(telas["validadeFim"]),
-    // Telas is the archived source of truth for legal copy. Never consult
-    // current state or stale per-format disclaimer extras.
-    ...(Object.prototype.hasOwnProperty.call(telas, "disclaimer")
-      ? { disclaimer: text(telas["disclaimer"]) }
-      : {}),
+    ...(disclaimer !== undefined ? { disclaimer } : {}),
     infoCor: Object.prototype.hasOwnProperty.call(extra, "infoCor")
       ? text(extra["infoCor"])
       : text(telas["infoCor"]),
@@ -157,21 +184,57 @@ export function estadosMateriaisDoSnapshot(estado: EstadoEncarte): {
 } | null {
   const snapshot = readSnapshot(estado);
   if (!snapshot) return null;
+  const legacyLegal = Object.prototype.hasOwnProperty.call(
+      snapshot.telas,
+      "disclaimer",
+    )
+    ? text(snapshot.telas["disclaimer"])
+    : undefined;
+  const legalForPage = (index: number) =>
+    snapshot.perPageLegal ? snapshot.pageDisclaimers[index] || "" : legacyLegal;
+  const storySources = storyGroupSources(snapshot.pages);
+  const storyLegalLists = storySources.map(() => [] as string[]);
+  if (snapshot.perPageLegal) {
+    snapshot.pageDisclaimers.forEach((legal, sourceIndex) => {
+      if (!legal) return;
+      let destination = -1;
+      storySources.forEach((sources, storyIndex) => {
+        if (storyIndex > 0 && sources.includes(sourceIndex)) {
+          destination = storyIndex;
+        }
+      });
+      if (destination < 0) return;
+      const existing = storyLegalLists[destination]!;
+      if (!existing.includes(legal)) existing.push(legal);
+    });
+  } else if (legacyLegal !== undefined) {
+    storyLegalLists.forEach((list, index) => {
+      if (index > 0 && legacyLegal) list.push(legacyLegal);
+    });
+  }
   return {
     telas: snapshot.pages.map((produtos, index) => ({
-      ...commonState(snapshot.telas, snapshot.telas),
+      ...commonState(snapshot.telas, snapshot.telas, legalForPage(index)),
       background: background(snapshot.telas, index),
       isCapa: index === 0,
       produtos: produtos.slice(0, index === 0 ? 2 : 4),
     })),
     cards: snapshot.pages.map((produtos, index) => ({
-      ...commonState(snapshot.cards, snapshot.telas),
+      ...commonState(
+        snapshot.cards,
+        snapshot.telas,
+        index === 0 ? "" : legalForPage(index),
+      ),
       background: background(snapshot.cards, index),
       isCapa: index === 0,
       produtos: produtos.slice(0, index === 0 ? 2 : 4),
     })),
     stories: storyGroups(snapshot.pages).map((produtos, index) => ({
-      ...commonState(snapshot.stories, snapshot.telas),
+      ...commonState(
+        snapshot.stories,
+        snapshot.telas,
+        storyLegalLists[index]?.join("\n") || "",
+      ),
       background: background(snapshot.stories, index),
       isCapa: index === 0,
       produtos,

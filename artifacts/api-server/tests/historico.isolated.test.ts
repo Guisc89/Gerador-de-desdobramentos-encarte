@@ -13,7 +13,6 @@ import {
 } from "../src/routes/historico";
 import { historicoArtifactPath } from "../src/services/historicoMateriais";
 import {
-  DISCLAIMER_PADRAO,
   formatLegalTextLines,
 } from "../src/services/legalText";
 import { renderTelaHtml } from "../src/services/telaTemplate";
@@ -21,9 +20,10 @@ import { renderCardHtml } from "../src/services/cardTemplate";
 import { renderStoryHtml } from "../src/services/storyTemplate";
 
 test("legal copy leaves wrapping to full-width footers and preserves explicit breaks", () => {
-  const normal = formatLegalTextLines(DISCLAIMER_PADRAO);
+  const sample = "Condição legal informada nesta tela.";
+  const normal = formatLegalTextLines(sample);
   assert.equal(normal.length, 1);
-  assert.equal(normal.join(" "), DISCLAIMER_PADRAO);
+  assert.equal(normal.join(" "), sample);
 
   const long = Array.from(
     { length: 42 },
@@ -40,7 +40,7 @@ test("legal copy leaves wrapping to full-width footers and preserves explicit br
   assert.deepEqual(formatLegalTextLines("   \n "), []);
 });
 
-test("all current templates render shared legal copy and never an address", () => {
+test("templates render explicit legal copy only and never an address", () => {
   const base = {
     mes: "Maio",
     validadeInicio: "01.05",
@@ -59,9 +59,18 @@ test("all current templates render shared legal copy and never an address", () =
     renderStoryHtml({ ...base, disclaimer: "" })].forEach((html) => {
     assert.doesNotMatch(html, /Os preços e produtos anunciados/);
   });
+  const { disclaimer: _omitted, ...withoutDisclaimer } = base;
+  [
+    renderTelaHtml(withoutDisclaimer),
+    renderCardHtml(withoutDisclaimer),
+    renderStoryHtml(withoutDisclaimer),
+  ].forEach((html) => {
+    assert.doesNotMatch(html, /Os preços e produtos anunciados/);
+    assert.doesNotMatch(html, /<div[^>]+data-fit-legal/);
+  });
 });
 
-test("snapshot preserves explicit empty extras and archived composition", () => {
+test("legacy snapshot preserves archived global composition", () => {
   const image = "data:image/png;base64,AA==";
   const estado = {
     frontend: {
@@ -94,9 +103,11 @@ test("snapshot preserves explicit empty extras and archived composition", () => 
   ]);
   const states = estadosMateriaisDoSnapshot(estado);
   assert.ok(states);
-  assert.equal(states.cards[0]?.disclaimer, "Aviso das telas");
+  assert.equal(states.cards[0]?.disclaimer, "");
+  assert.equal(states.cards[1]?.disclaimer, "Aviso das telas");
   assert.equal(states.cards[0]?.infoCor, "");
-  assert.equal(states.stories[0]?.disclaimer, "Aviso das telas");
+  assert.equal(states.stories[0]?.disclaimer, "");
+  assert.equal(states.stories[1]?.disclaimer, "Aviso das telas");
   assert.deepEqual(states.stories.map((story) => story.produtos.length), [2, 2]);
   assert.equal(states.telas[0]?.produtos[0]?.foto, image);
   assert.equal(states.telas[0]?.produtos[0]?.precoCentavos, "05");
@@ -105,8 +116,63 @@ test("snapshot preserves explicit empty extras and archived composition", () => 
   const emptyLegalStates = estadosMateriaisDoSnapshot(estado);
   assert.ok(emptyLegalStates);
   assert.equal(emptyLegalStates.telas[0]?.disclaimer, "");
-  assert.equal(emptyLegalStates.cards[0]?.disclaimer, "");
+  assert.equal(emptyLegalStates.cards[1]?.disclaimer, "");
   assert.equal(emptyLegalStates.stories[0]?.disclaimer, "");
+});
+
+test("versioned snapshot maps per-tela legal to cards and stories once", () => {
+  const product = (name: string) => ({
+    nome: name,
+    descricao: "",
+    precoInteiro: "10",
+    precoCentavos: "00",
+  });
+  const estado = {
+    frontend: {
+      telas: {
+        schemaVersion: 2,
+        disclaimer: "legado não deve vazar",
+        telas: [
+          { disclaimer: "capa", produtos: [product("A"), product("B")] },
+          {
+            disclaimer: "Legal dois",
+            produtos: [product("C"), product("D"), product("E"), product("F")],
+          },
+          {
+            disclaimer: "",
+            produtos: [product("G"), product("H"), product("I")],
+          },
+          {
+            disclaimer: "Legal quatro",
+            produtos: [product("J"), product("K"), product("L")],
+          },
+        ],
+      },
+    },
+  };
+  const states = estadosMateriaisDoSnapshot(estado);
+  assert.ok(states);
+  assert.deepEqual(
+    states.telas.map((page) => page.disclaimer),
+    ["capa", "Legal dois", "", "Legal quatro"],
+  );
+  assert.deepEqual(
+    states.cards.map((page) => page.disclaimer),
+    ["", "Legal dois", "", "Legal quatro"],
+  );
+  assert.equal(states.stories[0]?.disclaimer, "");
+  assert.equal(
+    states.stories.filter((page) => page.disclaimer === "Legal dois").length,
+    1,
+  );
+  assert.equal(
+    states.stories.filter((page) => page.disclaimer === "Legal quatro").length,
+    1,
+  );
+  assert.equal(
+    states.stories.some((page) => page.disclaimer?.includes("legado")),
+    false,
+  );
 });
 
 test("legacy pointer derives only from immutable archive in same workspace", () => {

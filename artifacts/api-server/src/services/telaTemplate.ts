@@ -1,5 +1,4 @@
 import {
-  DISCLAIMER_PADRAO,
   formatLegalTextLines,
   LEGAL_FIT_SCRIPT,
 } from "./legalText";
@@ -22,8 +21,6 @@ export interface TelaState {
   isCapa?: boolean;
   produtos: TelaProduto[];
 }
-
-export { DISCLAIMER_PADRAO } from "./legalText";
 
 // Aceita apenas cores HEX válidas (#RGB ou #RRGGBB) para injetar no CSS.
 export function corHexValida(value: unknown): string {
@@ -93,10 +90,7 @@ export function renderTelaHtml(state: TelaState): string {
       ? `Validade: ${esc(state.validadeInicio)} a ${esc(state.validadeFim)}`
       : "";
 
-  const legalText = state.disclaimer === undefined
-    ? DISCLAIMER_PADRAO
-    : state.disclaimer;
-  const disclaimer = formatLegalTextLines(legalText)
+  const disclaimer = formatLegalTextLines(state.disclaimer)
     .map(esc)
     .join("<br />");
   const infoCor = corHexValida(state.infoCor);

@@ -114,7 +114,7 @@
           return falha("Não foi possível mover: o limite de 60 telas seria ultrapassado.");
         var novoId = "movida-" + copia.length;
         while (copia.some(function (t) { return t.id === novoId; })) novoId += "-nova";
-        copia.push({ id: novoId, produtos: [] });
+        copia.push({ id: novoId, produtos: [], disclaimer: "" });
       }
       copia[i + 1].produtos.unshift(excedente);
     }
@@ -154,5 +154,62 @@
     return { ok: true, telas: copia };
   }
 
-  return { mover: mover, validar: validar };
+  function restaurarLegais(saved) {
+    saved = saved && typeof saved === "object" ? saved : {};
+    var versioned = Number(saved.schemaVersion) >= 2;
+    return {
+      legacyDisclaimer: versioned
+        ? saved.legacyDisclaimer || ""
+        : saved.legacyDisclaimer || saved.disclaimer || "",
+      disclaimers: Array.isArray(saved.telas)
+        ? saved.telas.map(function (tela) {
+            return versioned &&
+                tela &&
+                Object.prototype.hasOwnProperty.call(tela, "disclaimer")
+              ? tela.disclaimer || ""
+              : "";
+          })
+        : [],
+    };
+  }
+
+  function legaisCards(telas) {
+    return (Array.isArray(telas) ? telas : []).map(function (tela, index) {
+      return index === 0 ? "" : (tela && tela.disclaimer) || "";
+    });
+  }
+
+  function legaisStories(telas, storySources) {
+    var sourcesByStory = Array.isArray(storySources) ? storySources : [];
+    var lists = sourcesByStory.map(function () {
+      return [];
+    });
+    (Array.isArray(telas) ? telas : []).forEach(function (tela, sourceIndex) {
+      var legal = (tela && tela.disclaimer) || "";
+      if (!legal.trim()) return;
+      var destination = -1;
+      sourcesByStory.forEach(function (sources, storyIndex) {
+        if (
+          storyIndex > 0 &&
+          Array.isArray(sources) &&
+          sources.indexOf(sourceIndex) !== -1
+        ) destination = storyIndex;
+      });
+      if (destination < 0) return;
+      if (lists[destination].indexOf(legal) === -1) {
+        lists[destination].push(legal);
+      }
+    });
+    return lists.map(function (list) {
+      return list.join("\n");
+    });
+  }
+
+  return {
+    mover: mover,
+    validar: validar,
+    restaurarLegais: restaurarLegais,
+    legaisCards: legaisCards,
+    legaisStories: legaisStories,
+  };
 });
