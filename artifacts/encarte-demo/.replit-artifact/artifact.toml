@@ -1,0 +1,29 @@
+kind = "video"
+videoAspectRatio = "16:9"
+previewPath = "/encarte-demo/"
+title = "Encarte Associadas — Demonstração"
+description = "Vídeo demonstrativo de 60 segundos com legendas e comparação do processo manual e automatizado."
+version = "1.0.0"
+id = "artifacts/encarte-demo"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/encarte-demo/" ]
+localPort = 22814
+
+[services.development]
+run = "pnpm --filter @workspace/encarte-demo run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/encarte-demo", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/encarte-demo/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "22814"
+BASE_PATH = "/encarte-demo/"

@@ -6,3 +6,26 @@ id = "U4e_7CU0sPTA0vEhe4ICA"
 uri = "file://dist-export/encarte-associadas.zip"
 type = "unspecified"
 title = "Encarte Associadas — projeto completo (.zip para reimportar)"
+logical_id = "c121f27a-8eea-4c01-b628-d121ab809398"
+
+[[outputs]]
+id = "DSLKkXQg0gc84FIEo6HbL"
+uri = "file://artifacts/encarte-demo/public/audio/bg_music.mp3"
+type = "audio"
+title = "Trilha instrumental da demonstração"
+description = "Generated music: Corporate motivational instrumental background music for a Brazilian pharmacy software demonstration. Soft piano, warm synth arpeggios, light percussion, 105 BPM, confident and frien…"
+logical_id = "b9c486be-6ccf-4e74-8983-3fe6f146bd7c"
+
+[[outputs]]
+id = "xBzDEqQVgR3RBdycIDdFy"
+uri = "file://attached_assets/video_exports/encarte-associadas-60s.mp4"
+type = "video"
+title = "Encarte Associadas — Vídeo de 60 segundos"
+description = "MP4 horizontal com legendas em português, trilha instrumental e demonstração ilustrativa baseada na planilha enviada. Comparação de prazo e equipe conforme informado pela usuária."
+logical_id = "4b6ffab7-22e4-4796-a4fd-8329ac04fa82"
+content_hash = "sha256:458a9741147a465da53e185bb1ad9bfc8e8cf3f234db1a1eec17dbaa3926f827"
+size = 3803162
+mtime_ms = 1790105029414
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:0e9f3a96-8de9-4d1f-838d-ce266cd8fc6b/4b6ffab7-22e4-4796-a4fd-8329ac04fa82/737f3d0f-0c52-4406-a32c-ee1759515e24"
+storage_version_token = "1790105060507997"
+content_type = "video/mp4"

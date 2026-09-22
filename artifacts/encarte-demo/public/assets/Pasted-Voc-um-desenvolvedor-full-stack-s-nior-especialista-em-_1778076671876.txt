@@ -1,0 +1,240 @@
+Você é um desenvolvedor full-stack sênior, especialista em automações, leitura de planilhas Excel e geração de PDFs com layout gráfico fiel.
+
+Crie um sistema web completo para automatizar a criação de encartes/preçários a partir de uma planilha Excel.
+
+OBJETIVO DO SISTEMA
+O sistema deve permitir que o usuário faça upload de uma planilha Excel contendo uma lista de produtos e gere automaticamente um PDF diagramado no mesmo estilo visual do arquivo PDF de referência anexado.
+
+O PDF de referência serve como modelo visual. O sistema precisa reproduzir o máximo possível:
+- estrutura de página;
+- proporções;
+- grid;
+- tamanho dos cards;
+- pesos de fontes;
+- hierarquia visual;
+- alinhamento dos textos;
+- fundo amarelo;
+- divisórias pontilhadas;
+- preço grande;
+- centavos menores/sobrescritos;
+- texto “cada” ao lado dos centavos;
+- validade em bloco pequeno;
+- organização em 2 colunas e 7 linhas por página.
+
+TECNOLOGIAS OBRIGATÓRIAS
+Use:
+- Node.js
+- Express
+- Multer para upload de arquivos
+- XLSX para leitura da planilha Excel
+- Puppeteer para gerar PDF a partir de HTML/CSS
+- HTML, CSS e JavaScript simples no front-end
+
+Evite frameworks complexos. O sistema precisa ser simples, funcional e fácil de rodar no Replit.
+
+FUNCIONALIDADES PRINCIPAIS
+1. Tela inicial com upload de planilha Excel .xlsx
+2. Campo para informar:
+   - mês da campanha
+   - data inicial da validade
+   - data final da validade
+   - nome do arquivo final
+3. Botão “Gerar Encarte”
+4. Após o upload, o sistema deve:
+   - ler a planilha;
+   - identificar os produtos;
+   - limpar dados vazios;
+   - normalizar nomes;
+   - tratar preços;
+   - separar preço inteiro e centavos;
+   - gerar automaticamente o PDF final;
+   - disponibilizar botão de download.
+
+ESTRUTURA DA PLANILHA
+A planilha terá uma aba com os dados do encarte. O sistema deve tentar localizar automaticamente a aba principal. Caso exista uma aba chamada “ENCARTE RS - MAI.26”, usar essa aba.
+
+A planilha pode conter colunas como:
+- ESPAÇO
+- Fabricante
+- EAN
+- Descrição
+- Venda Encarte
+
+Também pode haver colunas sem nome ou colunas complementares com partes da descrição. O sistema deve ser tolerante a isso.
+
+REGRAS DE LEITURA DA PLANILHA
+- Ignorar linhas completamente vazias.
+- Ignorar cabeçalhos duplicados.
+- Ignorar linhas que não tenham descrição de produto.
+- Usar a coluna “Descrição” como nome principal do produto.
+- Se houver uma coluna complementar logo após “Descrição”, usar como descrição secundária/apresentação do produto.
+- Usar a coluna “Venda Encarte” como preço.
+- Se o preço vier como número, formatar em moeda brasileira.
+- Se vier como texto, limpar e converter.
+- Exemplo: 22.99 deve virar:
+  - precoInteiro: “22”
+  - precoCentavos: “99”
+- Se o preço não existir, marcar o item como pendente e exibir no log.
+
+MODELO INTERNO DE PRODUTO
+Cada produto deve ser convertido para este formato:
+
+{
+  espaco: "",
+  fabricante: "",
+  ean: "",
+  nome: "",
+  descricao: "",
+  precoOriginal: "",
+  precoInteiro: "",
+  precoCentavos: "",
+  validadeInicio: "",
+  validadeFim: ""
+}
+
+LAYOUT DO PDF
+O PDF deve ter tamanho A4 vertical.
+
+Cada página deve conter exatamente:
+- 2 colunas
+- 7 linhas
+- 14 produtos por página
+
+Cada produto deve ocupar um card retangular.
+
+Cada card deve conter:
+1. Nome do produto no topo, em negrito
+2. Descrição/apresentação abaixo do nome, em fonte menor
+3. Bloco de validade no canto inferior esquerdo:
+   Validade:
+   01.05.26 a 31.05.26
+4. Preço no canto inferior direito:
+   R$ pequeno
+   número inteiro muito grande
+   vírgula
+   centavos menores e posicionados acima
+   texto “cada” próximo dos centavos
+
+ESTILO VISUAL
+Usar CSS para criar um layout semelhante ao PDF de referência:
+- fundo amarelo/alaranjado;
+- textos em preto;
+- divisórias horizontais pontilhadas entre os cards;
+- divisória vertical pontilhada entre as colunas;
+- marca d’água abstrata ou símbolo em tom laranja mais escuro no fundo de cada card;
+- margens externas semelhantes ao PDF;
+- layout limpo e pronto para impressão.
+
+Use fontes seguras, como Arial, Helvetica ou similar.
+A hierarquia visual deve ficar assim:
+- Nome do produto: negrito, aproximadamente 14px a 16px
+- Descrição: regular, aproximadamente 11px a 13px
+- Validade: pequeno, aproximadamente 9px a 10px
+- R$: pequeno
+- Preço inteiro: muito grande, aproximadamente 58px a 72px
+- Centavos: aproximadamente 22px a 28px
+- “cada”: aproximadamente 14px
+
+IMPORTANTE SOBRE FIDELIDADE
+Não preciso que o PDF seja uma cópia vetorial perfeita, mas ele precisa ficar visualmente muito próximo do modelo anexado.
+Priorize:
+- mesma organização;
+- mesma quantidade de produtos por página;
+- mesma lógica de preço;
+- mesma proporção visual;
+- mesma estrutura de leitura.
+
+ESTRUTURA DE PASTAS
+Crie o projeto com esta estrutura:
+
+/server.js
+/package.json
+/uploads
+/output
+/src/parser/excelParser.js
+/src/services/pdfGenerator.js
+/src/templates/encarteTemplate.js
+/src/utils/priceFormatter.js
+/public/index.html
+/public/style.css
+/public/app.js
+
+ROTAS DO BACK-END
+Criar as seguintes rotas:
+
+GET /
+Renderiza a tela inicial.
+
+POST /upload
+Recebe a planilha Excel, processa os dados, gera o PDF e retorna o link para download.
+
+GET /download/:filename
+Permite baixar o PDF gerado.
+
+GET /preview
+Opcional: exibe uma prévia HTML do último encarte gerado.
+
+REQUISITOS DO FRONT-END
+Criar uma interface simples, clara e profissional contendo:
+- título: “Gerador Automático de Encarte”
+- campo de upload de Excel
+- campo de data inicial
+- campo de data final
+- campo de nome do arquivo
+- botão “Gerar PDF”
+- área de status/log
+- link para baixar o PDF quando estiver pronto
+
+TRATAMENTO DE ERROS
+O sistema deve tratar:
+- arquivo não enviado;
+- arquivo com extensão inválida;
+- planilha sem dados;
+- coluna de preço não encontrada;
+- coluna de descrição não encontrada;
+- erro ao gerar PDF;
+- erro no Puppeteer.
+
+Exibir mensagens amigáveis ao usuário.
+
+LOGS
+Durante o processamento, gerar logs no console:
+- nome do arquivo recebido;
+- abas encontradas;
+- aba utilizada;
+- quantidade de produtos lidos;
+- quantidade de produtos válidos;
+- quantidade de produtos com erro;
+- caminho do PDF gerado.
+
+CONFIGURAÇÃO PARA REPLIT
+O projeto deve rodar no Replit com:
+npm install
+npm start
+
+No package.json, configurar:
+"start": "node server.js"
+
+Se Puppeteer exigir configuração especial no Replit, ajustar o launch com:
+{
+  headless: "new",
+  args: ["--no-sandbox", "--disable-setuid-sandbox"]
+}
+
+ENTREGA ESPERADA
+Entregue todos os arquivos do projeto completos.
+Não entregue apenas trechos soltos.
+O sistema deve funcionar ao clicar em Run no Replit.
+
+CRITÉRIOS DE ACEITE
+O sistema será considerado correto se:
+1. Aceitar upload de uma planilha Excel .xlsx
+2. Ler os produtos automaticamente
+3. Gerar um PDF em A4 vertical
+4. Organizar 14 produtos por página
+5. Reproduzir o layout visual do PDF de referência
+6. Mostrar nome, descrição, validade e preço de cada produto
+7. Permitir baixar o PDF final
+8. Rodar sem erros no Replit
+
+Comece criando todos os arquivos necessários do projeto.
