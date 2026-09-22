@@ -43,6 +43,13 @@
   const carouselInfo = document.getElementById("telaCarouselInfo");
   const addTelaBtn = document.getElementById("telaAddTelaBtn");
   const delTelaBtn = document.getElementById("telaDelTelaBtn");
+  const moveDialog = document.getElementById("telaMoveDialog");
+  const moveProduto = document.getElementById("telaMoveProduto");
+  const moveDestino = document.getElementById("telaMoveDestino");
+  const movePosicao = document.getElementById("telaMovePosicao");
+  const moveErro = document.getElementById("telaMoveErro");
+  const moveCancelar = document.getElementById("telaMoveCancelar");
+  const moveConfirmar = document.getElementById("telaMoveConfirmar");
 
   // Preview + download
   const previewFrame = document.getElementById("telaPreviewFrame");
@@ -64,6 +71,7 @@
   let nextId = 1;
   let debounceTimer = null;
   let previewSeq = 0;
+  let movePendente = null;
 
   const MAX_TELAS = 60;
 
@@ -233,7 +241,9 @@
       endereco: enderecoInput.value.trim(),
       infoCor: infoCorInput.value.trim(),
       telas: telas.map((t) => ({
+        id: t.id,
         produtos: t.produtos.map((it) => ({
+          id: it.id,
           nome: it.nome,
           descricao: it.descricao,
           precoInteiro: it.precoInteiro,
@@ -367,6 +377,7 @@
             </div>
           </div>
           <div class="acc-foot">
+            <button type="button" class="product-move" data-act="move">Mover para outra tela</button>
             <button type="button" class="product-remove" data-act="remove"${
               canRemove ? "" : " disabled"
             }>Remover produto</button>
@@ -400,6 +411,29 @@
       tela.produtos = tela.produtos.filter((x) => x.id !== it.id);
       renderItems();
       schedulePreview();
+    });
+
+    row.querySelector('[data-act="move"]').addEventListener("click", () => {
+      movePendente = { origem: current, produtoId: it.id };
+      moveProduto.textContent =
+        (it.nome || "Produto sem nome") + " · atualmente na tela " + (current + 1);
+      moveDestino.innerHTML = telas
+        .map(
+          (t, index) =>
+            '<option value="' +
+            index +
+            '"' +
+            (index === current ? " selected" : "") +
+            ">Tela " +
+            (index + 1) +
+            (index === 0 ? " (capa)" : "") +
+            "</option>",
+        )
+        .join("");
+      atualizarPosicoesMovimento();
+      moveErro.textContent = "";
+      moveDialog.showModal();
+      moveDestino.focus();
     });
 
     row.querySelector('[data-act="pick"]').addEventListener("change", (e) => {
@@ -491,6 +525,51 @@
       applyFotoBlob(img);
     });
   }
+
+  function atualizarPosicoesMovimento() {
+    const destino = Number(moveDestino.value);
+    const max =
+      movePendente && destino === movePendente.origem
+        ? telas[destino].produtos.length
+        : destino === 0
+          ? CAPA_PRODUTOS
+          : MAX_PRODUTOS_TELA;
+    movePosicao.innerHTML = Array.from({ length: max }, (_, i) => {
+      return '<option value="' + (i + 1) + '">Posição ' + (i + 1) + "</option>";
+    }).join("");
+  }
+
+  moveDestino.addEventListener("change", atualizarPosicoesMovimento);
+  moveCancelar.addEventListener("click", () => {
+    movePendente = null;
+    moveDialog.close();
+  });
+  moveDialog.addEventListener("close", () => {
+    movePendente = null;
+    moveErro.textContent = "";
+  });
+  moveConfirmar.addEventListener("click", () => {
+    if (!movePendente || !window.TelasQueue) {
+      moveErro.textContent = "Não foi possível iniciar a movimentação. Recarregue a página.";
+      return;
+    }
+    const destino = Number(moveDestino.value);
+    const resultado = window.TelasQueue.mover(
+      telas,
+      movePendente.origem,
+      movePendente.produtoId,
+      destino,
+      Number(movePosicao.value),
+    );
+    if (!resultado.ok) {
+      moveErro.textContent = resultado.error;
+      return;
+    }
+    telas = resultado.telas;
+    current = destino;
+    moveDialog.close();
+    renderAll();
+  });
 
   function renderAll() {
     renderCarousel();
@@ -962,7 +1041,9 @@
       bg2DataUri: bg2DataUri,
       current: current,
       telas: telas.map((t) => ({
+        id: t.id,
         produtos: t.produtos.map((it) => ({
+          id: it.id,
           nome: it.nome,
           descricao: it.descricao,
           precoInteiro: it.precoInteiro,
@@ -1024,17 +1105,23 @@
       publishTelas();
       return;
     }
-    telas = saved.telas.map((t) =>
-      newTela((t.produtos || []).map((p) => {
+    telas = saved.telas.map((t) => {
+      const tela = newTela((t.produtos || []).map((p) => {
         const it = newItem(null);
+        if (p.id !== undefined && p.id !== null) it.id = p.id;
         it.nome = p.nome || "";
         it.descricao = p.descricao || "";
         it.precoInteiro = p.precoInteiro || "";
         it.precoCentavos = p.precoCentavos || "";
         it.foto = p.foto || fotoFor(it.nome, it.descricao);
         return it;
-      })),
-    );
+      }));
+      if (t.id !== undefined && t.id !== null) tela.id = t.id;
+      return tela;
+    });
+    const numericIds = telas.flatMap((t) => [t.id].concat(t.produtos.map((p) => p.id)))
+      .filter((id) => typeof id === "number" && Number.isFinite(id));
+    if (numericIds.length) nextId = Math.max(nextId, Math.max.apply(null, numericIds) + 1);
     current = Math.min(Math.max(0, saved.current || 0), telas.length - 1);
     emptyState.classList.add("hidden");
     workspace.classList.remove("hidden");

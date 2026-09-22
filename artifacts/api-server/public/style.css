@@ -1316,3 +1316,41 @@ body {
 
 /* Indicador de erro do autosave */
 .save-erro { color: #c0392b !important; font-weight: 700; }
+
+/* Movimentação posicional de produtos */
+.acc-foot { gap: 8px; flex-wrap: wrap; }
+.product-move {
+  margin: 0;
+  padding: 6px 10px;
+  border: 1px solid #0a8f85;
+  background: #fff;
+  color: #087d76;
+  font-size: 12px;
+}
+.product-move:hover { background: #e6f6f5; transform: none; }
+.move-dialog {
+  width: min(460px, calc(100% - 28px));
+  padding: 0;
+  border: 0;
+  border-radius: 16px;
+  box-shadow: 0 24px 70px rgba(7, 48, 44, 0.35);
+}
+.move-dialog::backdrop { background: rgba(7, 48, 44, 0.72); }
+.move-dialog-card { padding: 24px; display: grid; gap: 14px; }
+.move-dialog-card h2 { margin: 0; color: #14424c; font-size: 1.2rem; }
+.move-dialog-card select {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #cfdad5;
+  border-radius: 8px;
+  background: #fff;
+  font-size: 14px;
+}
+.move-error { min-height: 1.3em; margin: 0; color: #b42318; font-size: 0.84rem; }
+.move-actions { display: flex; justify-content: flex-end; gap: 10px; }
+.move-actions button { margin: 0; }
+@media (max-width: 520px) {
+  .move-dialog-card { padding: 20px 16px; }
+  .move-actions { flex-direction: column-reverse; }
+  .move-actions button { width: 100%; }
+}

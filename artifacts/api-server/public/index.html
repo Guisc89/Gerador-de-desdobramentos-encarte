@@ -257,6 +257,25 @@
           <div id="telaAllLinks" class="tela-all-links hidden"></div>
         </div>
       </div>
+      <dialog id="telaMoveDialog" class="move-dialog" aria-labelledby="telaMoveTitle">
+        <form method="dialog" class="move-dialog-card">
+          <h2 id="telaMoveTitle">Mover para outra tela</h2>
+          <p id="telaMoveProduto" class="tela-hint"></p>
+          <div class="field">
+            <label for="telaMoveDestino">Tela de destino</label>
+            <select id="telaMoveDestino"></select>
+          </div>
+          <div class="field">
+            <label for="telaMovePosicao">Posição na tela</label>
+            <select id="telaMovePosicao"></select>
+          </div>
+          <p id="telaMoveErro" class="move-error" role="alert" aria-live="polite"></p>
+          <div class="move-actions">
+            <button type="button" id="telaMoveCancelar" class="btn-ghost">Cancelar</button>
+            <button type="button" id="telaMoveConfirmar">Mover produto</button>
+          </div>
+        </form>
+      </dialog>
     </section>
 
     <!-- ============ CARDS (feed 1080x1440) ============ -->
@@ -538,6 +557,7 @@
   <script src="app.js"></script>
   <script src="imagem.js"></script>
   <script src="telaTemplate.js"></script>
+  <script src="telasQueue.js"></script>
   <script src="telas.js"></script>
   <script src="cardTemplate.js"></script>
   <script src="cards.js"></script>
