@@ -207,7 +207,10 @@
     };
     activeDownloads[slot] = download;
     if (!unloadRegistered && root.addEventListener) {
-      root.addEventListener("beforeunload", function () {
+      // A download can fire beforeunload without actually leaving the page.
+      // Revoking there invalidates the ZIP before the browser consumes it.
+      root.addEventListener("pagehide", function (event) {
+        if (event && event.persisted) return;
         Object.keys(activeDownloads).forEach(function (key) {
           activeDownloads[key].revoke();
         });

@@ -17,7 +17,9 @@ import {
   storeListPrefix,
 } from "../services/objectStore";
 import {
+  generatedDownloadUrl,
   generatedObjectPath,
+  persistGeneratedFile,
   writeGeneratedFile,
 } from "../services/generatedFiles";
 import {
@@ -187,10 +189,12 @@ router.post("/telas/generate", async (req, res) => {
 
     const nomeArquivo = str((req.body as Record<string, unknown>)?.["nomeArquivo"]);
     const filename = `${safeName(nomeArquivo || "tela")}.png`;
-    const filepath = await writeGeneratedFile(
-      workspaceFromRequest(req),
+    const ws = workspaceFromRequest(req);
+    const filepath = await persistGeneratedFile(
+      ws,
       filename,
       png,
+      "image/png",
     );
 
     req.log.info(
@@ -201,7 +205,7 @@ router.post("/telas/generate", async (req, res) => {
     res.json({
       ok: true,
       filename,
-      downloadUrl: `/api/download/${encodeURIComponent(filename)}`,
+      downloadUrl: generatedDownloadUrl(ws, filename),
       previewUrl: `/api/telas/preview`,
     });
   } catch (err: unknown) {
@@ -258,10 +262,10 @@ router.post("/telas/generate-all", async (req, res) => {
     for (let i = 0; i < valid.length; i += 1) {
       const num = String(valid[i].index + 1).padStart(2, "0");
       const filename = `${baseName}_tela_${num}.png`;
-      await writeGeneratedFile(ws, filename, pngs[i]);
+      await persistGeneratedFile(ws, filename, pngs[i], "image/png");
       arquivos.push({
         filename,
-        downloadUrl: `/api/download/${encodeURIComponent(filename)}`,
+        downloadUrl: generatedDownloadUrl(ws, filename),
       });
     }
 
@@ -314,7 +318,8 @@ router.post("/telas/generate-pdf", async (req, res) => {
     const pdf = await pngsToPdf(pngs);
 
     const filename = `${baseName}_telas.pdf`;
-    await writeGeneratedFile(workspaceFromRequest(req), filename, pdf);
+    const ws = workspaceFromRequest(req);
+    await persistGeneratedFile(ws, filename, pdf, "application/pdf");
 
     req.log.info(
       { filename, telas: valid.length, vazias, sizeBytes: pdf.length },
@@ -324,7 +329,7 @@ router.post("/telas/generate-pdf", async (req, res) => {
     res.json({
       ok: true,
       filename,
-      downloadUrl: `/api/download/${encodeURIComponent(filename)}`,
+      downloadUrl: generatedDownloadUrl(ws, filename),
       total: valid.length,
       vazias,
     });
@@ -606,7 +611,7 @@ router.post("/telas/lote/fim", async (req, res) => {
           await writeGeneratedFile(job.ws, filename, buf);
           arquivos.push({
             filename,
-            downloadUrl: `/api/download/${encodeURIComponent(filename)}`,
+            downloadUrl: generatedDownloadUrl(job.ws, filename),
           });
         }
         req.log.info({ geradas: arquivos.length, vazias }, "PNGs das telas gerados (lote)");
@@ -633,7 +638,7 @@ router.post("/telas/lote/fim", async (req, res) => {
       const resposta = {
         ok: true,
         filename,
-        downloadUrl: `/api/download/${encodeURIComponent(filename)}`,
+        downloadUrl: generatedDownloadUrl(job.ws, filename),
         total: indices.length,
         vazias,
       };

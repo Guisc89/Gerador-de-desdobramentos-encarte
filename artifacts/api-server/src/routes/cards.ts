@@ -7,7 +7,10 @@ import {
   type CardProduto,
 } from "../services/cardTemplate";
 import { htmlToPng, htmlToPngBatch, pngsToPdf } from "../services/pdfGenerator";
-import { writeGeneratedFile } from "../services/generatedFiles";
+import {
+  generatedDownloadUrl,
+  persistGeneratedFile,
+} from "../services/generatedFiles";
 import { workspaceFromRequest } from "../services/workspace";
 import { corHexValida } from "../services/telaTemplate";
 
@@ -203,10 +206,12 @@ router.post("/cards/generate", async (req, res) => {
       (req.body as Record<string, unknown>)?.["nomeArquivo"],
     );
     const filename = `${safeName(nomeArquivo || "card")}.png`;
-    const filepath = await writeGeneratedFile(
-      workspaceFromRequest(req),
+    const ws = workspaceFromRequest(req);
+    const filepath = await persistGeneratedFile(
+      ws,
       filename,
       png,
+      "image/png",
     );
 
     req.log.info(
@@ -217,7 +222,7 @@ router.post("/cards/generate", async (req, res) => {
     res.json({
       ok: true,
       filename,
-      downloadUrl: `/api/download/${encodeURIComponent(filename)}`,
+      downloadUrl: generatedDownloadUrl(ws, filename),
     });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Erro desconhecido";
@@ -287,10 +292,10 @@ router.post("/cards/generate-all", async (req, res) => {
     for (let i = 0; i < valid.length; i += 1) {
       const num = String(valid[i].index + 1).padStart(2, "0");
       const filename = `${baseName}_card_${num}.png`;
-      await writeGeneratedFile(ws, filename, pngs[i]);
+      await persistGeneratedFile(ws, filename, pngs[i], "image/png");
       arquivos.push({
         filename,
-        downloadUrl: `/api/download/${encodeURIComponent(filename)}`,
+        downloadUrl: generatedDownloadUrl(ws, filename),
       });
     }
 
@@ -365,7 +370,8 @@ router.post("/cards/generate-pdf", async (req, res) => {
     });
 
     const filename = `${baseName}_cards.pdf`;
-    await writeGeneratedFile(workspaceFromRequest(req), filename, pdf);
+    const ws = workspaceFromRequest(req);
+    await persistGeneratedFile(ws, filename, pdf, "application/pdf");
 
     req.log.info(
       { filename, cards: valid.length, vazias, sizeBytes: pdf.length },
@@ -375,7 +381,7 @@ router.post("/cards/generate-pdf", async (req, res) => {
     res.json({
       ok: true,
       filename,
-      downloadUrl: `/api/download/${encodeURIComponent(filename)}`,
+      downloadUrl: generatedDownloadUrl(ws, filename),
       total: valid.length,
       vazias,
     });

@@ -136,6 +136,9 @@ test("captures workspace once and revokes downloads only within the same caller 
 
   await zip.create([{ filename: "new.png", downloadUrl: "/api/new.png" }], "telas.zip", { slot: "telas" });
   assert.deepEqual(revoked, ["blob:1"]);
-  events.beforeunload();
+  assert.equal(events.beforeunload, undefined, "starting a download must not revoke its blob");
+  events.pagehide({ persisted: true });
+  assert.equal(revoked.length, 1, "back-forward cache must retain download links");
+  events.pagehide({ persisted: false });
   assert.deepEqual(revoked, ["blob:1", "blob:2", "blob:3"]);
 });

@@ -1,5 +1,6 @@
 import fs from "node:fs/promises";
 import path from "node:path";
+import { storeSave } from "./objectStore";
 import type { Workspace } from "./workspace";
 
 const OUTPUT_DIR = path.resolve(process.cwd(), "output");
@@ -34,4 +35,23 @@ export async function writeGeneratedFile(
   await fs.mkdir(path.dirname(filepath), { recursive: true });
   await fs.writeFile(filepath, contents);
   return filepath;
+}
+
+/**
+ * Persist a generated download in shared storage before keeping the local-disk
+ * copy used by the current instance. Generation and download requests can land
+ * on different autoscale instances, so disk alone is only a cache.
+ */
+export async function persistGeneratedFile(
+  workspace: Workspace,
+  filename: string,
+  contents: Buffer,
+  contentType: "image/png" | "application/pdf",
+): Promise<string> {
+  await storeSave(
+    generatedObjectPath(workspace, filename),
+    contents,
+    contentType,
+  );
+  return writeGeneratedFile(workspace, filename, contents);
 }
