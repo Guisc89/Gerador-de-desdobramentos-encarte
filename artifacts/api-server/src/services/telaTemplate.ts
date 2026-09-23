@@ -17,6 +17,7 @@ export interface TelaState {
   validadeFim: string;
   disclaimer?: string;
   infoCor?: string;
+  produtoCor?: string;
   background?: string | null;
   isCapa?: boolean;
   produtos: TelaProduto[];
@@ -94,6 +95,7 @@ export function renderTelaHtml(state: TelaState): string {
     .map(esc)
     .join("<br />");
   const infoCor = corHexValida(state.infoCor);
+  const produtoCor = corHexValida(state.produtoCor);
   const infoCorCss = infoCor
     ? `.tela-info-mes, .tela-info-validade, .tela-info-disclaimer { color: ${infoCor}; }`
     : "";
@@ -164,6 +166,7 @@ export function renderTelaHtml(state: TelaState): string {
   }
   /* Capa (tela 1): 2 cards stacked, vertically centered, lateralized right */
   .tela-cards.layout-capa {
+    width: auto;
     grid-template-columns: minmax(0, 40vw);
     justify-content: end;
   }
@@ -281,7 +284,7 @@ export function renderTelaHtml(state: TelaState): string {
   }
   .card-info {
     width: 60%;
-    background: linear-gradient(150deg, #06b6a6 0%, #029e93 100%);
+    background: ${produtoCor || "linear-gradient(150deg, #06b6a6 0%, #029e93 100%)"};
     color: #ffffff;
     padding: 1.4vw 1.5vw;
     display: flex;

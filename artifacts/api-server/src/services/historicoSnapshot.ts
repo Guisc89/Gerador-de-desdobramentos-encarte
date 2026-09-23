@@ -175,6 +175,7 @@ export function estadosMateriaisDoSnapshot(estado: EstadoEncarte): {
   return {
     telas: snapshot.pages.map((produtos, index) => ({
       ...commonState(snapshot.telas, snapshot.telas, legalForPage(index)),
+      produtoCor: text(snapshot.telas["produtoCor"]),
       background: background(snapshot.telas, index),
       isCapa: index === 0,
       produtos: produtos.slice(0, index === 0 ? 2 : 4),

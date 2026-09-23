@@ -23,6 +23,35 @@ const base = {
   produtos: products,
 };
 
+test("Telas: capa stays inside the frame and custom color only paints product information", async () => {
+  for (const width of [495, 1920]) {
+    await page.setViewport({ width, height: Math.ceil(width * 9 / 16) });
+    await page.setContent(renderTelaHtml({
+      ...base, isCapa: true, produtos: products.slice(0, 2),
+      produtoCor: "#7435ab", infoCor: "#123456",
+    }));
+    const result = await page.evaluate(() => ({
+      cards: [...document.querySelectorAll(".card")].map(el => {
+        const rect = el.getBoundingClientRect();
+        return { left: rect.left, right: rect.right };
+      }),
+      info: getComputedStyle(document.querySelector(".card-info")!).backgroundColor,
+      photo: getComputedStyle(document.querySelector(".card-photo")!).backgroundColor,
+      legal: getComputedStyle(document.querySelector(".tela-info-mes")!).color,
+    }));
+    assert.equal(result.cards.length, 2);
+    assert.ok(result.cards.every(card => card.left >= 0 && card.right <= width * 0.968 + 1));
+    assert.equal(result.info, "rgb(116, 53, 171)");
+    assert.equal(result.photo, "rgb(255, 255, 255)");
+    assert.equal(result.legal, "rgb(18, 52, 86)");
+  }
+  for (const produtoCor of [undefined, "", "red; color:black"]) {
+    const html = renderTelaHtml({ ...base, produtoCor });
+    assert.ok(html.includes("background: linear-gradient(150deg, #06b6a6 0%, #029e93 100%)"));
+    assert.ok(!html.includes("red; color:black"));
+  }
+});
+
 let browser: Browser;
 let page: Page;
 

@@ -177,7 +177,13 @@
               </div>
               <div class="field">
                 <label for="telaInfoCor">Cor da fonte da validade e texto legal (HEX, opcional)</label>
-                <input id="telaInfoCor" type="text" placeholder="#0F5F56" maxlength="7" style="max-width:110px" />
+                <div style="display:flex;align-items:center;gap:12px">
+                  <input id="telaInfoCor" type="text" placeholder="#0F5F56" maxlength="7" style="max-width:110px" />
+                  <label for="telaProdutoCor" style="display:flex;align-items:center;gap:8px;margin:0;font-size:12px">
+                    <input id="telaProdutoCor" type="color" value="#06b6a6" title="Cor de fundo das informações dos produtos (a foto permanece branca)" style="width:42px;height:36px;padding:3px;cursor:pointer" />
+                    Fundo dos produtos
+                  </label>
+                </div>
               </div>
             </details>
             <details class="cfg-adv">

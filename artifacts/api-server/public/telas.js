@@ -20,6 +20,9 @@
   const legacyLegalWrap = document.getElementById("telaLegacyLegal");
   const usarLegacyBtn = document.getElementById("telaUsarLegacy");
   const infoCorInput = document.getElementById("telaInfoCor");
+  const produtoCorInput = document.getElementById("telaProdutoCor");
+  // Empty preserves the original gradient in existing campaigns.
+  let produtoCor = "";
 
   // Background
   const bgInput = document.getElementById("telaBgInput");
@@ -213,6 +216,7 @@
       validadeFim: validadeFimInput.value.trim(),
       disclaimer: tela.disclaimer || "",
       infoCor: infoCorInput.value.trim(),
+      produtoCor: produtoCor,
       background: isCapa ? bgDataUri : bg2DataUri || bgDataUri,
       isCapa: !!isCapa,
       produtos: tela.produtos.map((it) => ({
@@ -242,6 +246,7 @@
       schemaVersion: 2,
       legacyDisclaimer: legacyDisclaimer,
       infoCor: infoCorInput.value.trim(),
+      produtoCor: produtoCor,
       telas: telas.map((t) => ({
         id: t.id,
         disclaimer: t.disclaimer || "",
@@ -818,6 +823,10 @@
   [mesInput, validadeInicioInput, validadeFimInput, infoCorInput].forEach((inp) => {
     inp.addEventListener("input", schedulePreview);
   });
+  produtoCorInput.addEventListener("input", function () {
+    produtoCor = produtoCorInput.value;
+    schedulePreview();
+  });
   disclaimerInput.addEventListener("input", function () {
     const tela = currentTela();
     if (tela) tela.disclaimer = disclaimerInput.value;
@@ -1055,6 +1064,7 @@
       schemaVersion: 2,
       legacyDisclaimer: legacyDisclaimer,
       infoCor: infoCorInput.value,
+      produtoCor: produtoCor,
       bgDataUri: bgDataUri,
       bg2DataUri: bg2DataUri,
       current: current,
@@ -1089,6 +1099,8 @@
     const restoredLegal = window.TelasQueue.restaurarLegais(saved);
     legacyDisclaimer = restoredLegal.legacyDisclaimer;
     if ("infoCor" in saved) infoCorInput.value = saved.infoCor || "";
+    produtoCor = /^#[0-9a-f]{6}$/i.test(saved.produtoCor || "") ? saved.produtoCor : "";
+    produtoCorInput.value = produtoCor || "#06b6a6";
     if (saved.bgDataUri) {
       bgDataUri = saved.bgDataUri;
       bgThumb.src = bgDataUri;

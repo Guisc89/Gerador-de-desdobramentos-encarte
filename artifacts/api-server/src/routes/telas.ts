@@ -3,6 +3,7 @@ import multer from "multer";
 import { parseExcel, importStats } from "../services/excelParser";
 import {
   renderTelaHtml,
+  corHexValida,
   type TelaState,
   type TelaProduto,
 } from "../services/telaTemplate";
@@ -100,6 +101,7 @@ function sanitizeState(body: unknown, forcedIsCapa?: boolean): TelaState {
       ? { disclaimer: str(obj["disclaimer"]) }
       : {}),
     infoCor: str(obj["infoCor"]),
+    produtoCor: corHexValida(obj["produtoCor"]),
     background: dataImage(obj["background"]),
     isCapa,
     produtos,
