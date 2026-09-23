@@ -45,10 +45,19 @@ test("Telas: capa stays inside the frame and custom color only paints product in
     assert.equal(result.photo, "rgb(255, 255, 255)");
     assert.equal(result.legal, "rgb(18, 52, 86)");
   }
-  for (const produtoCor of [undefined, "", "red; color:black"]) {
-    const html = renderTelaHtml({ ...base, produtoCor });
-    assert.ok(html.includes("background: linear-gradient(150deg, #06b6a6 0%, #029e93 100%)"));
-    assert.ok(!html.includes("red; color:black"));
+  for (const render of [renderTelaHtml, renderCardHtml, renderStoryHtml]) {
+    await page.setContent(render({ ...base, produtoCor: "#7435ab" }));
+    const colors = await page.evaluate(() => ({
+      info: getComputedStyle(document.querySelector(".card-info")!).backgroundColor,
+      photo: getComputedStyle(document.querySelector(".card-photo")!).backgroundColor,
+    }));
+    assert.equal(colors.info, "rgb(116, 53, 171)");
+    assert.equal(colors.photo, "rgb(255, 255, 255)");
+    for (const produtoCor of [undefined, "", "red; color:black"]) {
+      const html = render({ ...base, produtoCor });
+      assert.ok(html.includes("background: linear-gradient(150deg, #06b6a6 0%, #029e93 100%)"));
+      assert.ok(!html.includes("red; color:black"));
+    }
   }
 });
 

@@ -215,6 +215,7 @@
       validadeFim: validadeFimInput.value.trim(),
       disclaimer: isCapa ? "" : story.disclaimer || "",
       infoCor: infoCorInput.value.trim(),
+      produtoCor: window.__encarteTelas?.produtoCor || "",
       background: isCapa ? bgDataUri : bg2DataUri || bgDataUri,
       isCapa: !!isCapa,
       produtos: story.produtos.map((it) => ({

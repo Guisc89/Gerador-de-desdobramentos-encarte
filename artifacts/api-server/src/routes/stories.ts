@@ -1,6 +1,7 @@
 import { Router, type IRouter } from "express";
 import multer from "multer";
 import { randomUUID } from "node:crypto";
+import { corHexValida } from "../services/telaTemplate";
 import { parseExcel, importStats } from "../services/excelParser";
 import {
   renderStoryHtml,
@@ -130,6 +131,7 @@ function sanitizeState(body: unknown, forcedIsCapa?: boolean): StoryState {
       ? { disclaimer: str(obj["disclaimer"]) }
       : {}),
     infoCor: str(obj["infoCor"]),
+    produtoCor: corHexValida(obj["produtoCor"]),
     background: dataImage(obj["background"]),
     isCapa,
     produtos,

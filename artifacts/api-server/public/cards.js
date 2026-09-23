@@ -156,6 +156,7 @@
       validadeFim: validadeFimInput.value.trim(),
       disclaimer: isCapa ? "" : card.disclaimer || "",
       infoCor: infoCorInput.value.trim(),
+      produtoCor: window.__encarteTelas?.produtoCor || "",
       background: isCapa ? bgDataUri : bg2DataUri || bgDataUri,
       isCapa: !!isCapa,
       produtos: card.produtos.map((it) => ({

@@ -80,6 +80,7 @@ test("legacy snapshot preserves archived global composition", () => {
         endereco: "Endereço das telas",
         disclaimer: "Aviso das telas",
         infoCor: "#123456",
+        produtoCor: "#7435ab",
         telas: [
           { produtos: [
             { nome: "A", descricao: "1", precoInteiro: "10", precoCentavos: "5" },
@@ -103,6 +104,9 @@ test("legacy snapshot preserves archived global composition", () => {
   ]);
   const states = estadosMateriaisDoSnapshot(estado);
   assert.ok(states);
+  for (const format of [states.telas, states.cards, states.stories]) {
+    assert.ok(format.every(state => state.produtoCor === "#7435ab"));
+  }
   assert.equal(states.cards[0]?.disclaimer, "");
   assert.equal(states.cards[1]?.disclaimer, "Aviso das telas");
   assert.equal(states.cards[0]?.infoCor, "");

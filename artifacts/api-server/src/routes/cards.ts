@@ -9,6 +9,7 @@ import {
 import { htmlToPng, htmlToPngBatch, pngsToPdf } from "../services/pdfGenerator";
 import { writeGeneratedFile } from "../services/generatedFiles";
 import { workspaceFromRequest } from "../services/workspace";
+import { corHexValida } from "../services/telaTemplate";
 
 const router: IRouter = Router();
 
@@ -91,6 +92,7 @@ function sanitizeState(body: unknown, forcedIsCapa?: boolean): CardState {
       ? { disclaimer: str(obj["disclaimer"]) }
       : {}),
     infoCor: str(obj["infoCor"]),
+    produtoCor: corHexValida(obj["produtoCor"]),
     background: dataImage(obj["background"]),
     isCapa,
     produtos,

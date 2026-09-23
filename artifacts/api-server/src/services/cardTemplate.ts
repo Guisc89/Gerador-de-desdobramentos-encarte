@@ -27,6 +27,7 @@ export interface CardState {
   validadeFim: string;
   disclaimer?: string;
   infoCor?: string;
+  produtoCor?: string;
   background?: string | null;
   isCapa?: boolean;
   produtos: CardProduto[];
@@ -271,7 +272,7 @@ export function renderCardHtml(state: CardState): string {
   }
   .card-info {
     width: 60%;
-    background: linear-gradient(150deg, #06b6a6 0%, #029e93 100%);
+    background: ${corHexValida(state.produtoCor) || "linear-gradient(150deg, #06b6a6 0%, #029e93 100%)"};
     color: #ffffff;
     padding: 3.5cqw 3.75cqw;
     display: flex;

@@ -144,6 +144,7 @@ function commonState(extra: Obj, telas: Obj, disclaimer?: string) {
     mes: text(telas["mes"]),
     validadeInicio: text(telas["validadeInicio"]),
     validadeFim: text(telas["validadeFim"]),
+    produtoCor: text(telas["produtoCor"]),
     ...(disclaimer !== undefined ? { disclaimer } : {}),
     infoCor: Object.prototype.hasOwnProperty.call(extra, "infoCor")
       ? text(extra["infoCor"])
@@ -175,7 +176,6 @@ export function estadosMateriaisDoSnapshot(estado: EstadoEncarte): {
   return {
     telas: snapshot.pages.map((produtos, index) => ({
       ...commonState(snapshot.telas, snapshot.telas, legalForPage(index)),
-      produtoCor: text(snapshot.telas["produtoCor"]),
       background: background(snapshot.telas, index),
       isCapa: index === 0,
       produtos: produtos.slice(0, index === 0 ? 2 : 4),
