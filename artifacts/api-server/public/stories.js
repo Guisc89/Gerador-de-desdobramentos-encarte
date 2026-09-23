@@ -608,28 +608,36 @@
         downloadAllBtn.textContent =
           "Gerando... (" + completed + "/" + total + ")";
       });
+      downloadAllBtn.textContent = "Montando ZIP...";
+      const zip = await PngZip.create(
+        data.arquivos,
+        (nomeArquivoInput.value.trim() || "stories") + "-stories.zip",
+        {
+          slot: "stories",
+          onProgress: (feitas, total) => {
+            downloadAllBtn.textContent = "Montando ZIP... (" + feitas + "/" + total + ")";
+          },
+        },
+      );
       genInfo.textContent =
         data.arquivos.length +
         " story(ies) gerados" +
         (data.vazias ? " (" + data.vazias + " ignorados por estarem vazios)" : "") +
-        ". Clique para baixar:";
+        ". ZIP pronto:";
       genInfo.classList.remove("hidden");
-      allLinks.innerHTML = data.arquivos
-        .map(
-          (a) =>
-            `<a class="tela-link" href="${a.downloadUrl}" download="${escapeHtml(
-              a.filename,
-            )}">${escapeHtml(a.filename)}</a>`,
-        )
-        .join("");
+      allLinks.innerHTML = `<a class="tela-link" href="${zip.url}" download="${escapeHtml(
+        zip.filename,
+      )}">Baixar ZIP novamente</a>`;
       allLinks.classList.remove("hidden");
+      const zipLink = allLinks.querySelector("a");
+      zipLink.click();
     } catch (err) {
       genInfo.textContent =
         "Erro inesperado: " + (err && err.message ? err.message : err);
       genInfo.classList.remove("hidden");
     } finally {
       downloadAllBtn.disabled = false;
-      downloadAllBtn.textContent = "Baixar todos (PNG)";
+      downloadAllBtn.textContent = "Baixar todos em ZIP (PNG)";
     }
   });
 

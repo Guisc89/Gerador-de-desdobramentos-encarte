@@ -13,13 +13,17 @@ const IMAGE_RENDER_BUDGET_MS = 55_000;
 
 async function waitForStableLayout(page: import("puppeteer").Page): Promise<void> {
   await page.evaluate(`(async () => {
-    if (window.__legalFitReady) await window.__legalFitReady;
     await Promise.all(Array.from(document.images)
       .filter((image) => !image.complete)
       .map((image) => new Promise((resolve) => {
         image.addEventListener("load", resolve, { once: true });
         image.addEventListener("error", resolve, { once: true });
       })));
+    if (document.fonts) await document.fonts.ready;
+    if (window.__legalFitReady) await window.__legalFitReady;
+    if (window.__fitLegalText) window.__fitLegalText();
+    await new Promise((resolve) => requestAnimationFrame(() =>
+      requestAnimationFrame(resolve)));
   })()`);
 }
 

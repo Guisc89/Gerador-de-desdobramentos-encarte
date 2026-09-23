@@ -17,7 +17,11 @@ try {
     format: "esm",
     target: "node20",
     sourcemap: "inline",
-    external: ["puppeteer", "puppeteer-core"],
+    // Keep runtime dependencies as native Node imports. Bundling pino pulls in
+    // thread-stream's dynamic require("node:os"), which cannot execute inside
+    // an ESM bundle and is unrelated to the isolated application sources under
+    // test.
+    packages: "external",
     logLevel: "silent",
   });
   const code = await new Promise((resolve, reject) => {

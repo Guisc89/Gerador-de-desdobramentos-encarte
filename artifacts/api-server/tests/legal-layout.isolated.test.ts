@@ -5,6 +5,12 @@ import { resolveChromiumPath } from "../src/lib/chromium";
 import { renderTelaHtml } from "../src/services/telaTemplate";
 import { renderCardHtml } from "../src/services/cardTemplate";
 import { renderStoryHtml } from "../src/services/storyTemplate";
+import {
+  htmlToPngBatch,
+  pngsToPdf,
+  type PngOptions,
+} from "../src/services/pdfGenerator";
+import { PDFDocument } from "pdf-lib";
 
 const products = Array.from({ length: 4 }, (_, index) => ({
   nome: `Produto ${index + 1}`,
@@ -128,6 +134,147 @@ function assertSameProducts(
     );
   }
 }
+
+async function changedRasterPixels(
+  withoutLegal: Buffer,
+  withLegal: Buffer,
+  bottomFraction: number,
+  threshold: number,
+) {
+  return page.evaluate(
+    async (emptyUrl, legalUrl, from, channelThreshold) => {
+      const load = (src: string) =>
+        new Promise<HTMLImageElement>((resolve, reject) => {
+          const image = new Image();
+          image.onload = () => resolve(image);
+          image.onerror = reject;
+          image.src = src;
+        });
+      const [empty, legal] = await Promise.all([load(emptyUrl), load(legalUrl)]);
+      assertSameSize(empty, legal);
+      const canvas = document.createElement("canvas");
+      canvas.width = empty.naturalWidth;
+      canvas.height = empty.naturalHeight;
+      const context = canvas.getContext("2d", { willReadFrequently: true })!;
+      context.drawImage(empty, 0, 0);
+      const emptyPixels = context.getImageData(
+        0,
+        0,
+        canvas.width,
+        canvas.height,
+      ).data;
+      context.clearRect(0, 0, canvas.width, canvas.height);
+      context.drawImage(legal, 0, 0);
+      const legalPixels = context.getImageData(
+        0,
+        0,
+        canvas.width,
+        canvas.height,
+      ).data;
+      let total = 0;
+      let bottom = 0;
+      const bottomStart = Math.floor(canvas.height * from);
+      for (let offset = 0; offset < emptyPixels.length; offset += 4) {
+        const changed =
+          Math.abs(emptyPixels[offset] - legalPixels[offset]) > channelThreshold ||
+          Math.abs(emptyPixels[offset + 1] - legalPixels[offset + 1]) > channelThreshold ||
+          Math.abs(emptyPixels[offset + 2] - legalPixels[offset + 2]) > channelThreshold;
+        if (!changed) continue;
+        total += 1;
+        const pixelIndex = offset / 4;
+        if (Math.floor(pixelIndex / canvas.width) >= bottomStart) bottom += 1;
+      }
+      return { total, bottom };
+
+      function assertSameSize(first: HTMLImageElement, second: HTMLImageElement) {
+        if (
+          first.naturalWidth !== second.naturalWidth ||
+          first.naturalHeight !== second.naturalHeight
+        ) {
+          throw new Error("Raster dimensions differ");
+        }
+      }
+    },
+    `data:image/${withoutLegal[0] === 0xff ? "jpeg" : "png"};base64,${withoutLegal.toString("base64")}`,
+    `data:image/${withLegal[0] === 0xff ? "jpeg" : "png"};base64,${withLegal.toString("base64")}`,
+    bottomFraction,
+    threshold,
+  );
+}
+
+test("actual PNG and PDF raster pipelines paint per-page legal text", async () => {
+  const marker = "CONDIÇÃO LEGAL RS MS 12345";
+  const cases = [
+    {
+      empty: renderTelaHtml({ ...base, disclaimer: "" }),
+      legal: renderTelaHtml({ ...base, disclaimer: marker }),
+      opts: { width: 1280, height: 720, scale: 1 },
+      bottom: 0.84,
+    },
+    {
+      empty: renderCardHtml({ ...base, isCapa: false, disclaimer: "" }),
+      legal: renderCardHtml({ ...base, isCapa: false, disclaimer: marker }),
+      opts: { width: 1080, height: 1440, scale: 1 },
+      bottom: 0.84,
+    },
+    {
+      empty: renderStoryHtml({
+        ...base,
+        produtos: products.slice(0, 3),
+        isCapa: false,
+        disclaimer: "",
+      }),
+      legal: renderStoryHtml({
+        ...base,
+        produtos: products.slice(0, 3),
+        isCapa: false,
+        disclaimer: marker,
+      }),
+      opts: { width: 1080, height: 1920, scale: 1 },
+      bottom: 0.84,
+    },
+  ];
+
+  for (const item of cases) {
+    const pngs = await htmlToPngBatch(
+      [item.empty, item.legal],
+      item.opts as PngOptions,
+    );
+    const pngDifference = await changedRasterPixels(
+      pngs[0],
+      pngs[1],
+      item.bottom,
+      0,
+    );
+    assert.ok(pngDifference.total > 100, "legal text made no PNG raster change");
+    assert.ok(
+      pngDifference.bottom / pngDifference.total > 0.98,
+      "PNG changes escaped the reserved legal footer",
+    );
+
+    const jpegs = await htmlToPngBatch(
+      [item.empty, item.legal],
+      { ...item.opts, tipo: "jpeg", quality: 82 } as PngOptions,
+    );
+    const jpegDifference = await changedRasterPixels(
+      jpegs[0],
+      jpegs[1],
+      item.bottom,
+      8,
+    );
+    assert.ok(jpegDifference.total > 100, "legal text made no PDF raster change");
+    assert.ok(
+      jpegDifference.bottom / jpegDifference.total > 0.9,
+      "PDF/JPEG changes escaped the reserved legal footer",
+    );
+    const pdf = await pngsToPdf([jpegs[1]], {
+      width: item.opts.width,
+      height: item.opts.height,
+    });
+    const parsed = await PDFDocument.load(pdf);
+    assert.equal(parsed.getPageCount(), 1);
+  }
+});
 
 test("Cards and Stories capa contain no legal markup or legal text", () => {
   const disclaimer = "LEGAL-NEVER-ON-CAPA";

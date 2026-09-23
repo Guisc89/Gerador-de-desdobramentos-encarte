@@ -42,10 +42,14 @@ export const LEGAL_FIT_SCRIPT = `
     element.style.fontSize = low + "px";
   };
   const run = () => document.querySelectorAll("[data-fit-legal]").forEach(fit);
+  // The export renderer calls this once more after every embedded image has
+  // settled. Exposing the same fitter avoids a timing gap between the first
+  // requestAnimationFrame used by the iframe preview and Puppeteer's screenshot.
+  window.__fitLegalText = run;
   window.__legalFitReady = (document.fonts ? document.fonts.ready : Promise.resolve())
     .then(() => new Promise((resolve) => requestAnimationFrame(() => {
       run();
-      resolve();
+      requestAnimationFrame(resolve);
     })));
   window.addEventListener("resize", run);
 })();
