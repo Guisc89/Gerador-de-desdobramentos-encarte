@@ -1,12 +1,10 @@
 (function () {
-  // Stories are a read-only mirror of the Telas tab: same products, texts,
-  // prices and photos — but REGROUPED, because a tela page can hold 4 products
-  // while a story holds at most 3. Page 1 (capa) = the first 2 products;
-  // every other page gets 2 to 3 products (balanced groups). The only
-  // per-product control here is showing/hiding each product's photo.
+  // Stories are a read-only 1:1 mirror of the Telas tab: Story N has the same
+  // products, order, texts, prices and photos as Tela N. Page 1 remains the
+  // 2-product capa; every other page supports up to 4 products.
   const CAPA_PRODUTOS = 2;
   const MIN_PRODUTOS = 2;
-  const MAX_PRODUTOS = 3;
+  const MAX_PRODUTOS = 4;
 
   // Empty-state elements
   const emptyState = document.getElementById("storyEmptyState");
@@ -56,7 +54,7 @@
   // (sem o segundo, todas usam o da capa — compatível com estados antigos).
   let bgDataUri = null;
   let bg2DataUri = null;
-  let stories = []; // [{ id, produtos: [item, ...] }] regrouped from the Telas tab
+  let stories = []; // [{ id, produtos: [item, ...] }] mirrors the Telas pages
   let current = 0;
   let nextId = 1;
   let debounceTimer = null;
@@ -101,31 +99,9 @@
     })[c]);
   }
 
-  // Split N products (after the capa) into balanced groups of 2–3.
-  // Uses ceil(N/3) groups with sizes as even as possible, so e.g. N=4 → 2+2
-  // (never 3+1). N=1 yields a single undersized group — the count validation
-  // warns before generation.
-  function chunkRest(list) {
-    const n = list.length;
-    if (n === 0) return [];
-    const groups = Math.max(1, Math.ceil(n / MAX_PRODUTOS));
-    const base = Math.floor(n / groups);
-    const extra = n % groups;
-    const out = [];
-    let idx = 0;
-    for (let g = 0; g < groups; g += 1) {
-      const size = base + (g < extra ? 1 : 0);
-      out.push(list.slice(idx, idx + size));
-      idx += size;
-    }
-    return out;
-  }
-
   // ---- Mirror the Telas tab ----
-  // Consume everything set up in the Telas tab: same products/texts/prices and
-  // photos. Pages are REGROUPED (capa = first 2 products, rest in groups of
-  // 2–3) because a tela page can hold up to 4 products. No product data is
-  // edited here.
+  // Consume everything set up in the Telas tab without changing page boundaries
+  // or product data. No product data is edited here.
   function mirrorTelas(snapshot) {
     if (!snapshot || !Array.isArray(snapshot.telas)) return;
     if (snapshot.telas.length === 0) {
@@ -142,7 +118,7 @@
     }
 
     // Dates retain the existing per-format behavior. Legal copy is assigned
-    // below from each source tela to one corresponding non-capa story.
+    // below from each source tela to its corresponding Story.
     if (snapshot.mes && !mesInput.value.trim()) mesInput.value = snapshot.mes;
     if (snapshot.validadeInicio && !validadeInicioInput.value.trim())
       validadeInicioInput.value = snapshot.validadeInicio;
@@ -156,15 +132,8 @@
     }
     infoCorEspelhada = (snapshot.infoCor || "").trim();
 
-    // Flatten every product from the telas, in order.
-    const todos = [];
-    snapshot.telas.forEach((t) => {
-      (t.produtos || []).forEach((p) => {
-        const item = newItem(p);
-        todos.push(item);
-      });
-    });
-    if (todos.length === 0) {
+    const paginas = window.TelasQueue.espelharStories(snapshot.telas);
+    if (!paginas.some((produtos) => produtos.length > 0)) {
       stories = [];
       current = 0;
       emptyState.classList.remove("hidden");
@@ -177,13 +146,10 @@
       return;
     }
 
-    // Capa = first 2 products; the rest in balanced groups of 2–3.
-    const capa = todos.slice(0, CAPA_PRODUTOS);
-    const resto = todos.slice(CAPA_PRODUTOS);
-    stories = [newStory(capa)].concat(
-      chunkRest(resto).map((grupo) => newStory(grupo)),
+    stories = paginas.map((produtos) =>
+      newStory(produtos.map((produto) => newItem(produto))),
     );
-    // Legal copy follows page order, independently of product regrouping.
+    // Legal copy follows the same page index; capa never displays it.
     const storyLegals = window.TelasQueue.legaisStories(
       snapshot.telas,
       stories.length,
@@ -426,8 +392,11 @@
       alert("A capa precisa de exatamente 2 produtos preenchidos (com nome).");
       return;
     }
-    if (!isCapa && validos < MIN_PRODUTOS) {
-      alert("Este story precisa de 2 a 3 produtos preenchidos (com nome).");
+    if (
+      !isCapa &&
+      (validos < MIN_PRODUTOS || validos > MAX_PRODUTOS)
+    ) {
+      alert("Este story precisa de 2 a 4 produtos preenchidos (com nome).");
       return;
     }
     downloadLink.classList.add("disabled");
@@ -463,7 +432,7 @@
 
   // Validate the per-page product-count contract before a batch request, using
   // the same rules the server enforces (capa = exactly 2 named products, every
-  // other page 2-3). Empty pages are ignored here (they're skipped server-side).
+  // other page 2-4). Empty pages are ignored here (they're skipped server-side).
   // Returns an array of human-readable problems (empty array = OK).
   function batchCountErrors() {
     const problems = [];
@@ -474,8 +443,11 @@
         if (validos !== CAPA_PRODUTOS) {
           problems.push("story 1 (capa) precisa de exatamente 2 produtos");
         }
-      } else if (validos < MIN_PRODUTOS) {
-        problems.push("story " + (i + 1) + " precisa de 2 a 3 produtos");
+      } else if (
+        validos < MIN_PRODUTOS ||
+        validos > MAX_PRODUTOS
+      ) {
+        problems.push("story " + (i + 1) + " precisa de 2 a 4 produtos");
       }
     });
     return problems;

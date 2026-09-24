@@ -315,13 +315,13 @@ test("Card and Story interiors reserve non-overlapping fixed legal footers", asy
     {
       empty: renderStoryHtml({
         ...base,
-        produtos: products.slice(0, 3),
+        produtos: products,
         isCapa: false,
         disclaimer: "",
       }),
       long: renderStoryHtml({
         ...base,
-        produtos: products.slice(0, 3),
+        produtos: products,
         isCapa: false,
         disclaimer: longLegal,
       }),

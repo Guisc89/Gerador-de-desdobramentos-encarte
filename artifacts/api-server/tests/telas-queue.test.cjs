@@ -142,6 +142,30 @@ test("stories seguem a posição da tela, mantendo vazios e extras sem texto", (
   assert.deepEqual(Queue.legaisStories([], 0), []);
 });
 
+test("stories espelham cada tela 1:1 sem reagrupar produtos", () => {
+  const foto = "data:image/png;base64,AA==";
+  const telas = [
+    { produtos: [{ nome: "A" }, { nome: "B" }] },
+    {
+      produtos: [
+        { nome: "C" },
+        { nome: "D", foto },
+        { nome: "E" },
+        { nome: "F" },
+      ],
+    },
+    { produtos: [{ nome: "G" }, { nome: "H" }, { nome: "I" }] },
+  ];
+  const stories = Queue.espelharStories(telas);
+  assert.deepEqual(stories.map((page) => page.map((p) => p.nome)), [
+    ["A", "B"],
+    ["C", "D", "E", "F"],
+    ["G", "H", "I"],
+  ]);
+  assert.equal(stories[1][1].foto, foto);
+  assert.notEqual(stories[1], telas[1].produtos);
+});
+
 test("falha atomicamente quando posição exigida torna cauda impossível", () => {
   const before = layout([2, 3, 3]);
   const snapshot = JSON.stringify(before);

@@ -17,7 +17,10 @@ import {
 } from "../src/services/legalText";
 import { renderTelaHtml } from "../src/services/telaTemplate";
 import { renderCardHtml } from "../src/services/cardTemplate";
-import { renderStoryHtml } from "../src/services/storyTemplate";
+import {
+  renderStoryHtml,
+  storyProductCountError,
+} from "../src/services/storyTemplate";
 
 test("legal copy leaves wrapping to full-width footers and preserves explicit breaks", () => {
   const sample = "Condição legal informada nesta tela.";
@@ -167,7 +170,11 @@ test("versioned snapshot maps per-tela legal to cards and stories once", () => {
   assert.equal(states.stories[0]?.disclaimer, "");
   assert.deepEqual(
     states.stories.map((page) => page.disclaimer),
-    ["", "Legal dois", "", "Legal quatro", ""],
+    ["", "Legal dois", "", "Legal quatro"],
+  );
+  assert.deepEqual(
+    states.stories.map((page) => page.produtos.map((item) => item.nome)),
+    [["A", "B"], ["C", "D", "E", "F"], ["G", "H", "I"], ["J", "K", "L"]],
   );
   assert.equal(
     states.stories.filter((page) => page.disclaimer === "Legal dois").length,
@@ -181,6 +188,40 @@ test("versioned snapshot maps per-tela legal to cards and stories once", () => {
     states.stories.some((page) => page.disclaimer?.includes("legado")),
     false,
   );
+});
+
+test("Stories accept four products for every export route validator", () => {
+  const product = (name: string) => ({
+    nome: name,
+    descricao: `Apresentação ${name}`,
+    precoInteiro: "10",
+    precoCentavos: "90",
+    foto: "data:image/png;base64,AA==",
+  });
+  const four = {
+    mes: "",
+    validadeInicio: "",
+    validadeFim: "",
+    isCapa: false,
+    produtos: ["A", "B", "C", "D"].map(product),
+    disclaimer: "",
+  };
+  assert.equal(storyProductCountError(four.produtos.length, false), null);
+  assert.equal(four.produtos.length, 4);
+  const exportedHtml = renderStoryHtml(four);
+  assert.match(exportedHtml, /story-body layout-4/);
+  assert.ok(
+    ["A", "B", "C", "D"].every((name, index, names) =>
+      index === 0 ||
+      exportedHtml.indexOf(`>${names[index - 1]}</div>`) <
+        exportedHtml.indexOf(`>${name}</div>`)
+    ),
+  );
+  assert.match(exportedHtml, /data:image\/png;base64,AA==/);
+  assert.doesNotMatch(exportedHtml, /<div[^>]*data-fit-legal/);
+
+  assert.equal(storyProductCountError(2, true), null);
+  assert.match(storyProductCountError(5, false) || "", /2 a 4/);
 });
 
 test("legacy pointer derives only from immutable archive in same workspace", () => {

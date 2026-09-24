@@ -1,6 +1,6 @@
-"use strict";var StoryTemplate=(()=>{var c=Object.defineProperty;var b=Object.getOwnPropertyDescriptor;var x=Object.getOwnPropertyNames;var k=Object.prototype.hasOwnProperty;var $=(e,t)=>{for(var i in t)c(e,i,{get:t[i],enumerable:!0})},z=(e,t,i,o)=>{if(t&&typeof t=="object"||typeof t=="function")for(let a of x(t))!k.call(e,a)&&a!==i&&c(e,a,{get:()=>t[a],enumerable:!(o=b(t,a))||o.enumerable});return e};var C=e=>z(c({},"__esModule",{value:!0}),e);var S={};$(S,{renderStoryHtml:()=>q});function g(e){let t=String(e??"").replace(/\r\n?/g,`
+"use strict";var StoryTemplate=(()=>{var c=Object.defineProperty;var b=Object.getOwnPropertyDescriptor;var x=Object.getOwnPropertyNames;var k=Object.prototype.hasOwnProperty;var $=(e,t)=>{for(var o in t)c(e,o,{get:t[o],enumerable:!0})},z=(e,t,o,i)=>{if(t&&typeof t=="object"||typeof t=="function")for(let a of x(t))!k.call(e,a)&&a!==o&&c(e,a,{get:()=>t[a],enumerable:!(i=b(t,a))||i.enumerable});return e};var C=e=>z(c({},"__esModule",{value:!0}),e);var T={};$(T,{renderStoryHtml:()=>S,storyProductCountError:()=>q});function g(e){let t=String(e??"").replace(/\r\n?/g,`
 `);return t.trim()?t.split(`
-`).map(i=>i.trim().replace(/\s+/g," ")).filter(Boolean):[]}var f=`
+`).map(o=>o.trim().replace(/\s+/g," ")).filter(Boolean):[]}var f=`
 <script>
 (() => {
   const fit = (element) => {
@@ -36,26 +36,26 @@
     })));
   window.addEventListener("resize", run);
 })();
-<\/script>`;function p(e){let t=String(e??"").trim();return/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(t)?t:""}function r(e){return String(e??"").replace(/[&<>"']/g,t=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"})[t])}function v(e){let t=(e.precoCentavos||"00").padStart(2,"0").slice(0,2),i=e.foto?`<img src="${r(e.foto)}" alt="" />`:'<span class="card-photo-empty">Sem foto</span>',o=e.descricao?`<div class="card-desc">${r(e.descricao)}</div>`:"";return`
+<\/script>`;function p(e){let t=String(e??"").trim();return/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(t)?t:""}function n(e){return String(e??"").replace(/[&<>"']/g,t=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"})[t])}function v(e){let t=(e.precoCentavos||"00").padStart(2,"0").slice(0,2),o=e.foto?`<img src="${n(e.foto)}" alt="" />`:'<span class="card-photo-empty">Sem foto</span>',i=e.descricao?`<div class="card-desc">${n(e.descricao)}</div>`:"";return`
     <div class="card">
-      <div class="card-photo">${i}</div>
+      <div class="card-photo">${o}</div>
       <div class="card-info">
-        <div class="card-nome">${r(e.nome)}</div>
-        ${o}
+        <div class="card-nome">${n(e.nome)}</div>
+        ${i}
         <div class="card-price">
-          <span class="rs">R$</span><span class="int">${r(e.precoInteiro||"0")}</span><span class="cent-group"><span class="cent">,${r(t)}</span><span class="cada">cada</span></span>
+          <span class="rs">R$</span><span class="int">${n(e.precoInteiro||"0")}</span><span class="cent-group"><span class="cent">,${n(t)}</span><span class="cada">cada</span></span>
         </div>
       </div>
-    </div>`}function s(e){return String(e??"").replace(/[&<>"']/g,t=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"})[t])}function q(e){let t=Array.isArray(e.produtos)?e.produtos:[],i=t.length,o=!!e.isCapa,a=e.background?`style="background-image:url('${s(e.background)}')"`:"",w=e.background?"story-bg":"story-bg story-bg-default",m=g(e.disclaimer).map(s).join("<br />"),u=p(e.infoCor),y=u?`.si-mesval, .sf-disclaimer { color: ${u}; }`:"",h=n=>`<div class="story-slot">${v(n)}</div>`,d;if(o){let n=[e.mes?s(e.mes):"",e.validadeInicio||e.validadeFim?`Validade: ${s(e.validadeInicio)} a ${s(e.validadeFim)}`:""].filter(Boolean).join(" | "),l=i>0?t.map(h).join(`
+    </div>`}function q(e,t){return t?e===2?null:"A capa exige exatamente 2 produtos v\xE1lidos (com nome).":e>=2&&e<=4?null:"Cada story (a partir do 2\xBA) exige de 2 a 4 produtos v\xE1lidos."}function s(e){return String(e??"").replace(/[&<>"']/g,t=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"})[t])}function S(e){let t=Array.isArray(e.produtos)?e.produtos:[],o=t.length,i=!!e.isCapa,a=e.background?`style="background-image:url('${s(e.background)}')"`:"",w=e.background?"story-bg":"story-bg story-bg-default",m=g(e.disclaimer).map(s).join("<br />"),u=p(e.infoCor),y=u?`.si-mesval, .sf-disclaimer { color: ${u}; }`:"",h=r=>`<div class="story-slot">${v(r)}</div>`,d;if(i){let r=[e.mes?s(e.mes):"",e.validadeInicio||e.validadeFim?`Validade: ${s(e.validadeInicio)} a ${s(e.validadeFim)}`:""].filter(Boolean).join(" | "),l=o>0?t.map(h).join(`
 `):'<div class="story-empty">Adicione produtos para montar o story.</div>';d=`
       <div class="story-topinfo">
-        ${n?`<div class="si-mesval">${n}</div>`:""}
+        ${r?`<div class="si-mesval">${r}</div>`:""}
       </div>
-      <div class="story-stack" data-count="${i}">
+      <div class="story-stack" data-count="${o}">
         ${l}
-      </div>`}else{let n=i>=3?"layout-3":"layout-2",l=i>0?t.map(h).join(`
+      </div>`}else{let r=o>=4?"layout-4":o===3?"layout-3":"layout-2",l=o>0?t.map(h).join(`
 `):'<div class="story-empty story-empty-center">Adicione produtos para montar o story.</div>';d=`
-      <div class="story-body ${n}" data-count="${i}">
+      <div class="story-body ${r}" data-count="${o}">
         ${l}
       </div>
       <div class="story-footer">
@@ -134,9 +134,16 @@
     gap: 4vw;
     padding: 13% 6% 4% 6%;
   }
-  /* 2 & 3 products: full, centered stack (reference dispositions) */
+  /* 2\u20134 products: centered stacks. Four uses tighter cards and gaps, while
+     remaining fully above the fixed legal footer. */
   .story-body.layout-2 .story-slot { width: 86%; }
   .story-body.layout-3 .story-slot { width: 84%; }
+  .story-body.layout-4 {
+    gap: 2.2vw;
+    padding-top: 10%;
+    padding-bottom: 2%;
+  }
+  .story-body.layout-4 .story-slot { width: 80%; }
 
   /* Bottom legal footer */
   .story-footer {
@@ -278,5 +285,5 @@
     </div>
   </div>
 </body>
-${o?"":f}
-</html>`}return C(S);})();
+${i?"":f}
+</html>`}return C(T);})();

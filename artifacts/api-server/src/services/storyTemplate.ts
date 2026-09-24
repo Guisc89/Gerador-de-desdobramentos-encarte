@@ -15,7 +15,7 @@ import {
 // Page 1 (capa, isCapa=true): exactly 2 products stacked, upper-middle area,
 // with the month/validade + legal copy block above them (the campaign
 // lettering lives in the lower half of the background). Page 2+ (isCapa=false):
-// 2 to 3 products stacked and vertically centered, plus a bottom footer with
+// 2 to 4 products stacked and vertically centered, plus a bottom footer with
 // the legal copy.
 export interface StoryProduto extends TelaProduto {}
 
@@ -29,6 +29,20 @@ export interface StoryState {
   background?: string | null;
   isCapa?: boolean;
   produtos: StoryProduto[];
+}
+
+export function storyProductCountError(
+  count: number,
+  isCapa: boolean,
+): string | null {
+  if (isCapa) {
+    return count === 2
+      ? null
+      : "A capa exige exatamente 2 produtos válidos (com nome).";
+  }
+  return count >= 2 && count <= 4
+    ? null
+    : "Cada story (a partir do 2º) exige de 2 a 4 produtos válidos.";
 }
 
 function esc(value: unknown): string {
@@ -93,8 +107,9 @@ export function renderStoryHtml(state: StoryState): string {
         ${cards}
       </div>`;
   } else {
-    // Non-capa: 2–3 product cards stacked, vertically centered + bottom footer.
-    const layoutClass = count >= 3 ? "layout-3" : "layout-2";
+    // Non-capa: 2–4 product cards stacked, vertically centered + bottom footer.
+    const layoutClass =
+      count >= 4 ? "layout-4" : count === 3 ? "layout-3" : "layout-2";
     const cards =
       count > 0
         ? produtos.map(slots).join("\n")
@@ -183,9 +198,16 @@ export function renderStoryHtml(state: StoryState): string {
     gap: 4vw;
     padding: 13% 6% 4% 6%;
   }
-  /* 2 & 3 products: full, centered stack (reference dispositions) */
+  /* 2–4 products: centered stacks. Four uses tighter cards and gaps, while
+     remaining fully above the fixed legal footer. */
   .story-body.layout-2 .story-slot { width: 86%; }
   .story-body.layout-3 .story-slot { width: 84%; }
+  .story-body.layout-4 {
+    gap: 2.2vw;
+    padding-top: 10%;
+    padding-bottom: 2%;
+  }
+  .story-body.layout-4 .story-slot { width: 80%; }
 
   /* Bottom legal footer */
   .story-footer {

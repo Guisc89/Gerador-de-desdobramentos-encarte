@@ -5,6 +5,7 @@ import { corHexValida } from "../services/telaTemplate";
 import { parseExcel, importStats } from "../services/excelParser";
 import {
   renderStoryHtml,
+  storyProductCountError,
   type StoryState,
   type StoryProduto,
 } from "../services/storyTemplate";
@@ -64,10 +65,9 @@ function str(value: unknown): string {
 // resources and become an SSRF gadget when rendered by the headless browser).
 const ALLOWED_IMG = /^data:image\/(png|jpe?g|webp);base64,/i;
 const MAX_IMG_BYTES = 8 * 1024 * 1024;
-// Page 1 (capa) holds exactly 2 products; every other page holds 2 to 3.
+// Page 1 (capa) holds exactly 2 products; every other page holds 2 to 4.
 const CAPA_MAX_PRODUTOS = 2;
-const STORY_MAX_PRODUTOS = 3;
-const STORY_MIN_PRODUTOS = 2;
+const STORY_MAX_PRODUTOS = 4;
 const MAX_STORIES = 60;
 const STORY_BATCH_TTL_MS = 30 * 60 * 1000;
 const STORY_BATCH_MAX_PART = 1;
@@ -113,14 +113,16 @@ function sanitizeProduto(input: unknown): StoryProduto | null {
   };
 }
 
-function sanitizeState(body: unknown, forcedIsCapa?: boolean): StoryState {
+export function sanitizeStoryState(body: unknown, forcedIsCapa?: boolean): StoryState {
   const obj = (body ?? {}) as Record<string, unknown>;
   const isCapa =
     forcedIsCapa !== undefined ? forcedIsCapa : obj["isCapa"] === true;
   const maxProdutos = isCapa ? CAPA_MAX_PRODUTOS : STORY_MAX_PRODUTOS;
   const rawProdutos = Array.isArray(obj["produtos"]) ? obj["produtos"] : [];
   const produtos = rawProdutos
-    .slice(0, maxProdutos)
+    // Keep one overflow item so validation rejects it instead of silently
+    // exporting a truncated page. Still cap hostile payload processing.
+    .slice(0, maxProdutos + 1)
     .map(sanitizeProduto)
     .filter((p): p is StoryProduto => p !== null);
   return {
@@ -348,20 +350,11 @@ async function saveStoryBatchResult(
 
 // Enforce the per-position product-count contract uniformly across every
 // generation route: the capa (page 1) has exactly 2 products, every other page
-// has 2 to 3. Returns an error message or null when the count is valid. (The max
-// is already guaranteed by sanitizeState's slice; this catches the low end and
-// the wrong capa count.) An empty page is handled separately (skipped) by the
+// has 2 to 4. Returns an error message or null when the count is valid. An empty
+// page is handled separately (skipped) by the
 // batch routes, so callers pass only non-empty pages here.
-function storyCountError(state: StoryState): string | null {
-  const n = state.produtos.length;
-  if (state.isCapa) {
-    if (n !== CAPA_MAX_PRODUTOS) {
-      return "A capa exige exatamente 2 produtos válidos (com nome).";
-    }
-  } else if (n < STORY_MIN_PRODUTOS) {
-    return "Cada story (a partir do 2º) exige de 2 a 3 produtos válidos.";
-  }
-  return null;
+export function storyCountError(state: StoryState): string | null {
+  return storyProductCountError(state.produtos.length, !!state.isCapa);
 }
 
 // Parse the Excel and return products for story composition
@@ -415,14 +408,14 @@ router.post("/stories/parse", upload.single("planilha"), async (req, res) => {
 // The client injects it via iframe srcdoc (fallback path — the browser bundle
 // renders the preview client-side).
 router.post("/stories/render", (req, res) => {
-  const state = sanitizeState(req.body);
+  const state = sanitizeStoryState(req.body);
   res.type("html").send(renderStoryHtml(state));
 });
 
 // Generate a single high-resolution PNG (1080x1920, 2x) and return a download URL
 router.post("/stories/generate", async (req, res) => {
   try {
-    const state = sanitizeState(req.body);
+    const state = sanitizeStoryState(req.body);
 
     const countError = storyCountError(state);
     if (countError) {
@@ -482,7 +475,7 @@ router.post("/stories/generate-all", async (req, res) => {
 
     const states = rawStories
       .slice(0, MAX_STORIES)
-      .map((c, index) => sanitizeState(c, index === 0));
+      .map((c, index) => sanitizeStoryState(c, index === 0));
 
     const valid: { index: number; state: StoryState }[] = [];
     const invalid: string[] = [];
@@ -563,7 +556,7 @@ router.post("/stories/generate-pdf", async (req, res) => {
 
     const states = rawStories
       .slice(0, MAX_STORIES)
-      .map((c, index) => sanitizeState(c, index === 0));
+      .map((c, index) => sanitizeStoryState(c, index === 0));
     const naoVazias = states.filter((s) => s.produtos.length > 0);
     const vazias = states.length - naoVazias.length;
 
@@ -673,7 +666,7 @@ router.post("/stories/lote/parte", async (req, res) => {
       res.status(400).json({ error: "Story com índice inválido." });
       return;
     }
-    const state = sanitizeState(entry["story"], index === 0);
+    const state = sanitizeStoryState(entry["story"], index === 0);
     if (state.produtos.length === 0) {
       res.status(400).json({
         error: `O story ${index + 1} está sem produtos válidos.`,

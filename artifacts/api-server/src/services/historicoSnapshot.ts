@@ -103,27 +103,13 @@ function cardValid(pages: TelaProduto[][]): boolean {
 }
 
 function storyGroups(pages: TelaProduto[][]): TelaProduto[][] {
-  const all = pages.flat();
-  if (all.length === 0) return [];
-  const result = [all.slice(0, 2)];
-  const rest = all.slice(2);
-  if (rest.length === 0) return result;
-  const count = Math.max(1, Math.ceil(rest.length / 3));
-  const base = Math.floor(rest.length / count);
-  const extra = rest.length % count;
-  let cursor = 0;
-  for (let index = 0; index < count; index += 1) {
-    const size = base + (index < extra ? 1 : 0);
-    result.push(rest.slice(cursor, cursor + size));
-    cursor += size;
-  }
-  return result;
+  return pages.map((produtos) => produtos.slice());
 }
 
 function storiesValid(groups: TelaProduto[][]): boolean {
   return groups.length > 0 &&
     groups.every((p, index) =>
-      index === 0 ? p.length === 2 : p.length >= 2 && p.length <= 3
+      index === 0 ? p.length === 2 : p.length >= 2 && p.length <= 4
     );
 }
 

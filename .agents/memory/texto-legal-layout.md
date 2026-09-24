@@ -15,8 +15,8 @@ O texto legal é uma escolha explícita por tela, não uma configuração global
 
 **How to apply:** Não preencher automaticamente telas vazias, nem mesmo ao recuperar texto global antigo. Preservar esse conteúdo para reutilização explícita, sem interpretá-lo como autorização para mostrá-lo em todas as páginas.
 
-Nos Stories, a correspondência do texto legal é pela posição da página (Tela 2 → Story 2), independentemente do reagrupamento de produtos.
+Nos Stories, produtos e texto legal correspondem à mesma página de origem (Tela 2 → Story 2), sem reagrupar produtos entre páginas.
 
-**Why:** A usuária rejeitou a associação ao último Story contendo produtos da tela de origem, pois isso colocava o texto na ordem errada.
+**Why:** A usuária pediu espelhamento fiel das Telas também nos Stories, com até quatro produtos. Isso substitui o antigo reagrupamento de produtos em Stories menores.
 
-**How to apply:** Não mover, juntar ou repetir textos para acompanhar produtos. Preservar lacunas e deixar Stories extras sem texto; capa continua sem texto legal.
+**How to apply:** Preservar número de página, ordem, quantidade de produtos e lacunas do texto legal. Não dividir uma Tela em vários Stories. Capa continua com dois produtos e sem texto legal.

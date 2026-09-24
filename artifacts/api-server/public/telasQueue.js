@@ -186,11 +186,21 @@
     });
   }
 
+  // Stories preserve the page boundary and product order from Telas. Returning
+  // shallow copies of the product arrays prevents the Stories UI from mutating
+  // the queue while keeping every product field (including the keyed photo).
+  function espelharStories(telas) {
+    return (Array.isArray(telas) ? telas : []).map(function (tela) {
+      return Array.isArray(tela && tela.produtos) ? tela.produtos.slice() : [];
+    });
+  }
+
   return {
     mover: mover,
     validar: validar,
     restaurarLegais: restaurarLegais,
     legaisCards: legaisCards,
     legaisStories: legaisStories,
+    espelharStories: espelharStories,
   };
 });
